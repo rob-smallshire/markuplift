@@ -50,3 +50,33 @@ dev = [
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+
+[tool.bumpversion]
+current_version = "0.0.1"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+tag = true
+commit = true
+message = "Bump version: {current_version} → {new_version}"
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+files = [
+    { filename = "src/markuplift/__init__.py" },
+]
+
+[tool.flake8]
+max-line-length = 120
+
+[tool.ruff]
+line-length = 120
+
+[tool.pylint]
+max-line-length = 120
+
+[tool.coverage.report]
+exclude_also = [
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "@(abc\\.)?abstractmethod",
+]
