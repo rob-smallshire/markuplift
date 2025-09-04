@@ -1,6 +1,7 @@
 [project]
 name = "markuplift"
-version = "0.1.0"
+dynamic = ["version"]
+authors = [{ name = "Robert Smallshire", email = "robert@smallshire.org.uk" }]
 description = "A configurable XML and HTML formatter."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,6 +16,9 @@ testpaths = ["tests"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = { attr = "markuplift.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
