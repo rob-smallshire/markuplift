@@ -52,3 +52,56 @@ def test_formatter_inline_and_block():
         </inline></root>
     """)
     assert actual == expected
+
+
+def test_formatter_mixed():
+    example = cleandoc("""
+        <root><block>before inline <inline>inline content</inline> after inline</block></root>
+    """)
+    actual = markuplift.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block>before inline <inline>inline content</inline> after inline</block>
+        </root>
+    """)
+    assert actual == expected
+
+
+def test_formatter_mixed_multiple():
+    example = cleandoc("""
+        <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block></root>
+    """)
+    actual = markuplift.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block>
+        </root>
+    """)
+    assert actual == expected
+
+
+def test_formatter_mixed_multiple_blocks_and_inlines():
+    example = cleandoc("""
+        <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block><block>second block with <inline>inline content</inline></block></root>
+    """)
+    actual = markuplift.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block>
+          <block>second block with <inline>inline content</inline></block>
+        </root>
+    """)
+    assert actual == expected
+
+
+def test_block_tail_text_suppresses_newline_indent():
+    example = cleandoc("""
+        <root><block>first block</block>some text<block>second block</block></root>
+    """)
+    actual = markuplift.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block>first block</block>some text<block>second block</block>
+        </root>
+    """)
+    assert actual == expected

@@ -12,21 +12,29 @@ def format_doc(doc: str) -> str:
     """
     tree = etree.fromstring(doc)
     parts = []
-    format_element(tree, parts, level=0)
+    format_element(tree, parts)
     return "".join(parts)
 
 
 def _is_block(element: etree._Element) -> bool:
-    return element.tag in {"block"}
+    return element.tag in {"block", "root"}
 
 
-def format_element(element: etree._Element, parts: list[str], level: int) -> bool:
+def format_element(
+    element: etree._Element,
+    parts: list[str],
+    logical_level: int = 0,
+    physical_level: int = 0,
+    previous: etree._Element = None,
+) -> etree._Element:
     is_block = _is_block(element)
-    indent = "  " * level
-    if is_block:
-        if parts[-1] != "\n":
+    indent = "  " * physical_level
+    physical_increment = 0
+    if is_block and ((previous is None) or (_is_block(previous) and not previous.tail)):
+        if parts and parts[-1] != "\n":
             parts.append("\n")
         parts.append(indent)
+        physical_increment = 1
 
     tag = element.tag
     parts.append(f"<{tag}")
@@ -40,21 +48,21 @@ def format_element(element: etree._Element, parts: list[str], level: int) -> boo
     if text:
         parts.append(text)
 
-    child_block = False
-    for child in element:
-        child_block = format_element(child, parts, level + int(_is_block(child)))
-        tail = (child.tail or "")
-        if tail:
-            parts.append(tail)
+    previous_child = None
 
-    if child_block:
+    for child in element:
+        previous_child = format_element(child, parts, logical_level + 1, physical_level + physical_increment, previous_child)
+
+    if is_block and (previous_child is not None) and _is_block(previous_child) and (not previous_child.tail):
         parts.append(indent)
 
     parts.append(f"</{tag}>")
 
-    if is_block:
-        if parts[-1] != "\n":
-            parts.append("\n")
-        return True
+    if element.tail:
+        parts.append(element.tail)
 
-    return False
+    if logical_level != 0 and is_block and not element.tail:
+        if parts and parts[-1] != "\n":
+            parts.append("\n")
+
+    return element
