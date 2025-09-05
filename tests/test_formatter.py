@@ -105,3 +105,14 @@ def test_block_tail_text_suppresses_newline_indent():
         </root>
     """)
     assert actual == expected
+
+
+def test_inline_root():
+    example = cleandoc("""
+        <inline>some inline content</inline>
+    """)
+    actual = markuplift.format_doc(example)
+    expected = cleandoc("""
+        <inline>some inline content</inline>
+    """)
+    assert actual == expected
