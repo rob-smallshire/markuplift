@@ -2,7 +2,7 @@ from inspect import cleandoc
 
 import markuplift
 
-def test_formatter():
+def test_formatter_from_compact():
     example = cleandoc("""
         <root><block><block>text</block></block></root>
     """)
@@ -17,7 +17,7 @@ def test_formatter():
     assert actual == expected
 
 
-def test_formatter_with_inline():
+def test_formatter_with_inline_from_compact():
     example = cleandoc("""
         <root><inline><inline>content</inline></inline></root>
     """)
@@ -28,7 +28,7 @@ def test_formatter_with_inline():
     assert actual == expected
 
 
-def test_formatter_block_and_inline():
+def test_formatter_block_and_inline_from_compact():
     example = cleandoc("""
         <root><block><inline>text</inline></block></root>
     """)
@@ -41,7 +41,7 @@ def test_formatter_block_and_inline():
     assert actual == expected
 
 
-def test_formatter_inline_and_block():
+def test_formatter_inline_and_block_from_compact():
     example = cleandoc("""
         <root><inline><block>text</block></inline></root>
     """)
@@ -54,7 +54,7 @@ def test_formatter_inline_and_block():
     assert actual == expected
 
 
-def test_formatter_mixed():
+def test_formatter_mixed_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline</block></root>
     """)
@@ -67,7 +67,7 @@ def test_formatter_mixed():
     assert actual == expected
 
 
-def test_formatter_mixed_multiple():
+def test_formatter_mixed_multiple_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block></root>
     """)
@@ -80,7 +80,7 @@ def test_formatter_mixed_multiple():
     assert actual == expected
 
 
-def test_formatter_mixed_multiple_blocks_and_inlines():
+def test_formatter_mixed_multiple_blocks_and_inlines_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block><block>second block with <inline>inline content</inline></block></root>
     """)
@@ -94,7 +94,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines():
     assert actual == expected
 
 
-def test_block_tail_text_suppresses_newline_indent():
+def test_block_tail_text_suppresses_newline_indent_from_compact():
     example = cleandoc("""
         <root><block>first block</block>some text<block>second block</block></root>
     """)
@@ -107,7 +107,7 @@ def test_block_tail_text_suppresses_newline_indent():
     assert actual == expected
 
 
-def test_inline_root():
+def test_inline_root_from_compact():
     example = cleandoc("""
         <inline>some inline content</inline>
     """)
@@ -116,3 +116,5 @@ def test_inline_root():
         <inline>some inline content</inline>
     """)
     assert actual == expected
+
+
