@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Callable
 
 from lxml import etree
 
@@ -8,6 +9,21 @@ TRUE = "true"
 
 
 class Formatter:
+
+    def __init__(
+        self,
+        block_classifier: Callable[[etree._Element], bool] | None = None,
+    ):
+        """Initialize the formatter.
+
+        Args:
+            block_classifier: A function that takes an lxml.etree.Element and returns True if it
+                should be treated as a block element, False if it should be treated as an inline
+                element. If None, no elements are treated as block elements.
+        """
+        if block_classifier is None:
+            block_classifier = lambda e: False
+        self._is_block = block_classifier
 
     def format_doc(self, doc: str) -> str:
         """Format a markup document.
@@ -212,10 +228,12 @@ class Formatter:
                 self._annotate_physical_level(child, level)
 
 
-    def _is_block(self, element: etree._Element) -> bool:
-        return element.tag in {"block", "root"}
+def is_block(element: etree._Element) -> bool:
+    return element.tag in {"block", "root"}
 
 
 def format_doc(doc: str) -> str:
-    formatter = Formatter()
+    formatter = Formatter(
+        block_classifier=is_block
+    )
     return formatter.format_doc(doc)
