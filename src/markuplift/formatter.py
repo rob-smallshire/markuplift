@@ -1,4 +1,10 @@
+from copy import deepcopy
+
 from lxml import etree
+
+FALSE = ""  # Empty string is falsey when evaluated as a bool
+
+TRUE = "true"
 
 
 def format_doc(doc: str) -> str:
@@ -11,58 +17,199 @@ def format_doc(doc: str) -> str:
         A pretty-printed XML string.
     """
     tree = etree.fromstring(doc)
+
+    # Create a parallel tree to which we can add special attributes to each element to control
+    # formatting.
+    annotated_tree = deepcopy(tree)
+
+    print("Original tree:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Label each element as a block or inline using the _is_block function.
+    for elem in annotated_tree.iter():
+        elem.attrib["_type"] = "block" if _is_block(elem) else "inline"
+        # TODO: Later we can add more attributes here to control formatting, such as whether to
+        #       preserve whitespace or specifically newlines.
+
+    # Pretty print the tree to see its structure and the annotations.
+    print("Annotated tree after initial _type assignment:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Any element for which *any* of its siblings have non-blank tail text is inline, because
+    # that tail text must be preserved.
+    # First check if any siblings of the current element or the current element itself has
+    # non-blank tail text.
+    for elem in annotated_tree.iter():
+        parent = elem.getparent()
+        if parent is not None:
+            siblings = list(parent)
+            if any(sibling.tail and sibling.tail.strip() for sibling in siblings):
+                for sibling in siblings:
+                    sibling.attrib["_type"] = "inline"
+
+    print("Annotated tree after marking elements with non-blank tail text as inline:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+
+    # Every element inside an inline element is also inline. This overrides the previous setting.
+    for elem in annotated_tree.iter():
+        parent = elem.getparent()
+        if parent is not None and parent.attrib.get("_type") == "inline":
+            elem.attrib["_type"] = "inline"
+
+    # Pretty print the tree to see its structure and the annotations.
+    print("Annotated tree after propagating inline types:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Now we need to label each element with _preserve_text_ws: bool depending on whether the
+    # first child of a block element is inline or not, because inline elements preserve the
+    # surrounding whitespace.
+    for elem in annotated_tree.iter():
+        if elem.attrib.get("_type") == "block":
+            first_child = next(iter(elem), None)
+            if first_child is not None and first_child.attrib.get("_type") == "inline":
+                elem.attrib["_preserve_text_ws"] = TRUE
+            else:
+                elem.attrib["_preserve_text_ws"] = FALSE
+        else:
+            elem.attrib["_preserve_text_ws"] = FALSE
+
+    # Pretty print the tree to see its structure and the annotations.
+    print("Annotated tree after setting _preserve_text_ws:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # We need to label each element with _preserve_tail_ws: bool depending on whether the next sibling
+    # of a block element is inline or not, because inline elements preserve the surrounding
+    # whitespace.
+    for elem in annotated_tree.iter():
+        if elem.attrib.get("_type") == "block":
+            next_sibling = elem.getnext()
+            if next_sibling is not None and next_sibling.attrib.get("_type") == "inline":
+                elem.attrib["_preserve_tail_ws"] = TRUE
+            else:
+                elem.attrib["_preserve_tail_ws"] = FALSE
+        else:
+            elem.attrib["_preserve_tail_ws"] = TRUE
+
+    # Pretty print the tree to see its structure and the annotations.
+    print("Annotated tree after setting _preserve_tail_ws:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    annotate_logical_level(annotated_tree)
+    print("Annotated tree after setting _logical_level:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    annotate_physical_level(annotated_tree)
+    print("Annotated tree after setting _physical_level:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Annotate each element with a string which contains a newline and the appropriate indentation
+    # to follow its text, if any. If the first child is inline, then no newline or indentation
+    # is added. If the first child is block, then a newline and indentation is added appropriate for
+    # the physical level of the block. If there are no children, no newline or indentation is added.
+    # We also need to respect the _preserve_text_ws attribute.
+    for elem in annotated_tree.iter():
+        first_child = next(iter(elem), None)
+        if first_child is not None:
+            if first_child.attrib.get("_type") == "inline" or elem.attrib.get(
+                "_preserve_text_ws"
+            ):
+                elem.attrib["_text_indent"] = ""
+            else:
+                indent = "  " * int(first_child.attrib.get("_physical_level", 0))
+                elem.attrib["_text_indent"] = "\n" + indent
+        else:
+            elem.attrib["_text_indent"] = ""
+
+    print("Annotated tree after setting _text_indent:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Annotate each element with a string which contains a newline and the appropriate indentation
+    # to follow its tail, if any. If the following element is inline, then no newline or indentation
+    # is added. If the following element is block, then a newline and indentation is added appropriate
+    # for the physical level of the block. If the element is the last child of its parent, and if
+    # the parent is a block, a newline
+    # and indentation is added appropriate for the physical level of the parent in order to indent
+    # the closing tag of the parent. We also need to respect the _preserve_tail_ws attribute.
+    for elem in annotated_tree.iter():
+        next_sibling = elem.getnext()
+        if next_sibling is not None:
+            if next_sibling.attrib.get("_type") == "inline" or elem.attrib.get(
+                "_preserve_tail_ws"
+            ):
+                elem.attrib["_tail_indent"] = ""
+            else:
+                indent = "  " * int(next_sibling.attrib.get("_physical_level", 0))
+                elem.attrib["_tail_indent"] = "\n" + indent
+        else:
+            parent = elem.getparent()
+            if parent is not None and parent.attrib.get("_type") == "block" and not elem.attrib.get("_preserve_tail_ws"):
+                indent = "  " * int(parent.attrib.get("_physical_level", 0))
+                elem.attrib["_tail_indent"] = "\n" + indent
+            else:
+                elem.attrib["_tail_indent"] = ""
+
+    print("Annotated tree after setting _tail_indent:")
+    print(etree.tostring(annotated_tree, pretty_print=True).decode())
+    print("-----")
+
+    # Now we can format the document using the annotated tree to guide the formatting.
     parts = []
-    format_element(tree, parts)
+    _format_element(annotated_tree, parts)
     return "".join(parts)
+
+def _format_element(
+    element: etree._Element,
+    parts: list[str],
+):
+    parts.append(f"<{element.tag}")
+    for k, v in element.attrib.items():
+        if not k.startswith("_"):
+            parts.append(f' {k}="{v}"')
+    parts.append(">")
+    if element.text:
+        text = element.text or ""
+        if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
+            text = text.strip()
+        if text:
+            parts.append(text)
+    parts.append(element.attrib.get("_text_indent", ""))
+    for child in element:
+        _format_element(child, parts)
+    parts.append(f"</{element.tag}>")
+    if element.tail:
+        tail = element.tail or ""
+        if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_tail_ws"):
+            tail = tail.strip()
+        if tail:
+            parts.append(tail)
+    parts.append(element.attrib.get("_tail_indent", ""))
+
+
+# Now we can annotate each element with its logical level (0 for root, 1 for children of root, etc.)
+def annotate_logical_level(element: etree._Element, level: int = 0):
+    element.attrib["_logical_level"] = str(level)
+    for child in element:
+        annotate_logical_level(child, level + 1)
+
+
+# Now we can annotate each element with its indentation level, where block elements are indented
+# one level more than their parent, and inline elements are at the same level as their parent.
+def annotate_physical_level(element: etree._Element, level: int = 0):
+    element.attrib["_physical_level"] = str(level)
+    for child in element:
+        if child.attrib.get("_type") == "block":
+            annotate_physical_level(child, level + 1)
+        else:
+            annotate_physical_level(child, level)
 
 
 def _is_block(element: etree._Element) -> bool:
     return element.tag in {"block", "root"}
-
-
-def format_element(
-    element: etree._Element,
-    parts: list[str],
-    logical_level: int = 0,
-    physical_level: int = 0,
-    previous: etree._Element = None,
-) -> etree._Element:
-    is_block = _is_block(element)
-    indent = "  " * physical_level
-    physical_increment = 0
-    if is_block and ((previous is None) or (_is_block(previous) and not previous.tail)):
-        if parts and parts[-1] != "\n":
-            parts.append("\n")
-        parts.append(indent)
-        physical_increment = 1
-
-    tag = element.tag
-    parts.append(f"<{tag}")
-
-    for k, v in element.attrib.items():
-        parts.append(f' {k}="{v}"')
-
-    parts.append(">")
-
-    text = (element.text or "")
-    if text:
-        parts.append(text)
-
-    previous_child = None
-
-    for child in element:
-        previous_child = format_element(child, parts, logical_level + 1, physical_level + physical_increment, previous_child)
-
-    if is_block and (previous_child is not None) and _is_block(previous_child) and (not previous_child.tail):
-        parts.append(indent)
-
-    parts.append(f"</{tag}>")
-
-    if element.tail:
-        parts.append(element.tail)
-
-    if logical_level != 0 and is_block and not element.tail:
-        if parts and parts[-1] != "\n":
-            parts.append("\n")
-
-    return element
