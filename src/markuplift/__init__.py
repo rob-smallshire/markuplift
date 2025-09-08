@@ -1,7 +1,6 @@
-from .formatter import format_doc
+from .formatter import Formatter
 
 __all__ = [
-    "format_doc",
 ]
 
 from collections import namedtuple

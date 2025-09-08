@@ -1,4 +1,5 @@
 from copy import deepcopy
+from itertools import groupby
 from typing import Callable
 
 from lxml import etree
@@ -12,18 +13,30 @@ class Formatter:
 
     def __init__(
         self,
-        block_classifier: Callable[[etree._Element], bool] | None = None,
+        block_predicate: Callable[[etree._Element], bool] | None = None,
+        normalize_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
     ):
         """Initialize the formatter.
 
         Args:
-            block_classifier: A function that takes an lxml.etree.Element and returns True if it
-                should be treated as a block element, False if it should be treated as an inline
+            block_predicate: A function that takes an lxml.etree.Element and returns True if it
+                should be treated as a block element, or False if it should be treated as an inline
                 element. If None, no elements are treated as block elements.
+
+            normalize_whitespace_predicate: A function that takes an lxml.etree.Element and returns
+                True if the whitespace in its text content should be normalized (i.e., leading and
+                trailing whitespace removed, and internal sequences of whitespace replaced with a
+                single space). This does not apply to tail text. If None, no elements have their
+                whitespace normalized.
         """
-        if block_classifier is None:
-            block_classifier = lambda e: False
-        self._is_block = block_classifier
+        if block_predicate is None:
+            block_predicate = lambda e: False
+
+        if normalize_whitespace_predicate is None:
+            normalize_whitespace_predicate = lambda e: False
+
+        self._is_block = block_predicate
+        self._must_normalize_whitespace = normalize_whitespace_predicate
 
     def format_doc(self, doc: str) -> str:
         """Format a markup document.
@@ -84,13 +97,16 @@ class Formatter:
         # surrounding whitespace.
         for elem in annotated_tree.iter():
             if elem.attrib.get("_type") == "block":
-                first_child = next(iter(elem), None)
-                if first_child is not None and first_child.attrib.get("_type") == "inline":
+
+                # Actually if *any* child is inline, we need to preserve the surrounding whitespace.
+                # This is because if there are multiple children, and any of them is inline, the
+                # whitespace within the block must be preserved.
+                if any(child.attrib.get("_type") == "inline" for child in elem):
                     elem.attrib["_preserve_text_ws"] = TRUE
                 else:
                     elem.attrib["_preserve_text_ws"] = FALSE
             else:
-                elem.attrib["_preserve_text_ws"] = FALSE
+                elem.attrib["_preserve_text_ws"] = TRUE
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after setting _preserve_text_ws:")
@@ -112,6 +128,26 @@ class Formatter:
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after setting _preserve_tail_ws:")
+        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print("-----")
+
+        # Now we override the _preserve_text_ws attribute to be falsey (i.e. "") for any element and
+        # for which the _must_normalize_whitespace function returns True. We also set the
+        # "_normalize_text_whitespace" attribute to "true" for this element. We also need to modify
+        # all descendants of the matching element to set both _preserve_text_ws and _preserve_tail_ws to
+        # falsey (i.e. "") and set the "_normalize_text_whitespace" attribute to "true".
+        for elem in annotated_tree.iter():
+            if self._must_normalize_whitespace(elem):
+                elem.attrib["_normalize_text_whitespace"] = TRUE
+                elem.attrib["_preserve_text_ws"] = FALSE
+                elem.attrib["_preserve_tail_ws"] = FALSE
+                for descendant in elem.iterdescendants():
+                    descendant.attrib["_normalize_text_whitespace"] = TRUE
+                    descendant.attrib["_normalize_tail_whitespace"] = TRUE
+                    descendant.attrib["_preserve_text_ws"] = FALSE
+                    descendant.attrib["_preserve_tail_ws"] = FALSE
+
+        print("Annotated tree after setting _normalize_text_whitespace:")
         print(etree.tostring(annotated_tree, pretty_print=True).decode())
         print("-----")
 
@@ -195,6 +231,9 @@ class Formatter:
             text = element.text or ""
             if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
                 text = text.strip()
+            if element.attrib.get("_normalize_text_whitespace"):
+                text = normalize_ws(text)
+                text = text.lstrip()
             if text:
                 parts.append(text)
         parts.append(element.attrib.get("_text_indent", ""))
@@ -205,9 +244,13 @@ class Formatter:
             tail = element.tail or ""
             if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_tail_ws"):
                 tail = tail.strip()
+            if element.attrib.get("_normalize_tail_whitespace"):
+                tail = normalize_ws(tail)
+                tail = tail.rstrip()
             if tail:
                 parts.append(tail)
-        parts.append(element.attrib.get("_tail_indent", ""))
+        if not element.attrib.get("_normalize_tail_whitespace"):
+            parts.append(element.attrib.get("_tail_indent", ""))
 
 
     # Now we can annotate each element with its logical level (0 for root, 1 for children of root, etc.)
@@ -228,12 +271,13 @@ class Formatter:
                 self._annotate_physical_level(child, level)
 
 
-def is_block(element: etree._Element) -> bool:
+def is_block_or_root(element: etree._Element) -> bool:
     return element.tag in {"block", "root"}
 
 
-def format_doc(doc: str) -> str:
-    formatter = Formatter(
-        block_classifier=is_block
-    )
-    return formatter.format_doc(doc)
+def split_whitespace(s):
+    return [(' ' if k else ''.join(g)) for k, g in groupby(s, str.isspace)]
+
+
+def normalize_ws(s: str) -> str:
+    return "".join(split_whitespace(s))

@@ -1,12 +1,17 @@
 from inspect import cleandoc
 
 import markuplift
+from markuplift.formatter import Formatter, is_block_or_root
+
 
 def test_formatter_from_compact():
     example = cleandoc("""
         <root><block><block>text</block></block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root>
           <block>
@@ -21,7 +26,10 @@ def test_formatter_with_inline_from_compact():
     example = cleandoc("""
         <root><inline><inline>content</inline></inline></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root><inline><inline>content</inline></inline></root>
     """)
@@ -32,7 +40,10 @@ def test_formatter_block_and_inline_from_compact():
     example = cleandoc("""
         <root><block><inline>text</inline></block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root>
           <block><inline>text</inline></block>
@@ -45,7 +56,10 @@ def test_formatter_inline_and_block_from_compact():
     example = cleandoc("""
         <root><inline><block>text</block></inline></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root><inline><block>text</block></inline></root>
     """)
@@ -56,7 +70,10 @@ def test_formatter_mixed_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline</block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root>
           <block>before inline <inline>inline content</inline> after inline</block>
@@ -69,7 +86,10 @@ def test_formatter_mixed_multiple_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root>
           <block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block>
@@ -82,7 +102,10 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block><block>second block with <inline>inline content</inline></block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root>
           <block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block>
@@ -96,7 +119,10 @@ def test_block_tail_text_suppresses_newline_indent_from_compact():
     example = cleandoc("""
         <root><block>first block</block>some tail text<block>second block</block></root>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <root><block>first block</block>some tail text<block>second block</block></root>
     """)
@@ -107,7 +133,10 @@ def test_inline_root_from_compact():
     example = cleandoc("""
         <inline>some inline content</inline>
     """)
-    actual = markuplift.format_doc(example)
+    formatter = Formatter(
+        block_predicate=is_block_or_root
+    )
+    actual = formatter.format_doc(example)
     expected = cleandoc("""
         <inline>some inline content</inline>
     """)
