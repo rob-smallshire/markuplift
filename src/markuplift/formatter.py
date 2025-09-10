@@ -12,6 +12,16 @@ FALSE = ""  # Empty string is falsey when evaluated as a bool
 TRUE = "true"
 
 
+def text_content(element):
+    text = element.text or ""
+    if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
+        text = text.strip()
+    if element.attrib.get("_normalize_text_whitespace"):
+        text = normalize_ws(text)
+        text = text.lstrip()
+    return text
+
+
 class Formatter:
 
     def __init__(
@@ -19,6 +29,7 @@ class Formatter:
         block_predicate: Callable[[etree._Element], bool] | None = None,
         normalize_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
+        wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
     ):
         """Initialize the formatter.
 
@@ -39,6 +50,10 @@ class Formatter:
                 stripped or normalized). If None, no elements have their whitespace preserved. It is
                 an error for an element to match both normalize_whitespace_predicate and
                 preserve_whitespace_predicate.
+
+            wrap_attributes_predicate: A function that takes an lxml.etree.Element and returns True
+                if its attributes should be wrapped onto multiple lines even if they would fit on a
+                single line. If None, no elements have their attributes wrapped.
         """
         if block_predicate is None:
             block_predicate = lambda e: False
@@ -49,9 +64,14 @@ class Formatter:
         if preserve_whitespace_predicate is None:
             preserve_whitespace_predicate = lambda e: False
 
+        if wrap_attributes_predicate is None:
+            wrap_attributes_predicate = lambda e: False
+
         self._is_block = block_predicate
         self._must_normalize_whitespace = normalize_whitespace_predicate
         self._must_preserve_whitespace = preserve_whitespace_predicate
+        self._must_wrap_attributes = wrap_attributes_predicate
+        self._one_indent = "  "
 
     def format_doc(self, doc: str) -> str:
         """Format a markup document.
@@ -213,7 +233,7 @@ class Formatter:
                 ):
                     elem.attrib["_text_indent"] = ""
                 else:
-                    indent = "  " * int(first_child.attrib.get("_physical_level", 0))
+                    indent = self._one_indent * int(first_child.attrib.get("_physical_level", 0))
                     elem.attrib["_text_indent"] = "\n" + indent
             else:
                 elem.attrib["_text_indent"] = ""
@@ -237,12 +257,12 @@ class Formatter:
                 ):
                     elem.attrib["_tail_indent"] = ""
                 else:
-                    indent = "  " * int(next_sibling.attrib.get("_physical_level", 0))
+                    indent = self._one_indent * int(next_sibling.attrib.get("_physical_level", 0))
                     elem.attrib["_tail_indent"] = "\n" + indent
             else:
                 parent = elem.getparent()
                 if parent is not None and parent.attrib.get("_type") == "block" and not elem.attrib.get("_preserve_tail_ws"):
-                    indent = "  " * int(parent.attrib.get("_physical_level", 0))
+                    indent = self._one_indent * int(parent.attrib.get("_physical_level", 0))
                     elem.attrib["_tail_indent"] = "\n" + indent
                 else:
                     elem.attrib["_tail_indent"] = ""
@@ -264,29 +284,41 @@ class Formatter:
     ):
         opening_tag_parts = []
         opening_tag_parts.append(f"<{element.tag}")
-        for k, v in element.attrib.items():
-            if not k.startswith("_"):
-                escaped_value = quoteattr(v)
-                opening_tag_parts.append(f' {k}={escaped_value}')
+
+        # Set the attribute spacer to a single space or a newline and indentation depending on whether
+        # the attributes should be wrapped.
+        if self._must_wrap_attributes(element):
+            spacer = "\n" + self._one_indent * (int(element.attrib.get("_physical_level", 0)) + 1)
+        else:
+            spacer = " "
+
+        real_attributes = {k: v for k, v in element.attrib.items() if not k.startswith("_")}
+        for k, v in real_attributes.items():
+            escaped_value = quoteattr(v)
+            opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
+        if real_attributes and self._must_wrap_attributes(element):
+            opening_tag_parts.append("\n" + self._one_indent * int(element.attrib.get("_physical_level", 0)))
+
+        is_self_closing = _is_self_closing(element)
+
+        if is_self_closing:
+            opening_tag_parts.append(" /")
+
         opening_tag_parts.append(">")
         parts.append(opening_tag_parts)
-        contents_parts = []
-        if element.text:
-            text = element.text or ""
-            if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
-                text = text.strip()
-            if element.attrib.get("_normalize_text_whitespace"):
-                text = normalize_ws(text)
-                text = text.lstrip()
+
+        if not is_self_closing:
+            contents_parts = []
+            text = text_content(element)
             if text:
                 escaped_text = escape(text)
                 contents_parts.append(escaped_text)
-        contents_parts.append(element.attrib.get("_text_indent", ""))
-        for child in element:
-            self._format_element(child, contents_parts)
-        parts.append(contents_parts)
-        closing_tag_parts = [f"</{element.tag}>"]
-        parts.append(closing_tag_parts)
+            contents_parts.append(element.attrib.get("_text_indent", ""))
+            for child in element:
+                self._format_element(child, contents_parts)
+            parts.append(contents_parts)
+            closing_tag_parts = [f"</{element.tag}>"]
+            parts.append(closing_tag_parts)
         tail_parts = []
         if element.tail:
             tail = element.tail or ""
@@ -299,9 +331,8 @@ class Formatter:
                 escaped_tail = escape(tail)
                 tail_parts.append(escaped_tail)
                 parts.append(tail_parts)
-        if not element.attrib.get("_normalize_tail_whitespace"):
+        if element.attrib.get("_type") == "block" and not element.attrib.get("_normalize_tail_whitespace"):
             parts.append(element.attrib.get("_tail_indent", ""))
-
 
     # Now we can annotate each element with its logical level (0 for root, 1 for children of root, etc.)
     def _annotate_logical_level(self, element: etree._Element, level: int = 0):
@@ -319,6 +350,11 @@ class Formatter:
                 self._annotate_physical_level(child, level + 1)
             else:
                 self._annotate_physical_level(child, level)
+
+
+def _is_self_closing(element: etree._Element) -> bool:
+    text = text_content(element)
+    return (not bool(text)) and len(element) == 0
 
 
 def is_block_or_root(element: etree._Element) -> bool:

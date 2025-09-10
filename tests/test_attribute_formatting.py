@@ -128,3 +128,55 @@ def test_element_with_attribute_containing_both_quotes():
         </root>
     """)
     assert actual == expected
+
+
+def test_wrap_attributes_with_one_extra_indent():
+    example = cleandoc("""
+        <root>
+            <block id="b1" class="important" data-info="He said &quot;It's a test&quot;">Some text</block>
+        </root>
+    """)
+    formatter = Formatter(
+        block_predicate=is_block_or_root,
+        wrap_attributes_predicate=is_block_or_root,
+    )
+    actual = formatter.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block
+            id="b1"
+            class="important"
+            data-info="He said &quot;It's a test&quot;"
+          >Some text</block>
+        </root>
+    """)
+    assert actual == expected
+
+
+def test_wrap_attributes_with_one_extra_indent_with_nested_blocks():
+    example = cleandoc("""
+        <root>
+            <block id="b1" class="important">
+                <block id="b2" class="sub-important">Some text</block>
+            </block>
+        </root>
+    """)
+    formatter = Formatter(
+        block_predicate=is_block_or_root,
+        wrap_attributes_predicate=is_block_or_root,
+    )
+    actual = formatter.format_doc(example)
+    expected = cleandoc("""
+        <root>
+          <block
+            id="b1"
+            class="important"
+          >
+            <block
+              id="b2"
+              class="sub-important"
+            >Some text</block>
+          </block>
+        </root>
+    """)
+    assert actual == expected
