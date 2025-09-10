@@ -1,7 +1,10 @@
 from copy import deepcopy
 from itertools import groupby
+from pprint import pprint
 from typing import Callable
+from xml.sax.saxutils import quoteattr, escape
 
+from les_iterables import flatten
 from lxml import etree
 
 FALSE = ""  # Empty string is falsey when evaluated as a bool
@@ -15,6 +18,7 @@ class Formatter:
         self,
         block_predicate: Callable[[etree._Element], bool] | None = None,
         normalize_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
+        preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
     ):
         """Initialize the formatter.
 
@@ -27,7 +31,14 @@ class Formatter:
                 True if the whitespace in its text content should be normalized (i.e., leading and
                 trailing whitespace removed, and internal sequences of whitespace replaced with a
                 single space). This does not apply to tail text. If None, no elements have their
-                whitespace normalized.
+                whitespace normalized. It is an error for an element to match both normalize_whitespace_predicate
+                and preserve_whitespace_predicate.
+
+            preserve_whitespace_predicate: A function that takes an lxml.etree.Element and returns
+                True if the whitespace in its content (i.e., not
+                stripped or normalized). If None, no elements have their whitespace preserved. It is
+                an error for an element to match both normalize_whitespace_predicate and
+                preserve_whitespace_predicate.
         """
         if block_predicate is None:
             block_predicate = lambda e: False
@@ -35,8 +46,12 @@ class Formatter:
         if normalize_whitespace_predicate is None:
             normalize_whitespace_predicate = lambda e: False
 
+        if preserve_whitespace_predicate is None:
+            preserve_whitespace_predicate = lambda e: False
+
         self._is_block = block_predicate
         self._must_normalize_whitespace = normalize_whitespace_predicate
+        self._must_preserve_whitespace = preserve_whitespace_predicate
 
     def format_doc(self, doc: str) -> str:
         """Format a markup document.
@@ -131,6 +146,24 @@ class Formatter:
         print(etree.tostring(annotated_tree, pretty_print=True).decode())
         print("-----")
 
+        # Now we set _preserve_text_ws to TRUE for any element for which the _must_preserve_whitespace
+        # function returns True. We also need to modify all descendants of the matching element to set both
+        # _preserve_text_ws and _preserve_tail_ws to TRUE.
+        for elem in annotated_tree.iter():
+            if self._must_preserve_whitespace(elem):
+                if self._must_normalize_whitespace(elem):
+                    raise RuntimeError(
+                        f"Element <{elem.tag}> matches both normalize_whitespace_predicate and preserve_whitespace_predicate"
+                    )
+                elem.attrib["_preserve_text_ws"] = TRUE
+                for descendant in elem.iterdescendants():
+                    descendant.attrib["_preserve_text_ws"] = TRUE
+                    descendant.attrib["_preserve_tail_ws"] = TRUE
+
+        print("Annotated tree after setting _preserve_text_ws for preserve_whitespace_predicate:")
+        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print("-----")
+
         # Now we override the _preserve_text_ws attribute to be falsey (i.e. "") for any element and
         # for which the _must_normalize_whitespace function returns True. We also set the
         # "_normalize_text_whitespace" attribute to "true" for this element. We also need to modify
@@ -138,6 +171,10 @@ class Formatter:
         # falsey (i.e. "") and set the "_normalize_text_whitespace" attribute to "true".
         for elem in annotated_tree.iter():
             if self._must_normalize_whitespace(elem):
+                if self._must_preserve_whitespace(elem):
+                    raise RuntimeError(
+                        f"Element <{elem.tag}> matches both normalize_whitespace_predicate and preserve_whitespace_predicate"
+                    )
                 elem.attrib["_normalize_text_whitespace"] = TRUE
                 elem.attrib["_preserve_text_ws"] = FALSE
                 elem.attrib["_preserve_tail_ws"] = FALSE
@@ -150,6 +187,8 @@ class Formatter:
         print("Annotated tree after setting _normalize_text_whitespace:")
         print(etree.tostring(annotated_tree, pretty_print=True).decode())
         print("-----")
+
+
 
         self._annotate_logical_level(annotated_tree)
         print("Annotated tree after setting _logical_level:")
@@ -215,18 +254,23 @@ class Formatter:
         # Now we can format the document using the annotated tree to guide the formatting.
         parts = []
         self._format_element(annotated_tree, parts)
-        return "".join(parts)
+        pprint(parts)
+        return "".join(flatten(parts))
 
     def _format_element(
         self,
         element: etree._Element,
         parts: list[str],
     ):
-        parts.append(f"<{element.tag}")
+        opening_tag_parts = []
+        opening_tag_parts.append(f"<{element.tag}")
         for k, v in element.attrib.items():
             if not k.startswith("_"):
-                parts.append(f' {k}="{v}"')
-        parts.append(">")
+                escaped_value = quoteattr(v)
+                opening_tag_parts.append(f' {k}={escaped_value}')
+        opening_tag_parts.append(">")
+        parts.append(opening_tag_parts)
+        contents_parts = []
         if element.text:
             text = element.text or ""
             if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
@@ -235,11 +279,15 @@ class Formatter:
                 text = normalize_ws(text)
                 text = text.lstrip()
             if text:
-                parts.append(text)
-        parts.append(element.attrib.get("_text_indent", ""))
+                escaped_text = escape(text)
+                contents_parts.append(escaped_text)
+        contents_parts.append(element.attrib.get("_text_indent", ""))
         for child in element:
-            self._format_element(child, parts)
-        parts.append(f"</{element.tag}>")
+            self._format_element(child, contents_parts)
+        parts.append(contents_parts)
+        closing_tag_parts = [f"</{element.tag}>"]
+        parts.append(closing_tag_parts)
+        tail_parts = []
         if element.tail:
             tail = element.tail or ""
             if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_tail_ws"):
@@ -248,7 +296,9 @@ class Formatter:
                 tail = normalize_ws(tail)
                 tail = tail.rstrip()
             if tail:
-                parts.append(tail)
+                escaped_tail = escape(tail)
+                tail_parts.append(escaped_tail)
+                parts.append(tail_parts)
         if not element.attrib.get("_normalize_tail_whitespace"):
             parts.append(element.attrib.get("_tail_indent", ""))
 
@@ -280,4 +330,13 @@ def split_whitespace(s):
 
 
 def normalize_ws(s: str) -> str:
+    """Normalize whitespace in a string by replacing sequences of whitespace with a single space.
+
+    Args:
+        s: The input string to normalize.
+
+    Returns:
+        The string with normalized whitespace. Note that the result may have leading or trailing
+        spaces if the input string had leading or trailing whitespace.
+    """
     return "".join(split_whitespace(s))
