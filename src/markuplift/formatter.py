@@ -34,7 +34,7 @@ class Formatter:
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
         text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[etree._Element], str]] | None = None,
-        # TODO: Add options for indent character and size
+        indent_size = None,
         # TODO: Add an option for attribute_content_formatters (for e.g. wrapping style attributes)
     ):
         """Initialize the formatter.
@@ -69,6 +69,8 @@ class Formatter:
                 text content will be included as-is. If multiple predicates match an element, the
                 formatter function for the first matching predicate will be used. If None, no special
                 formatting is applied to any element's text content.
+
+            indent_size: The number of spaces to use for each indentation level. Must be a non-negative
         """
         if block_predicate is None:
             block_predicate = lambda e: False
@@ -85,13 +87,19 @@ class Formatter:
         if text_content_formatters is None:
             text_content_formatters = {}
 
+        if indent_size is None:
+            indent_size = 2
+
+        if indent_size < 0:
+            raise ValueError(f"indent_size {indent_size} is less than 0")
+
         self._is_block = block_predicate
         self._must_normalize_whitespace = normalize_whitespace_predicate
         self._must_preserve_whitespace = preserve_whitespace_predicate
         self._must_wrap_attributes = wrap_attributes_predicate
         self._text_content_formatters = text_content_formatters
         self._indent_char = " "
-        self._indent_size = 2
+        self._indent_size = indent_size
         self._one_indent = self._indent_char * self._indent_size
 
     @property
