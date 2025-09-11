@@ -1,8 +1,6 @@
-from copy import deepcopy
-from functools import lru_cache
 from itertools import groupby
 from pprint import pprint
-from typing import Callable
+from typing import Callable, Any
 from xml.sax.saxutils import quoteattr, escape
 
 from les_iterables import flatten
@@ -11,6 +9,20 @@ from lxml import etree
 FALSE = ""  # Empty string is falsey when evaluated as a bool
 
 TRUE = "true"
+
+
+class Annotations:
+
+    def __init__(self):
+        self._annotations: dict[etree._Element, dict[str, str]] = {}
+
+    def annotate(self, element: etree._Element, attribute_name: str, attribute_value: Any):
+        if element not in self._annotations:
+            self._annotations[element] = {}
+        self._annotations[element][attribute_name] = attribute_value
+
+    def annotation(self, element: etree._Element, attribute_name: str, default: Any = None) ->Any:
+        return self._annotations.get(element, {}).get(attribute_name, default)
 
 
 class Formatter:
@@ -22,6 +34,8 @@ class Formatter:
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
         text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[etree._Element], str]] | None = None,
+        # TODO: Add options for indent character and size
+        # TODO: Add an option for attribute_content_formatters (for e.g. wrapping style attributes)
     ):
         """Initialize the formatter.
 
@@ -105,102 +119,102 @@ class Formatter:
 
         # Create a parallel tree to which we can add special attributes to each element to control
         # formatting.
-        annotated_tree = deepcopy(tree)
+        annotations = Annotations()
 
         print("Original tree:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Label each element as a block or inline using the _is_block function.
-        for elem in annotated_tree.iter():
-            elem.attrib["_type"] = "block" if self._is_block(elem) else "inline"
+        for elem in tree.iter():
+            annotations.annotate(elem, "_type", "block" if self._is_block(elem) else "inline")
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after initial _type assignment:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Any element for which *any* of its siblings have non-blank tail text is inline, because
         # that tail text must be preserved.
         # First check if any siblings of the current element or the current element itself has
         # non-blank tail text.
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             parent = elem.getparent()
             if parent is not None:
                 siblings = list(parent)
                 if any(sibling.tail and sibling.tail.strip() for sibling in siblings):
                     for sibling in siblings:
-                        sibling.attrib["_type"] = "inline"
+                        annotations.annotate(sibling, "_type", "inline")
 
         print("Annotated tree after marking elements with non-blank tail text as inline:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
 
         # Every element inside an inline element is also inline. This overrides the previous setting.
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             parent = elem.getparent()
-            if parent is not None and parent.attrib.get("_type") == "inline":
-                elem.attrib["_type"] = "inline"
+            if parent is not None and annotations.annotation(parent, "_type") == "inline":
+                annotations.annotate(elem, "_type", "inline")
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after propagating inline types:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Now we need to label each element with _preserve_text_ws: bool depending on whether the
         # first child of a block element is inline or not, because inline elements preserve the
         # surrounding whitespace.
-        for elem in annotated_tree.iter():
-            if elem.attrib.get("_type") == "block":
+        for elem in tree.iter():
+            if annotations.annotation(elem, "_type") == "block":
 
                 # Actually if *any* child is inline, we need to preserve the surrounding whitespace.
                 # This is because if there are multiple children, and any of them is inline, the
                 # whitespace within the block must be preserved.
-                if any(child.attrib.get("_type") == "inline" for child in elem):
-                    elem.attrib["_preserve_text_ws"] = TRUE
+                if any(annotations.annotation(child, "_type") == "inline" for child in elem):
+                    annotations.annotate(elem, "_preserve_text_ws", TRUE)
                 else:
-                    elem.attrib["_preserve_text_ws"] = FALSE
+                    annotations.annotate(elem, "_preserve_text_ws", FALSE)
             else:
-                elem.attrib["_preserve_text_ws"] = TRUE
+                annotations.annotate(elem, "_preserve_text_ws", TRUE)
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after setting _preserve_text_ws:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # We need to label each element with _preserve_tail_ws: bool depending on whether the next sibling
         # of a block element is inline or not, because inline elements preserve the surrounding
         # whitespace.
-        for elem in annotated_tree.iter():
-            if elem.attrib.get("_type") == "block":
+        for elem in tree.iter():
+            if annotations.annotation(elem, "_type") == "block":
                 next_sibling = elem.getnext()
-                if next_sibling is not None and next_sibling.attrib.get("_type") == "inline":
-                    elem.attrib["_preserve_tail_ws"] = TRUE
+                if next_sibling is not None and annotations.annotation(next_sibling, "_type") == "inline":
+                    annotations.annotate(elem, "_preserve_tail_ws", TRUE)
                 else:
-                    elem.attrib["_preserve_tail_ws"] = FALSE
+                    annotations.annotate(elem, "_preserve_tail_ws", FALSE)
             else:
-                elem.attrib["_preserve_tail_ws"] = TRUE
+                annotations.annotate(elem, "_preserve_tail_ws", TRUE)
 
         # Pretty print the tree to see its structure and the annotations.
         print("Annotated tree after setting _preserve_tail_ws:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Now we set _preserve_text_ws to TRUE for any element for which the _must_preserve_whitespace
         # function returns True. We also need to modify all descendants of the matching element to set both
         # _preserve_text_ws and _preserve_tail_ws to TRUE.
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             if self._must_preserve_whitespace(elem):
                 if self._must_normalize_whitespace(elem):
                     raise RuntimeError(
                         f"Element <{elem.tag}> matches both normalize_whitespace_predicate and preserve_whitespace_predicate"
                     )
-                elem.attrib["_preserve_text_ws"] = TRUE
+                annotations.annotate(elem, "_preserve_text_ws", TRUE)
                 for descendant in elem.iterdescendants():
-                    descendant.attrib["_preserve_text_ws"] = TRUE
-                    descendant.attrib["_preserve_tail_ws"] = TRUE
+                    annotations.annotate(descendant, "_preserve_text_ws", TRUE)
+                    annotations.annotate(descendant, "_preserve_tail_ws", TRUE)
 
         print("Annotated tree after setting _preserve_text_ws for preserve_whitespace_predicate:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Now we override the _preserve_text_ws attribute to be falsey (i.e. "") for any element and
@@ -208,35 +222,35 @@ class Formatter:
         # "_normalize_text_whitespace" attribute to "true" for this element. We also need to modify
         # all descendants of the matching element to set both _preserve_text_ws and _preserve_tail_ws to
         # falsey (i.e. "") and set the "_normalize_text_whitespace" attribute to "true".
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             if self._must_normalize_whitespace(elem):
                 if self._must_preserve_whitespace(elem):
                     raise RuntimeError(
                         f"Element <{elem.tag}> matches both normalize_whitespace_predicate and preserve_whitespace_predicate"
                     )
-                elem.attrib["_normalize_text_whitespace"] = TRUE
-                elem.attrib["_preserve_text_ws"] = FALSE
-                elem.attrib["_preserve_tail_ws"] = FALSE
+                annotations.annotate(elem, "_normalize_text_whitespace", TRUE)
+                annotations.annotate(elem, "_preserve_text_ws", FALSE)
+                annotations.annotate(elem, "_preserve_tail_ws", FALSE)
                 for descendant in elem.iterdescendants():
-                    descendant.attrib["_normalize_text_whitespace"] = TRUE
-                    descendant.attrib["_normalize_tail_whitespace"] = TRUE
-                    descendant.attrib["_preserve_text_ws"] = FALSE
-                    descendant.attrib["_preserve_tail_ws"] = FALSE
+                    annotations.annotate(descendant, "_normalize_text_whitespace", TRUE)
+                    annotations.annotate(descendant, "_normalize_tail_whitespace", TRUE)
+                    annotations.annotate(descendant, "_preserve_text_ws", FALSE)
+                    annotations.annotate(descendant, "_preserve_tail_ws", FALSE)
 
         print("Annotated tree after setting _normalize_text_whitespace:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
 
 
-        self._annotate_logical_level(annotated_tree)
+        self._annotate_logical_level(annotations, tree)
         print("Annotated tree after setting _logical_level:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
-        self._annotate_physical_level(annotated_tree)
+        self._annotate_physical_level(annotations, tree)
         print("Annotated tree after setting _physical_level:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Annotate each element with a string which contains a newline and the appropriate indentation
@@ -244,21 +258,19 @@ class Formatter:
         # is added. If the first child is block, then a newline and indentation is added appropriate for
         # the physical level of the block. If there are no children, no newline or indentation is added.
         # We also need to respect the _preserve_text_ws attribute.
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             first_child = next(iter(elem), None)
             if first_child is not None:
-                if first_child.attrib.get("_type") == "inline" or elem.attrib.get(
-                    "_preserve_text_ws"
-                ):
-                    elem.attrib["_text_indent"] = ""
+                if annotations.annotation(first_child, "_type") == "inline" or annotations.annotation(elem, "_preserve_text_ws"):
+                    annotations.annotate(elem, "_text_indent", "")
                 else:
-                    indent = self._one_indent * int(first_child.attrib.get("_physical_level", 0))
-                    elem.attrib["_text_indent"] = "\n" + indent
+                    indent = self._one_indent * int(annotations.annotation(first_child, "_physical_level", 0))
+                    annotations.annotate(elem, "_text_indent", "\n" + indent)
             else:
-                elem.attrib["_text_indent"] = ""
+                annotations.annotate(elem, "_text_indent", "")
 
         print("Annotated tree after setting _text_indent:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Annotate each element with a string which contains a newline and the appropriate indentation
@@ -268,39 +280,33 @@ class Formatter:
         # the parent is a block, a newline
         # and indentation is added appropriate for the physical level of the parent in order to indent
         # the closing tag of the parent. We also need to respect the _preserve_tail_ws attribute.
-        for elem in annotated_tree.iter():
+        for elem in tree.iter():
             next_sibling = elem.getnext()
             if next_sibling is not None:
-                if next_sibling.attrib.get("_type") == "inline" or elem.attrib.get(
-                    "_preserve_tail_ws"
-                ):
-                    elem.attrib["_tail_indent"] = ""
+                if annotations.annotation(next_sibling, "_type") == "inline" or annotations.annotation(elem, "_preserve_tail_ws"):
+                    annotations.annotate(elem, "_tail_indent", "")
                 else:
-                    indent = self._one_indent * int(next_sibling.attrib.get("_physical_level", 0))
-                    elem.attrib["_tail_indent"] = "\n" + indent
+                    indent = self._one_indent * int(annotations.annotation(next_sibling, "_physical_level", 0))
+                    annotations.annotate(elem, "_tail_indent", "\n" + indent)
             else:
                 parent = elem.getparent()
-                if parent is not None and parent.attrib.get("_type") == "block" and not elem.attrib.get("_preserve_tail_ws"):
-                    indent = self._one_indent * int(parent.attrib.get("_physical_level", 0))
-                    elem.attrib["_tail_indent"] = "\n" + indent
+                if parent is not None and annotations.annotation(parent, "_type") == "block" and not annotations.annotation(elem, "_preserve_tail_ws"):
+                    indent = self._one_indent * int(annotations.annotation(parent, "_physical_level", 0))
+                    annotations.annotate(elem, "_tail_indent", "\n" + indent)
                 else:
-                    elem.attrib["_tail_indent"] = ""
+                    annotations.annotate(elem, "_tail_indent", "")
 
         print("Annotated tree after setting _tail_indent:")
-        print(etree.tostring(annotated_tree, pretty_print=True).decode())
+        print_tree_with_annotations(tree, annotations)
         print("-----")
 
         # Now we can format the document using the annotated tree to guide the formatting.
         parts = []
-        self._format_element(annotated_tree, parts)
+        self._format_element(annotations, tree, parts)
         pprint(parts)
         return "".join(flatten(parts))
 
-    def _format_element(
-        self,
-        element: etree._Element,
-        parts: list[str],
-    ):
+    def _format_element(self, annotations: Annotations, element: etree._Element, parts: list[str]):
         opening_tag_parts = []
         opening_tag_parts.append(f"<{element.tag}")
 
@@ -308,7 +314,7 @@ class Formatter:
         # the attributes should be wrapped.
         must_wrap_attributes = self._must_wrap_attributes(element)
         if must_wrap_attributes:
-            spacer = "\n" + self._one_indent * (int(element.attrib.get("_physical_level", 0)) + 1)
+            spacer = "\n" + self._one_indent * (int(annotations.annotation(element, "_physical_level", 0)) + 1)
         else:
             spacer = " "
 
@@ -317,9 +323,9 @@ class Formatter:
             escaped_value = quoteattr(v)
             opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
         if real_attributes and must_wrap_attributes:
-            opening_tag_parts.append("\n" + self._one_indent * int(element.attrib.get("_physical_level", 0)))
+            opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(element, "_physical_level", 0)))
 
-        is_self_closing = self._is_self_closing(element)
+        is_self_closing = self._is_self_closing(annotations, element)
 
         if is_self_closing:
             if not must_wrap_attributes:
@@ -331,65 +337,64 @@ class Formatter:
 
         if not is_self_closing:
             contents_parts = []
-            text = self.text_content(element)
+            text = self.text_content(annotations, element)
             if text:
                 escaped_text = escape(text)
                 contents_parts.append(escaped_text)
-            contents_parts.append(element.attrib.get("_text_indent", ""))
+            contents_parts.append(annotations.annotation(element, "_text_indent", ""))
             for child in element:
-                self._format_element(child, contents_parts)
+                self._format_element(annotations, child, contents_parts)
             parts.append(contents_parts)
             closing_tag_parts = [f"</{element.tag}>"]
             parts.append(closing_tag_parts)
         tail_parts = []
         if element.tail:
             tail = element.tail or ""
-            if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_tail_ws"):
+            if annotations.annotation(element,"_type") == "block" and not annotations.annotation(element, "_preserve_tail_ws"):
                 tail = tail.strip()
-            if element.attrib.get("_normalize_tail_whitespace"):
+            if annotations.annotation(element, "_normalize_tail_whitespace"):
                 tail = normalize_ws(tail)
                 tail = tail.rstrip()
             if tail:
                 escaped_tail = escape(tail)
                 tail_parts.append(escaped_tail)
                 parts.append(tail_parts)
-        if element.attrib.get("_type") == "block" and not element.attrib.get("_normalize_tail_whitespace"):
-            parts.append(element.attrib.get("_tail_indent", ""))
+        if annotations.annotation(element, "_type") == "block" and not annotations.annotation(element, "_normalize_tail_whitespace"):
+            parts.append(annotations.annotation(element, "_tail_indent", ""))
 
     # Now we can annotate each element with its logical level (0 for root, 1 for children of root, etc.)
-    def _annotate_logical_level(self, element: etree._Element, level: int = 0):
-        element.attrib["_logical_level"] = str(level)
+    def _annotate_logical_level(self, annotations, element: etree._Element, level: int = 0):
+        annotations.annotate(element, "_logical_level", str(level))
         for child in element:
-            self._annotate_logical_level(child, level + 1)
+            self._annotate_logical_level(annotations, child, level + 1)
 
 
     # Now we can annotate each element with its indentation level, where block elements are indented
     # one level more than their parent, and inline elements are at the same level as their parent.
-    def _annotate_physical_level(self, element: etree._Element, level: int = 0):
-        element.attrib["_physical_level"] = str(level)
+    def _annotate_physical_level(self, annotations, element: etree._Element, level: int = 0):
+        annotations.annotate(element, "_physical_level", str(level))
         for child in element:
-            if child.attrib.get("_type") == "block":
-                self._annotate_physical_level(child, level + 1)
+            if annotations.annotation(child, "_type") == "block":
+                self._annotate_physical_level(annotations, child, level + 1)
             else:
-                self._annotate_physical_level(child, level)
+                self._annotate_physical_level(annotations, child, level)
 
 
-    def _is_self_closing(self, element: etree._Element) -> bool:
-        text = self.text_content(element)
+    def _is_self_closing(self, annotations, element: etree._Element) -> bool:
+        text = self.text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
 
-    @lru_cache(maxsize=128)
-    def text_content(self, element):
+    def text_content(self, annotations, element):
         text = element.text or ""
-        if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
+        if annotations.annotation(element, "_type") == "block" and not annotations.annotation(element, "_preserve_text_ws"):
             text = text.strip()
-        if element.attrib.get("_normalize_text_whitespace"):
+        if annotations.annotation(element, "_normalize_text_whitespace"):
             text = normalize_ws(text)
             text = text.lstrip()
         # Apply any content formatter if the element matches its predicate.
         for predicate, formatter in self._text_content_formatters.items():
             if predicate(element):
-                text = formatter(element, self)
+                text = formatter(element, annotations, self)
                 break
         return text
 
@@ -413,3 +418,18 @@ def normalize_ws(s: str) -> str:
         spaces if the input string had leading or trailing whitespace.
     """
     return "".join(split_whitespace(s))
+
+
+def print_tree_with_annotations(element, annotations, indent=0):
+    """Recursively print the tree structure with annotations for each element."""
+    ind = '  ' * indent
+    attribs = ' '.join(f'{k}="{v}"' for k, v in element.attrib.items())
+    ann = annotations._annotations.get(element, {})
+    ann_str = f" [annotations: {ann}]" if ann else ""
+    print(f"{ind}<{element.tag}{' ' + attribs if attribs else ''}>{ann_str}")
+    text = (element.text or '').strip()
+    if text:
+        print(f"{ind}  text: {text}")
+    for child in element:
+        print_tree_with_annotations(child, annotations, indent + 1)
+    print(f"{ind}</{element.tag}>")

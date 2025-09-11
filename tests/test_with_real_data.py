@@ -2,7 +2,7 @@ import jsbeautifier
 from lxml import etree
 
 from markuplift import Formatter
-
+from markuplift.formatter import Annotations
 
 
 def test_generated_html():
@@ -102,7 +102,7 @@ def test_generated_html():
         preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
         wrap_attributes_predicate=lambda e: e.tag in {"link"} and sum(1 for k in e.attrib if not k.startswith("_")) >= 3,
         text_content_formatters={
-            lambda e: e.tag == "title": lambda e, f: (e.text or "").strip(),
+            lambda e: e.tag == "title": lambda e, a, f: (e.text or "").strip(),
             lambda e: e.tag == "script": beautify_js
         }
     )
@@ -110,8 +110,8 @@ def test_generated_html():
     print(actual)
 
 
-def beautify_js(e: etree._Element, formatter: Formatter) -> str:
-    physical_indent_level = int(e.attrib.get("_physical_level", 0))
+def beautify_js(e: etree._Element, annotations: Annotations, formatter: Formatter ) -> str:
+    physical_indent_level = int(annotations.annotation(e, "_physical_level", 0))
 
     text = e.text or ""
     if text.strip() == "":
