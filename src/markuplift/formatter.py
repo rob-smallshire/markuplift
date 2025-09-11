@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import lru_cache
 from itertools import groupby
 from pprint import pprint
 from typing import Callable
@@ -12,16 +13,6 @@ FALSE = ""  # Empty string is falsey when evaluated as a bool
 TRUE = "true"
 
 
-def text_content(element):
-    text = element.text or ""
-    if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
-        text = text.strip()
-    if element.attrib.get("_normalize_text_whitespace"):
-        text = normalize_ws(text)
-        text = text.lstrip()
-    return text
-
-
 class Formatter:
 
     def __init__(
@@ -30,6 +21,7 @@ class Formatter:
         normalize_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
+        text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[etree._Element], str]] | None = None,
     ):
         """Initialize the formatter.
 
@@ -54,6 +46,15 @@ class Formatter:
             wrap_attributes_predicate: A function that takes an lxml.etree.Element and returns True
                 if its attributes should be wrapped onto multiple lines even if they would fit on a
                 single line. If None, no elements have their attributes wrapped.
+
+            text_content_formatters: A dictionary mapping predicates (functions that take an
+                lxml.etree.Element and return True or False) to formatter functions (functions that
+                take a string and return a formatted string, or None). If an element matches a predicate
+                in the dictionary, its text content will be passed to the corresponding formatter
+                function before being included in the output. If the formatter function is None, the
+                text content will be included as-is. If multiple predicates match an element, the
+                formatter function for the first matching predicate will be used. If None, no special
+                formatting is applied to any element's text content.
         """
         if block_predicate is None:
             block_predicate = lambda e: False
@@ -67,11 +68,29 @@ class Formatter:
         if wrap_attributes_predicate is None:
             wrap_attributes_predicate = lambda e: False
 
+        if text_content_formatters is None:
+            text_content_formatters = {}
+
         self._is_block = block_predicate
         self._must_normalize_whitespace = normalize_whitespace_predicate
         self._must_preserve_whitespace = preserve_whitespace_predicate
         self._must_wrap_attributes = wrap_attributes_predicate
-        self._one_indent = "  "
+        self._text_content_formatters = text_content_formatters
+        self._indent_char = " "
+        self._indent_size = 2
+        self._one_indent = self._indent_char * self._indent_size
+
+    @property
+    def indent_char(self) -> str:
+        return self._indent_char
+
+    @property
+    def indent_size(self) -> int:
+        return self._indent_size
+
+    @property
+    def one_indent(self) -> str:
+        return self._one_indent
 
     def format_doc(self, doc: str) -> str:
         """Format a markup document.
@@ -287,7 +306,8 @@ class Formatter:
 
         # Set the attribute spacer to a single space or a newline and indentation depending on whether
         # the attributes should be wrapped.
-        if self._must_wrap_attributes(element):
+        must_wrap_attributes = self._must_wrap_attributes(element)
+        if must_wrap_attributes:
             spacer = "\n" + self._one_indent * (int(element.attrib.get("_physical_level", 0)) + 1)
         else:
             spacer = " "
@@ -296,20 +316,22 @@ class Formatter:
         for k, v in real_attributes.items():
             escaped_value = quoteattr(v)
             opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
-        if real_attributes and self._must_wrap_attributes(element):
+        if real_attributes and must_wrap_attributes:
             opening_tag_parts.append("\n" + self._one_indent * int(element.attrib.get("_physical_level", 0)))
 
-        is_self_closing = _is_self_closing(element)
+        is_self_closing = self._is_self_closing(element)
 
         if is_self_closing:
-            opening_tag_parts.append(" /")
+            if not must_wrap_attributes:
+                opening_tag_parts.append(" ")
+            opening_tag_parts.append("/")
 
         opening_tag_parts.append(">")
         parts.append(opening_tag_parts)
 
         if not is_self_closing:
             contents_parts = []
-            text = text_content(element)
+            text = self.text_content(element)
             if text:
                 escaped_text = escape(text)
                 contents_parts.append(escaped_text)
@@ -352,9 +374,24 @@ class Formatter:
                 self._annotate_physical_level(child, level)
 
 
-def _is_self_closing(element: etree._Element) -> bool:
-    text = text_content(element)
-    return (not bool(text)) and len(element) == 0
+    def _is_self_closing(self, element: etree._Element) -> bool:
+        text = self.text_content(element)
+        return (not bool(text)) and len(element) == 0
+
+    @lru_cache(maxsize=128)
+    def text_content(self, element):
+        text = element.text or ""
+        if element.attrib.get("_type") == "block" and not element.attrib.get("_preserve_text_ws"):
+            text = text.strip()
+        if element.attrib.get("_normalize_text_whitespace"):
+            text = normalize_ws(text)
+            text = text.lstrip()
+        # Apply any content formatter if the element matches its predicate.
+        for predicate, formatter in self._text_content_formatters.items():
+            if predicate(element):
+                text = formatter(element, self)
+                break
+        return text
 
 
 def is_block_or_root(element: etree._Element) -> bool:
