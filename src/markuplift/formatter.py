@@ -315,60 +315,125 @@ class Formatter:
         return "".join(flatten(parts))
 
     def _format_element(self, annotations: Annotations, element: etree._Element, parts: list[str]):
-        opening_tag_parts = []
-        opening_tag_parts.append(f"<{element.tag}")
+        # A non-recursive, event-driven approach to formatting the element and its children.
+        for event, node in etree.iterwalk(element, events=("start", "end", "comment", "pi")):
+            if event == "start" and isinstance(node, etree._Element):
+                # FIRST TAG
+                opening_tag_parts = []
+                opening_tag_parts.append(f"<{node.tag}")
 
-        # Set the attribute spacer to a single space or a newline and indentation depending on whether
-        # the attributes should be wrapped.
-        must_wrap_attributes = self._must_wrap_attributes(element)
-        if must_wrap_attributes:
-            spacer = "\n" + self._one_indent * (int(annotations.annotation(element, "_physical_level", 0)) + 1)
-        else:
-            spacer = " "
+                # Set the attribute spacer to a single space or a newline and indentation depending on whether
+                # the attributes should be wrapped.
+                must_wrap_attributes = self._must_wrap_attributes(node)
+                if must_wrap_attributes:
+                    spacer = "\n" + self._one_indent * (int(annotations.annotation(node, "_physical_level", 0)) + 1)
+                else:
+                    spacer = " "
 
-        real_attributes = {k: v for k, v in element.attrib.items() if not k.startswith("_")}
-        for k, v in real_attributes.items():
-            escaped_value = quoteattr(v)
-            opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
-        if real_attributes and must_wrap_attributes:
-            opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(element, "_physical_level", 0)))
+                real_attributes = {k: v for k, v in node.attrib.items() if not k.startswith("_")}
+                for k, v in real_attributes.items():
+                    escaped_value = quoteattr(v)
+                    opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
+                if real_attributes and must_wrap_attributes:
+                    opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(node, "_physical_level", 0)))
 
-        is_self_closing = self._is_self_closing(annotations, element)
+                is_self_closing = self._is_self_closing(annotations, node)
 
-        if is_self_closing:
-            if not must_wrap_attributes:
-                opening_tag_parts.append(" ")
-            opening_tag_parts.append("/")
+                if is_self_closing:
+                    if not must_wrap_attributes:
+                        opening_tag_parts.append(" ")
+                    opening_tag_parts.append("/")
 
-        opening_tag_parts.append(">")
-        parts.append(opening_tag_parts)
+                opening_tag_parts.append(">")
+                parts.append(opening_tag_parts)
 
-        if not is_self_closing:
-            contents_parts = []
-            text = self.text_content(annotations, element)
-            if text:
-                escaped_text = escape(text)
-                contents_parts.append(escaped_text)
-            contents_parts.append(annotations.annotation(element, "_text_indent", ""))
-            for child in element:
-                self._format_element(annotations, child, contents_parts)
-            parts.append(contents_parts)
-            closing_tag_parts = [f"</{element.tag}>"]
-            parts.append(closing_tag_parts)
-        tail_parts = []
-        if element.tail:
-            tail = element.tail or ""
-            if annotations.annotation(element,"_type") == "block" and not annotations.annotation(element, "_preserve_tail_ws"):
-                tail = tail.strip()
-            if annotations.annotation(element, "_normalize_tail_whitespace"):
-                tail = normalize_ws(tail)
-                tail = tail.rstrip()
-            if tail:
-                escaped_tail = escape(tail)
-                tail_parts.append(escaped_tail)
-                parts.append(tail_parts)
-        if annotations.annotation(element, "_type") == "block" and not annotations.annotation(element, "_normalize_tail_whitespace"):
-            parts.append(annotations.annotation(element, "_tail_indent", ""))
+                # CONTENT
+                if not is_self_closing:
+                    contents_parts = []
+                    text = self.text_content(annotations, node)
+                    if text:
+                        escaped_text = escape(text)
+                        contents_parts.append(escaped_text)
+                    contents_parts.append(annotations.annotation(node, "_text_indent", ""))
+                    parts.append(contents_parts)
+
+            elif event == "end" and isinstance(node, etree._Element):
+                if not self._is_self_closing(annotations, node):
+                    # CLOSING TAG (if not self-closing)
+                    closing_tag_parts = [f"</{node.tag}>"]
+                    parts.append(closing_tag_parts)
+
+                # TAIL
+                tail_parts = []
+                if node.tail:
+                    tail = node.tail or ""
+                    if annotations.annotation(node,"_type") == "block" and not annotations.annotation(node, "_preserve_tail_ws"):
+                        tail = tail.strip()
+                    if annotations.annotation(node, "_normalize_tail_whitespace"):
+                        tail = normalize_ws(tail)
+                        tail = tail.rstrip()
+                    if tail:
+                        escaped_tail = escape(tail)
+                        tail_parts.append(escaped_tail)
+                        parts.append(tail_parts)
+                if annotations.annotation(node, "_type") == "block" and not annotations.annotation(node, "_normalize_tail_whitespace"):
+                    parts.append(annotations.annotation(node, "_tail_indent", ""))
+
+            elif event == "comment" and isinstance(node, etree._Comment):
+                # For now, assume that comments also have information available in annotations.
+                # TODO: Modify the annotation logic to handle comments properly.
+                comment_parts = []
+                comment_parts.append("<!--")
+                comment_text = node.text or ""
+                if annotations.annotation(node, "_normalize_text_whitespace"):
+                    comment_text = normalize_ws(comment_text)
+                    comment_text = comment_text.lstrip()
+                if comment_text:
+                    escaped_comment_text = escape(comment_text)
+                    comment_parts.append(escaped_comment_text)
+                comment_parts.append("-->")
+                parts.append(comment_parts)
+                tail_parts = []
+                if node.tail:
+                    tail = node.tail or ""
+                    if annotations.annotation(node,"_type") == "block" and not annotations.annotation(node, "_preserve_tail_ws"):
+                        tail = tail.strip()
+                    if annotations.annotation(node, "_normalize_tail_whitespace"):
+                        tail = normalize_ws(tail)
+                        tail = tail.rstrip()
+                    if tail:
+                        escaped_tail = escape(tail)
+                        tail_parts.append(escaped_tail)
+                        parts.append(tail_parts)
+                if annotations.annotation(node, "_type") == "block" and not annotations.annotation(node, "_normalize_tail_whitespace"):
+                    parts.append(annotations.annotation(node, "_tail_indent", ""))
+
+            elif event == "pi" and isinstance(node, etree._ProcessingInstruction):
+                pi_parts = []
+                pi_parts.append(f"<?{node.target}")
+                if node.text:
+                    pi_parts.append(f" {node.text}")
+                pi_parts.append("?>")
+                parts.append(pi_parts)
+                tail_parts = []
+                if node.tail:
+                    tail = node.tail or ""
+                    if annotations.annotation(node,"_type") == "block" and not annotations.annotation(node, "_preserve_tail_ws"):
+                        tail = tail.strip()
+                    if annotations.annotation(node, "_normalize_tail_whitespace"):
+                        tail = normalize_ws(tail)
+                        tail = tail.rstrip()
+                    if tail:
+                        escaped_tail = escape(tail)
+                        tail_parts.append(escaped_tail)
+                        parts.append(tail_parts)
+                if annotations.annotation(node, "_type") == "block" and not annotations.annotation(node, "_normalize_tail_whitespace"):
+                    parts.append(annotations.annotation(node, "_tail_indent", ""))
+
+            else:
+                raise RuntimeError(f"Unexpected event {event} for node {node}")
+
+
 
     # Now we can annotate each element with its logical level (0 for root, 1 for children of root, etc.)
     def _annotate_logical_level(self, annotations, element: etree._Element, level: int = 0):
