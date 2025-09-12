@@ -17,7 +17,7 @@ def test_normalize_text_whitespace():
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "block",
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text which contains newlines to support the fact that it has been wrapped.</block>
@@ -40,7 +40,7 @@ def test_normalize_tail_whitespace():
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "block",
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text<inline>with inline</inline> and tail text which contains newlines to support the fact that it has been wrapped.</block>
@@ -62,7 +62,7 @@ a gift from Edo
         block_predicate=lambda e: e.tag in {"root", "pre"},
         preserve_whitespace_predicate=lambda e: e.tag == "pre",
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = (
 """<root>
   <pre>
@@ -88,7 +88,7 @@ from Edo</a>
         block_predicate=lambda e: e.tag in {"root", "pre"},
         preserve_whitespace_predicate=lambda e: e.tag == "pre",
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = (
 """<root>
   <pre>

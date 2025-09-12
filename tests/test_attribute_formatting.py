@@ -13,7 +13,7 @@ def test_element_with_no_attributes():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text</block>
@@ -31,7 +31,7 @@ def test_element_with_single_attribute():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block id="b1">Some text</block>
@@ -49,7 +49,7 @@ def test_element_with_multiple_attributes():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block id="b1" class="important">Some text</block>
@@ -67,7 +67,7 @@ def test_element_with_attributes_with_values_requiring_escaping():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block title="This &amp; That &lt;Example&gt;">Some text</block>
@@ -85,7 +85,7 @@ def test_element_with_attribute_containing_single_quote():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block data-info="It's a test">Some text</block>
@@ -103,7 +103,7 @@ def test_element_with_attribute_containing_double_quote():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block data-info='He said "Hello"'>Some text</block>
@@ -121,7 +121,7 @@ def test_element_with_attribute_containing_both_quotes():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block data-info="He said &quot;It's a test&quot;">Some text</block>
@@ -140,7 +140,7 @@ def test_wrap_attributes_with_one_extra_indent():
         block_predicate=is_block_or_root,
         wrap_attributes_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block
@@ -165,7 +165,7 @@ def test_wrap_attributes_with_one_extra_indent_with_nested_blocks():
         block_predicate=is_block_or_root,
         wrap_attributes_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block

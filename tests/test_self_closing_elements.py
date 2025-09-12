@@ -15,7 +15,7 @@ def test_self_closing_already_single_tag():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>
@@ -37,7 +37,7 @@ def test_self_closing_two_tags():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>
@@ -59,7 +59,7 @@ def test_only_whitespace_in_tags():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>
@@ -82,7 +82,7 @@ def test_only_whitespace_in_tags_with_whitespace_normalization():
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "selfclosing",
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>

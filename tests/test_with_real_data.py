@@ -106,7 +106,7 @@ def test_generated_html():
             lambda e: e.tag == "script": beautify_js
         }
     )
-    actual = formatter.format_doc(original)
+    actual = formatter.format_str(original)
     print(actual)
 
 

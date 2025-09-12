@@ -1,7 +1,8 @@
+import re
 from itertools import groupby
 from pprint import pprint
-from typing import Callable, Any
-from io import BytesIO, StringIO
+from typing import Callable, Any, Optional
+from io import BytesIO
 from xml.sax.saxutils import quoteattr, escape
 
 from les_iterables import flatten
@@ -115,7 +116,7 @@ class Formatter:
     def one_indent(self) -> str:
         return self._one_indent
 
-    def format_file(self, file_path: str, doctype: str | None = None) -> str:
+    def format_file(self, file_path: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         """Format a markup document from a file.
 
         Args:
@@ -127,9 +128,9 @@ class Formatter:
             A pretty-printed XML string.
         """
         tree = etree.parse(file_path)
-        return self.format_tree(tree, doctype)
+        return self.format_tree(tree, doctype=doctype, xml_declaration=xml_declaration)
 
-    def format_doc(self, doc: str, doctype: str | None = None) -> str:
+    def format_str(self, doc: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         """Format a markup document.
 
         Args:
@@ -140,11 +141,32 @@ class Formatter:
         Returns:
             A pretty-printed XML string.
         """
-        tree = etree.parse(StringIO(doc))
-        return self.format_tree(tree, doctype)
+        tree = etree.parse(BytesIO(doc.encode()))
+        return self.format_tree(tree, doctype, xml_declaration)
 
-    def format_tree(self, tree: etree._ElementTree, doctype: str | None = None) -> str:
+    def test_format_bytes(self, doc: bytes, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
+        """Format a markup document.
+
+        Args:
+            doc: A bytes object that can be parsed as XML.
+            doctype: An optional DOCTYPE declaration to prepend to the output document. This should
+                 include the surrounding <!DOCTYPE ...> markup.
+
+        Returns:
+            A pretty-printed XML string.
+        """
+        tree = etree.parse(BytesIO(doc))
+        return self.format_tree(tree, doctype, xml_declaration)
+
+    def format_tree(self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         parts = []
+
+        if xml_declaration is None:
+            xml_declaration = False
+
+        if xml_declaration:
+            parts.append(['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'])
+
         doctype = doctype or (tree.docinfo.doctype if hasattr(tree, "docinfo") else None)
         if doctype:
             parts.append([doctype, "\n"])
@@ -542,3 +564,10 @@ def print_tree_with_annotations(element, annotations, indent=0):
     for child in element:
         print_tree_with_annotations(child, annotations, indent + 1)
     print(f"{ind}</{element.tag}>")
+
+
+def has_xml_declaration_bytes(xml: bytes) -> bool:
+    # Remove optional UTF-8 BOM and leading whitespace bytes
+    xml = xml.lstrip(b'\xef\xbb\xbf\r\n\t ')
+    # Match only the XML declaration at the very start (as bytes)
+    return bool(re.match(br'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))

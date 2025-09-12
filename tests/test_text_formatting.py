@@ -13,7 +13,7 @@ def test_element_with_simple_text_content():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text</block>
@@ -31,7 +31,7 @@ def test_element_with_text_content_containing_angled_brackets():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text with &lt; and &gt; characters</block>
@@ -49,7 +49,7 @@ def test_element_with_simple_tail_content():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text<inline>with inline</inline> and tail text</block>
@@ -67,7 +67,7 @@ def test_element_with_tail_content_containing_angled_brackets():
     formatter = Formatter(
         block_predicate=is_block_or_root,
     )
-    actual = formatter.format_doc(example)
+    actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
           <block>Some text<inline>with &lt;inline&gt;</inline> and tail text with &lt; and &gt; characters</block>
