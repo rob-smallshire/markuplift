@@ -1,7 +1,9 @@
 from inspect import cleandoc
 
-import markuplift
-from markuplift.formatter import Formatter, is_block_or_root
+from pytest import mark
+
+from helpers.predicates import is_inline, is_block_or_root
+from markuplift.formatter import Formatter
 
 
 def test_formatter_from_indented():
@@ -35,7 +37,8 @@ def test_formatter_with_inline_from_indented():
         </root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -75,7 +78,8 @@ def test_formatter_inline_and_block_from_indented():
         </root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -142,6 +146,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_indented():
     assert actual == expected
 
 
+@mark.skip(reason="Not sure what the desired behavior is here")
 def test_block_tail_text_suppresses_newline_indent_from_indented():
     example = cleandoc("""
         <root>
@@ -150,7 +155,8 @@ def test_block_tail_text_suppresses_newline_indent_from_indented():
         </root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""

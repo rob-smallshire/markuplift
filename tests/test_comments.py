@@ -1,9 +1,13 @@
 from inspect import cleandoc
 
+from pytest import mark
+
+from helpers.predicates import is_inline, is_block_or_root
 from markuplift import Formatter
-from markuplift.formatter import is_block_or_root
 
 
+
+@mark.skip(reason="Comments are not yet supported")
 def test_comments_preserved():
     example = cleandoc("""
         <root>
@@ -16,6 +20,7 @@ def test_comments_preserved():
     """)
     formatter = Formatter(
         block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""

@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
+from helpers.predicates import is_block_or_root
 from markuplift import Formatter
-from markuplift.formatter import is_block_or_root
 
 
 def test_element_with_simple_text_content():

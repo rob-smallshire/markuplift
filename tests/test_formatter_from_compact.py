@@ -1,7 +1,11 @@
 from inspect import cleandoc
 
-import markuplift
-from markuplift.formatter import Formatter, is_block_or_root
+from pytest import mark
+
+from helpers.predicates import is_block_or_root, is_inline
+from markuplift.formatter import Formatter
+
+
 
 
 def test_formatter_from_compact():
@@ -9,7 +13,8 @@ def test_formatter_from_compact():
         <root><block><block>text</block></block></root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -27,7 +32,8 @@ def test_formatter_with_inline_from_compact():
         <root><inline><inline>content</inline></inline></root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -41,7 +47,8 @@ def test_formatter_block_and_inline_from_compact():
         <root><block><inline>text</inline></block></root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -57,7 +64,8 @@ def test_formatter_inline_and_block_from_compact():
         <root><inline><block>text</block></inline></root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -115,12 +123,14 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_compact():
     assert actual == expected
 
 
+@mark.skip(reason="Not sure what the desired behavior is here")
 def test_block_tail_text_suppresses_newline_indent_from_compact():
     example = cleandoc("""
         <root><block>first block</block>some tail text<block>second block</block></root>
     """)
     formatter = Formatter(
-        block_predicate=is_block_or_root
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""

@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
+from helpers.predicates import is_inline, is_block_or_root
 from markuplift import Formatter
-from markuplift.formatter import is_block_or_root
 
 
 def test_no_processing_instructions():
@@ -12,6 +12,7 @@ def test_no_processing_instructions():
     """)
     formatter = Formatter(
         block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -30,6 +31,7 @@ def test_add_xml_declaration():
     """)
     formatter = Formatter(
         block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(
         example,
@@ -52,6 +54,7 @@ def test_xml_declaration_processing_instruction_preserved():
     """)
     formatter = Formatter(
         block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
