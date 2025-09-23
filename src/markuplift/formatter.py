@@ -19,7 +19,7 @@ from markuplift.annotation import (
     PHYSICAL_LEVEL_ANNOTATION_KEY,
 )
 
-from markuplift.utilities import print_tree_with_annotations, normalize_ws
+from markuplift.utilities import print_tree_with_annotations
 
 FALSE = ""  # Empty string is falsey when evaluated as a bool
 
@@ -245,11 +245,13 @@ class Formatter:
         self._annotate_mixed_content_siblings_as_inline(annotations, root)
         self._annotate_inline_descendants_as_inline(annotations, root)
         self._annotate_unmixed_block_descendants_as_block(annotations, root)
-        self._annotate_xml_space(annotations, root)
+        #self._annotate_xml_space(annotations, root)
         self._annotate_explicit_whitespace_preserving_elements(annotations, root)
         self._annotate_whitespace_preserving_descendants_as_whitespace_preserving(annotations, root)
         self._annotate_explicit_whitespace_normalizing_elements(annotations, root)
         self._annotate_explicit_stripped_elements(annotations, root)
+        self._annotate_xml_space(annotations, root)
+        self._annotate_whitespace_strict_descendants_as_whitespace_strict(annotations, root)
         self._annotate_untyped_elements_as_default(annotations, root)
         self._annotate_logical_level(annotations, root)
         self._annotate_physical_level(annotations, root)
@@ -301,6 +303,9 @@ class Formatter:
     def _annotate_xml_space(self, annotations, root):
         annotate_xml_space(root, annotations)
         print_tree_with_annotations(root, annotations, title="annotate xml:space")
+
+    def _annotate_whitespace_strict_descendants_as_whitespace_strict(self, annotations, root):
+        print_tree_with_annotations(root, annotations, title="whitespace-strict descendants as whitespace-strict")
 
     def _annotate_untyped_elements_as_default(self, annotations, root):
         annotate_untyped_elements_as_default(root, annotations, self._default_type)

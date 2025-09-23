@@ -1,11 +1,12 @@
 from io import StringIO
 from lxml import etree
 from markuplift.annotation import (
-    PRESERVE_WHITESPACE_ANNOTATON,
+    PRESERVE_WHITESPACE_ANNOTATION,
     WHITESPACE_ANNOTATION_KEY,
     Annotations,
     annotate_explicit_whitespace_preserving_elements,
-    annotate_xml_space,
+    annotate_xml_space, annotate_whitespace_preserving_descendants_as_whitespace_preserving,
+    STRICT_WHITESPACE_ANNOTATION,
 )
 from markuplift.utilities import tagname
 
@@ -24,7 +25,7 @@ def test_explicit_preserve_on_element():
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) == "preserve")
     preserve = tree.getroot().find("preserve")
     normal = tree.getroot().find("normal")
-    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
+    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) is None
 
 def test_explicit_preserve_on_multiple_elements():
@@ -37,8 +38,8 @@ def test_explicit_preserve_on_multiple_elements():
     """)
     annotations = Annotations()
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) in {"preserve1", "preserve2"})
-    assert annotations.annotation(tree.getroot().find("preserve1"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(tree.getroot().find("preserve2"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
+    assert annotations.annotation(tree.getroot().find("preserve1"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
+    assert annotations.annotation(tree.getroot().find("preserve2"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(tree.getroot().find("normal"), WHITESPACE_ANNOTATION_KEY) is None
 
 def test_explicit_preserve_on_comment_and_pi():
@@ -57,8 +58,8 @@ def test_explicit_preserve_on_comment_and_pi():
     comment = tree.getroot().getchildren()[0]
     pi = tree.getroot().getchildren()[1]
     normal = tree.getroot().find("normal")
-    assert annotations.annotation(comment, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(pi, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
+    assert annotations.annotation(comment, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
+    assert annotations.annotation(pi, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) is None
 
 
@@ -79,7 +80,7 @@ def test_explicit_preserve_stopped_by_normalize():
     normalize = preserve.find("normalize")
     child = normalize.find("child")
     # <normalize> should not inherit preserve due to xml:space="default"
-    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
+    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(normalize, WHITESPACE_ANNOTATION_KEY) is None
     assert annotations.annotation(child, WHITESPACE_ANNOTATION_KEY) is None
 
@@ -97,17 +98,18 @@ def test_xml_space_preserve_takes_precedence():
     """)
     annotations = Annotations()
     # Predicate matches only <normal>
-    annotate_xml_space(tree, annotations)
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) == "normal")
+    annotate_whitespace_preserving_descendants_as_whitespace_preserving(tree, annotations)
+    annotate_xml_space(tree, annotations)
     preserve = tree.getroot().find("preserve")
     preserve_child = preserve.find("child")
     normal = tree.getroot().find("normal")
     normal_child = normal.find("child")
     # xml:space="preserve" must take precedence
-    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(preserve_child, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON  # predicate matched
-    assert annotations.annotation(normal_child, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON  # xml:space wins
+    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+    assert annotations.annotation(preserve_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+    assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION  # predicate matched
+    assert annotations.annotation(normal_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION  # xml:space wins
 
 
 def test_explicit_and_xml_space_preserve_combined():
@@ -122,13 +124,14 @@ def test_explicit_and_xml_space_preserve_combined():
     </root>
     """)
     annotations = Annotations()
-    annotate_xml_space(tree, annotations)
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) == "explicit")
+    annotate_whitespace_preserving_descendants_as_whitespace_preserving(tree, annotations)
+    annotate_xml_space(tree, annotations)
     preserve = tree.getroot().find("preserve")
     preserve_child = preserve.find("child")
     explicit = tree.getroot().find("explicit")
     explicit_child = explicit.find("child")
-    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(preserve_child, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(explicit, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATON
-    assert annotations.annotation(explicit_child, WHITESPACE_ANNOTATION_KEY) is None
+    assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+    assert annotations.annotation(preserve_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+    assert annotations.annotation(explicit, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
+    assert annotations.annotation(explicit_child, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION

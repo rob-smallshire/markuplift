@@ -103,7 +103,6 @@ from Edo</a>
     assert actual == expected
 
 
-@pytest.mark.skip(reason="Known issue: xml:space handling not implemented yet")
 def test_xml_space_preserve_overrides_normalization():
     """Test that xml:space='preserve' takes priority over normalize_whitespace_predicate."""
     example = cleandoc("""

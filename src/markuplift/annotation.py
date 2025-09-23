@@ -1,9 +1,8 @@
-from typing import Any, Callable, Protocol, Mapping
+from typing import Any, Callable
 from functools import partial
 from enum import Enum
 
 from lxml import etree
-from sphinx.testing.fixtures import rootdir
 
 from markuplift.utilities import (
     is_in_mixed_content, parent_is_annotated_with, normalize_ws,
@@ -18,9 +17,10 @@ XML_SPACE_DEFAULT = "default"
 XML_SPACE_PRESERVE = "preserve"
 
 WHITESPACE_ANNOTATION_KEY = "whitespace"
-PRESERVE_WHITESPACE_ANNOTATON = "preserve"
+PRESERVE_WHITESPACE_ANNOTATION = "preserve"
 NORMALIZE_WHITESPACE_ANNOTATION = "normalize"
 STRIP_WHITESPACE_ANNOTATION = "strip"  # Strip implies normalize
+STRICT_WHITESPACE_ANNOTATION = "strict" # No transformations at all
 # If there is no value associated with WHITESPACE_ANNOTATION_KEY , the formatter can take action
 # contextually, e.g. based on whether the element is block or inline.
 
@@ -138,13 +138,13 @@ def annotate_xml_space(
             e.get("{http://www.w3.org/XML/1998/namespace}space") == XML_SPACE_PRESERVE
             or
             (
-                parent_is_annotated_with(e, annotations, WHITESPACE_ANNOTATION_KEY, PRESERVE_WHITESPACE_ANNOTATON)
+                parent_is_annotated_with(e, annotations, WHITESPACE_ANNOTATION_KEY, STRICT_WHITESPACE_ANNOTATION)
                 and
                 e.get("{http://www.w3.org/XML/1998/namespace}space") != XML_SPACE_DEFAULT
             )
         ),
         WHITESPACE_ANNOTATION_KEY,
-        PRESERVE_WHITESPACE_ANNOTATON,
+        STRICT_WHITESPACE_ANNOTATION,
         conflict_mode=AnnotationConflictMode.OVERWRITE,
     )
 
@@ -159,7 +159,7 @@ def annotate_explicit_whitespace_preserving_elements(
         annotations,
         predicate,
         WHITESPACE_ANNOTATION_KEY,
-        PRESERVE_WHITESPACE_ANNOTATON,
+        PRESERVE_WHITESPACE_ANNOTATION,
         conflict_mode=AnnotationConflictMode.OVERWRITE
     )
 
@@ -172,9 +172,9 @@ def annotate_whitespace_preserving_descendants_as_whitespace_preserving(
     annotate_matches(
         root,
         annotations,
-        partial(parent_is_annotated_with, annotations=annotations, annotation_key=WHITESPACE_ANNOTATION_KEY, annotation_value=PRESERVE_WHITESPACE_ANNOTATON),
+        partial(parent_is_annotated_with, annotations=annotations, annotation_key=WHITESPACE_ANNOTATION_KEY, annotation_value=PRESERVE_WHITESPACE_ANNOTATION),
         WHITESPACE_ANNOTATION_KEY,
-        PRESERVE_WHITESPACE_ANNOTATON,
+        PRESERVE_WHITESPACE_ANNOTATION,
         conflict_mode=AnnotationConflictMode.SKIP,
     )
 
@@ -280,7 +280,7 @@ def annotate_text_transforms(
             None
         )
 
-        if whitespace != PRESERVE_WHITESPACE_ANNOTATON:
+        if whitespace not in {PRESERVE_WHITESPACE_ANNOTATION, STRICT_WHITESPACE_ANNOTATION}:
             if whitespace in {NORMALIZE_WHITESPACE_ANNOTATION, STRIP_WHITESPACE_ANNOTATION}:
                 text_transforms.append(normalize_ws)
                 if whitespace == STRIP_WHITESPACE_ANNOTATION:
@@ -338,7 +338,7 @@ def annotate_tail_transforms(root, annotations, one_indent):
         # type, since that can affect how we treat the tail text. Tail text can also precede a block
         # element, so we need to consider any following sibling elements as well.
         elem_type = annotations.annotation(elem, TYPE_ANNOTATION_KEY)
-        if parent_whitespace != PRESERVE_WHITESPACE_ANNOTATON:
+        if parent_whitespace not in {PRESERVE_WHITESPACE_ANNOTATION, STRICT_WHITESPACE_ANNOTATION}:
             if parent_whitespace in {NORMALIZE_WHITESPACE_ANNOTATION, STRIP_WHITESPACE_ANNOTATION}:
                 tail_transforms.append(normalize_ws)
                 if next_sibling is None:
