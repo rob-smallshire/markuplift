@@ -4,7 +4,7 @@ from lxml import etree
 import pytest
 
 from markuplift import Formatter
-from markuplift.annotation import Annotations
+from markuplift.annotation import Annotations, INLINE_TYPE_ANNOTATION
 
 
 #@pytest.mark.skip(reason="Used for development only")
@@ -108,6 +108,40 @@ def test_generated_html():
             lambda e: e.tag == "title": lambda text, formatter, level: (text or "").strip(),
             lambda e: e.tag == "script": beautify_js
         }
+    )
+    actual = formatter.format_str(original)
+    print(actual)
+
+
+
+def test_xml_doc():
+    original = (
+"""<?xml version='1.0' encoding='utf-8'?>
+<?xml-model href="urn:demon-schemas:chunked-content.rng" type="application/relax-ng+xml" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<chunked-content>
+    <titles><title>Title goes here</title>
+    </titles><chunks><chunk class="hidden-visible-visible fragment" data-fragment-group-id="echo">
+        <heading>Talking point one</heading>
+        <paragraphs><p>Be concise and keep the text to four lines or fewer.</p>
+    </paragraphs></chunk>
+    <chunk class="hidden-visible-visible fragment" data-fragment-group-id="foxtrot">
+        <heading>Talking point two</heading>
+        <paragraphs><p>Be concise and keep the text to four lines or fewer.</p>
+    </paragraphs></chunk>
+    <chunk class="hidden-visible-visible fragment" data-fragment-group-id="delta">
+        <heading><em>Talking point</em> three</heading>
+        <paragraphs><p>Be <mark>concise</mark> and keep the text to <mark><strong>four</strong> lines</mark> or fewer.</p>
+    </paragraphs></chunk>
+</chunks></chunked-content>
+"""
+    )
+
+    formatter = Formatter(
+        block_predicate=lambda e: e.tag in {"chunked-content", "titles", "title", "chunks", "chunk", "heading", "paragraphs", "p"},
+        strip_whitespace_predicate=lambda e: e.tag in {"supertitle", "title", "subtitle"},
+        preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
+        wrap_attributes_predicate=lambda e: len(e.attrib) >= 2,
+        default_type=INLINE_TYPE_ANNOTATION,
     )
     actual = formatter.format_str(original)
     print(actual)
