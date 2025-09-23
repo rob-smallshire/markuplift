@@ -23,7 +23,9 @@ def test_formatter_from_indented():
     expected = cleandoc("""
         <root>
           <block>
-            <block>text</block>
+            <block>
+                    text
+                </block>
           </block>
         </root>
     """)
@@ -84,7 +86,9 @@ def test_formatter_inline_and_block_from_indented():
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
-            <inline><block>text</block></inline>
+            <inline>
+          <block>text</block>
+          </inline>
         </root>
     """)
     assert actual == expected
@@ -146,8 +150,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_indented():
     assert actual == expected
 
 
-@mark.skip(reason="Not sure what the desired behavior is here")
-def test_block_tail_text_suppresses_newline_indent_from_indented():
+def test_block_tail_text():
     example = cleandoc("""
         <root>
             <block>first block</block>some text
@@ -161,8 +164,9 @@ def test_block_tail_text_suppresses_newline_indent_from_indented():
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
-            <block>first block</block>some text
-            <block>second block</block>
+          <block>first block</block>
+        some text
+          <block>second block</block>
         </root>
     """)
     assert actual == expected

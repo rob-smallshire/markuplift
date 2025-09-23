@@ -46,6 +46,31 @@ def test_add_xml_declaration():
     assert actual == expected
 
 
+def test_add_xml_declaration_with_existing_processing_instruction():
+    example = cleandoc("""
+        <?xml-model href="http://example.com/model"?>
+        <root>
+            <block><inline>Mixed content</inline></block>
+        </root>
+    """)
+    formatter = Formatter(
+        block_predicate=is_block_or_root,
+        inline_predicate=is_inline,
+    )
+    actual = formatter.format_str(
+        example,
+        xml_declaration=True,
+    )
+    expected = cleandoc("""
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <?xml-model href="http://example.com/model"?>
+        <root>
+          <block><inline>Mixed content</inline></block>
+        </root>
+    """)
+    assert actual == expected
+
+
 def test_xml_declaration_processing_instruction_preserved():
     example = cleandoc("""
         <root>

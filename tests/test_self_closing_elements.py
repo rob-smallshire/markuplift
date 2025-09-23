@@ -84,7 +84,7 @@ def test_only_whitespace_in_tags_with_whitespace_normalization():
     formatter = Formatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "selfclosing",
-        normalize_whitespace_predicate=lambda e: e.tag == "selfclosing",
+        strip_whitespace_predicate=lambda e: e.tag == "selfclosing",
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""

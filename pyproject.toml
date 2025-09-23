@@ -10,6 +10,7 @@ dependencies = [
     "jsbeautifier>=1.15.4",
     "lxml>=6.0.1",
     "pytest>=8.4.1",
+    "typename>=1.0.4",
 ]
 
 [tool.pytest.ini_options]

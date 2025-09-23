@@ -1,6 +1,6 @@
 from inspect import cleandoc
 
-from helpers.predicates import is_block_or_root
+from helpers.predicates import is_block_or_root, is_inline
 from markuplift import Formatter
 
 

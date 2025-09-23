@@ -69,7 +69,9 @@ def test_formatter_inline_and_block_from_compact():
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
-        <root><inline><block>text</block></inline></root>
+        <root><inline>
+          <block>text</block>
+          </inline></root>
     """)
     assert actual == expected
 
@@ -123,8 +125,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_compact():
     assert actual == expected
 
 
-@mark.skip(reason="Not sure what the desired behavior is here")
-def test_block_tail_text_suppresses_newline_indent_from_compact():
+def test_block_with_tail_text_suppresses_newline_indent_from_compact():
     example = cleandoc("""
         <root><block>first block</block>some tail text<block>second block</block></root>
     """)
@@ -134,7 +135,11 @@ def test_block_tail_text_suppresses_newline_indent_from_compact():
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
-        <root><block>first block</block>some tail text<block>second block</block></root>
+        <root>
+          <block>first block</block>
+        some tail text
+          <block>second block</block>
+        </root>
     """)
     assert actual == expected
 
@@ -147,6 +152,7 @@ def test_inline_root_from_compact():
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
+    # No change expected since root is not a block element. The output is identical to the input.
     expected = cleandoc("""
         <inline>some inline content</inline>
     """)

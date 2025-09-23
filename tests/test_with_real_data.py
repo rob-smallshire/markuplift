@@ -1,10 +1,13 @@
 import jsbeautifier
 from lxml import etree
 
+import pytest
+
 from markuplift import Formatter
-from markuplift.formatter import Annotations
+from markuplift.annotation import Annotations
 
 
+#@pytest.mark.skip(reason="Used for development only")
 def test_generated_html():
     original = (
 """<!DOCTYPE html>
@@ -98,7 +101,7 @@ def test_generated_html():
 
     formatter = Formatter(
         block_predicate=is_block,
-        normalize_whitespace_predicate=lambda e: e.tag in {"title"},
+        strip_whitespace_predicate=lambda e: e.tag in {"title", "h1", "h2", "h3", "p", "li"},
         preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
         wrap_attributes_predicate=lambda e: e.tag in {"link"} and sum(1 for k in e.attrib if not k.startswith("_")) >= 3,
         text_content_formatters={
