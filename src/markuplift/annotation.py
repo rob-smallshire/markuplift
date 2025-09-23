@@ -347,7 +347,7 @@ def annotate_tail_transforms(root, annotations, one_indent):
             if elem_type == BLOCK_TYPE_ANNOTATION:
                 if next_sibling_type in {BLOCK_TYPE_ANNOTATION}:
                     text_transform = partial(
-                        transform_text_following_block, physical_level=parent_physical_level - 1,
+                        transform_text_following_block, physical_level=parent_physical_level,
                         one_indent=one_indent
                     )
                     tail_transforms.append(text_transform)

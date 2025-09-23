@@ -16,6 +16,7 @@ from markuplift.annotation import (
     annotate_explicit_whitespace_normalizing_elements, BLOCK_TYPES,
     annotate_untyped_elements_as_default, annotate_logical_level, annotate_physical_level,
     annotate_text_transforms, annotate_tail_transforms, annotate_explicit_stripped_elements,
+    PHYSICAL_LEVEL_ANNOTATION_KEY,
 )
 
 from markuplift.utilities import print_tree_with_annotations, normalize_ws
@@ -35,7 +36,7 @@ class Formatter:
         strip_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
-        text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[etree._Element], str]] | None = None,
+        text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[str, str, int], str]] | None = None,
         indent_size = None,
         # TODO: Add an option for attribute_content_formatters (for e.g. wrapping style attributes)
         default_type: str | None = None,
@@ -426,11 +427,12 @@ class Formatter:
         for transform in text_transforms:
             text = transform(text)
 
-        # TODO: Integrate formatting into the more general text transform mechanism.
-        # for predicate, formatter in self._text_content_formatters.items():
-        #     if predicate(element):
-        #         text = formatter(element, annotations, self)
-        #         break
+        physical_level = annotations.annotation(element, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
+
+        for predicate, format_func in self._text_content_formatters.items():
+            if predicate(element):
+                text = format_func(text, self, physical_level)
+                break
         return text
 
     def tail_content(self, annotations, element):
@@ -439,12 +441,6 @@ class Formatter:
         tail_transforms = annotations.annotation(element, "tail_transforms", [])
         for transform in tail_transforms:
             tail = transform(tail)
-
-        # TODO: Integrate formatting into the more general tail transform mechanism.
-        # for predicate, formatter in self._text_content_formatters.items():
-        #     if predicate(element):
-        #         text = formatter(element, annotations, self)
-        #         break
         return tail
 
 
