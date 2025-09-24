@@ -32,26 +32,6 @@ def create_xpath_predicate_factory(xpath_expr: str):
     return create_document_predicate
 
 
-def xpath_to_predicate(xpath_expr: str):
-    """Legacy wrapper for backwards compatibility.
-
-    This is the old inefficient approach - kept for compatibility but not used in CLI.
-    """
-
-    def predicate(element: etree._Element) -> bool:
-        try:
-            # Get the root of the tree to evaluate XPath from
-            root = element.getroottree().getroot()
-            # Find all elements matching the XPath
-            matches = root.xpath(xpath_expr)
-            # Check if this element is in the matches
-            return element in matches
-        except etree.XPathEvalError as e:
-            raise click.ClickException(f"Invalid XPath expression '{xpath_expr}': {e}")
-
-    return predicate
-
-
 def create_external_formatter(xpath_expr: str, command: str, root: etree._Element):
     """Create a text formatter that uses an external program with optimized XPath evaluation."""
     # Create optimized predicate bound to this document
@@ -63,17 +43,9 @@ def create_external_formatter(xpath_expr: str, command: str, root: etree._Elemen
         if not text.strip():
             return text
 
+        cmd_parts = command.split()
         try:
-            # Split command into parts for subprocess
-            cmd_parts = command.split()
             result = subprocess.run(cmd_parts, input=text, text=True, capture_output=True, timeout=30)
-
-            if result.returncode != 0:
-                click.echo(f"Warning: External formatter '{command}' failed: {result.stderr}", err=True)
-                return text
-
-            return result.stdout
-
         except subprocess.TimeoutExpired:
             click.echo(f"Warning: External formatter '{command}' timed out", err=True)
             return text
@@ -83,6 +55,12 @@ def create_external_formatter(xpath_expr: str, command: str, root: etree._Elemen
         except Exception as e:
             click.echo(f"Warning: External formatter '{command}' error: {e}", err=True)
             return text
+
+        if result.returncode != 0:
+            click.echo(f"Warning: External formatter '{command}' failed: {result.stderr}", err=True)
+            return text
+
+        return result.stdout
 
     return predicate, formatter_func
 
