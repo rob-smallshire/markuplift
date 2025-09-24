@@ -1,7 +1,12 @@
 """Type aliases for MarkupLift.
 
 This module defines common type aliases used throughout the MarkupLift codebase
-to improve readability and maintainability.
+to improve readability, maintainability, and code quality.
+
+Type Aliases:
+    ElementPredicate: A function that tests an XML element and returns bool
+    ElementPredicateFactory: A function that creates ElementPredicate instances
+    TextContentFormatter: A function that formats element text content
 """
 
 from typing import Callable, TYPE_CHECKING

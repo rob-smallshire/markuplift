@@ -1,9 +1,22 @@
+"""Document-specific XML/HTML formatter implementation.
+
+This module provides the DocumentFormatter class, which performs the actual
+formatting work for XML and HTML documents. It operates with concrete ElementPredicate
+functions that have been optimized for a specific document, avoiding the overhead
+of re-evaluating predicates for every element.
+
+The DocumentFormatter handles the low-level details of XML serialization, whitespace
+processing, indentation, and text content formatting using TextContentFormatter functions.
+"""
+
 from io import BytesIO
 from typing import Optional
 from xml.sax.saxutils import escape, quoteattr
 
 # Import type aliases
 from markuplift.types import ElementPredicate, TextContentFormatter
+# Import standard predicates
+from markuplift.predicates import never_match
 
 from les_iterables import flatten
 from lxml import etree
@@ -21,15 +34,29 @@ from markuplift.annotation import (
 
 
 class DocumentFormatter:
-    """A formatter configured for a specific XML document with concrete predicates.
+    """A formatter configured for a specific XML document with concrete ElementPredicate functions.
 
     DocumentFormatter is optimized for formatting a single document efficiently by
-    working with concrete predicate functions that have already been bound to the
+    working with concrete ElementPredicate functions that have already been bound to the
     document's structure. This avoids the overhead of re-evaluating predicates
     (such as XPath expressions) for every element.
 
+    The formatter uses TextContentFormatter functions to process element text content
+    and applies various whitespace processing rules based on the provided predicates.
+
     This class is typically used internally by the Formatter class, but can also
-    be used directly when you have concrete predicate functions.
+    be used directly when you have concrete ElementPredicate functions.
+
+    Args:
+        block_predicate: ElementPredicate for identifying block-level elements
+        inline_predicate: ElementPredicate for identifying inline elements
+        normalize_whitespace_predicate: ElementPredicate for whitespace normalization
+        strip_whitespace_predicate: ElementPredicate for whitespace stripping
+        preserve_whitespace_predicate: ElementPredicate for whitespace preservation
+        wrap_attributes_predicate: ElementPredicate for attribute wrapping
+        text_content_formatters: Dict mapping ElementPredicate to TextContentFormatter
+        indent_size: Number of spaces per indentation level
+        default_type: Default element type for unclassified elements
     """
 
     def __init__(
@@ -59,22 +86,22 @@ class DocumentFormatter:
             default_type: Default type for unclassified elements ("block" or "inline").
         """
         if block_predicate is None:
-            block_predicate = lambda e: False
+            block_predicate = never_match
 
         if inline_predicate is None:
-            inline_predicate = lambda e: False
+            inline_predicate = never_match
 
         if normalize_whitespace_predicate is None:
-            normalize_whitespace_predicate = lambda e: False
+            normalize_whitespace_predicate = never_match
 
         if strip_whitespace_predicate is None:
-            strip_whitespace_predicate = lambda e: False
+            strip_whitespace_predicate = never_match
 
         if preserve_whitespace_predicate is None:
-            preserve_whitespace_predicate = lambda e: False
+            preserve_whitespace_predicate = never_match
 
         if wrap_attributes_predicate is None:
-            wrap_attributes_predicate = lambda e: False
+            wrap_attributes_predicate = never_match
 
         if text_content_formatters is None:
             text_content_formatters = {}
@@ -340,7 +367,7 @@ class DocumentFormatter:
         text = self._text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
 
-    def _text_content(self, annotations, element):
+    def _text_content(self, annotations, element) -> str:
         text = element.text or ""
 
         text_transforms = annotations.annotation(element, "text_transforms", [])
@@ -355,7 +382,7 @@ class DocumentFormatter:
                 break
         return text
 
-    def _tail_content(self, annotations, element):
+    def _tail_content(self, annotations, element) -> str:
         tail = element.tail or ""
 
         tail_transforms = annotations.annotation(element, "tail_transforms", [])

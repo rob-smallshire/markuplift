@@ -5,12 +5,13 @@ from lxml import etree
 
 from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_explicit_block_elements, AnnotationConflictError, AnnotationConflictMode
 from markuplift.utilities import tagname, siblings
+from markuplift.predicates import never_match
 
 
 def test_no_matches_no_annotation():
     tree = etree.parse(StringIO("<root/>"))
     annotations = Annotations()
-    annotate_explicit_block_elements(tree, annotations, lambda e: False)
+    annotate_explicit_block_elements(tree, annotations, never_match)
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
 
 

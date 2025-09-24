@@ -1,3 +1,13 @@
+"""Utility functions for XML/HTML processing.
+
+This module provides various utility functions for working with XML elements,
+including sibling relationships, text content analysis, whitespace processing,
+and element classification helpers.
+
+These utilities are used throughout MarkupLift to support the formatting and
+annotation processes.
+"""
+
 import re
 from itertools import groupby
 

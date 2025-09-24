@@ -1,3 +1,21 @@
+"""Element annotation system for XML/HTML formatting.
+
+This module provides a comprehensive annotation system that attaches metadata
+to XML elements during the formatting process. Annotations are used to store
+information about element types (block/inline), whitespace handling, indentation
+levels, and other formatting-related properties.
+
+The annotation system works with ElementPredicate functions to efficiently
+categorize and process elements based on their characteristics and context.
+
+Key Components:
+    Annotations: Storage class for element metadata
+    Element type annotation functions (block/inline classification)
+    Whitespace processing annotation functions
+    Indentation level calculation functions
+    Text transformation functions
+"""
+
 from typing import Any, Callable
 from functools import partial
 from enum import Enum

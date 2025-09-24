@@ -1,3 +1,14 @@
+"""High-level XML/HTML document formatter.
+
+This module provides the main Formatter class, which serves as the public API
+for formatting XML and HTML documents. The Formatter uses ElementPredicateFactory
+functions to create optimized, document-specific predicates that determine how
+elements should be formatted.
+
+The Formatter delegates the actual formatting work to DocumentFormatter instances,
+which are created with concrete ElementPredicate functions for optimal performance.
+"""
+
 from typing import Optional
 from io import BytesIO
 from xml.sax.saxutils import escape
@@ -12,21 +23,34 @@ from markuplift.annotation import (
 
 # Import type aliases
 from markuplift.types import ElementPredicateFactory, TextContentFormatter
+# Import standard predicates
+from markuplift.predicates import never_matches
 
 
 class Formatter:
-    """A configurable formatter for XML documents using predicate factories.
+    """A configurable formatter for XML documents using ElementPredicateFactory functions.
 
-    The Formatter class provides a flexible and extensible way to pretty-print and normalize XML documents.
-    It uses predicate factory functions that are evaluated once per document for maximum performance,
-    especially beneficial for XPath-based predicates.
+    The Formatter class provides a flexible and extensible way to pretty-print and normalize
+    XML documents. It uses ElementPredicateFactory functions that are evaluated once per
+    document for maximum performance, especially beneficial for XPath-based predicates.
 
-    Predicate factories take a document root element and return optimized predicate functions
-    that can efficiently test any element against the criteria. This avoids re-evaluating
-    expensive operations like XPath queries for every element.
+    ElementPredicateFactory functions take a document root element and return optimized
+    ElementPredicate functions that can efficiently test any element against the criteria.
+    This avoids re-evaluating expensive operations like XPath queries for every element.
 
     The Formatter delegates the actual formatting work to DocumentFormatter instances,
-    which are created with concrete predicates for optimal performance.
+    which are created with concrete ElementPredicate functions for optimal performance.
+
+    Args:
+        block_predicate_factory: Factory creating predicates for block-level elements
+        inline_predicate_factory: Factory creating predicates for inline elements
+        normalize_whitespace_predicate_factory: Factory for whitespace normalization
+        strip_whitespace_predicate_factory: Factory for whitespace stripping
+        preserve_whitespace_predicate_factory: Factory for whitespace preservation
+        wrap_attributes_predicate_factory: Factory for attribute wrapping
+        text_content_formatters: Dict mapping factories to TextContentFormatter functions
+        indent_size: Number of spaces per indentation level
+        default_type: Default element type ('block' or 'inline') for unclassified elements
     """
 
     def __init__(
@@ -55,12 +79,12 @@ class Formatter:
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
-        self._block_predicate_factory = block_predicate_factory or (lambda root: lambda e: False)
-        self._inline_predicate_factory = inline_predicate_factory or (lambda root: lambda e: False)
-        self._normalize_predicate_factory = normalize_whitespace_predicate_factory or (lambda root: lambda e: False)
-        self._strip_predicate_factory = strip_whitespace_predicate_factory or (lambda root: lambda e: False)
-        self._preserve_predicate_factory = preserve_whitespace_predicate_factory or (lambda root: lambda e: False)
-        self._wrap_attributes_factory = wrap_attributes_predicate_factory or (lambda root: lambda e: False)
+        self._block_predicate_factory = block_predicate_factory or never_matches
+        self._inline_predicate_factory = inline_predicate_factory or never_matches
+        self._normalize_predicate_factory = normalize_whitespace_predicate_factory or never_matches
+        self._strip_predicate_factory = strip_whitespace_predicate_factory or never_matches
+        self._preserve_predicate_factory = preserve_whitespace_predicate_factory or never_matches
+        self._wrap_attributes_factory = wrap_attributes_predicate_factory or never_matches
         self._text_content_formatter_factories = text_content_formatters or {}
         self._indent_size = indent_size or 2
         self._default_type = default_type or "block"

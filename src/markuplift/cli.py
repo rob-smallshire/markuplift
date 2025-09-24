@@ -1,3 +1,13 @@
+"""Command-line interface for MarkupLift.
+
+This module provides the CLI for MarkupLift, allowing users to format XML and HTML
+documents from the command line with configurable options for block/inline elements,
+whitespace handling, and external text formatters.
+
+The CLI uses ElementPredicateFactory functions from the predicates module to create
+optimized formatting rules based on XPath expressions provided by the user.
+"""
+
 import subprocess
 
 import click
