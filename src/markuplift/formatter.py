@@ -265,7 +265,6 @@ class Formatter:
         # Now we can format the document using the annotated tree to guide the formatting.
         parts = []
         self._format_element(annotations, root, parts)
-        pprint(parts)
         return "".join(flatten(parts))
 
     def _annotate_tree(self, root: etree._Element) -> Annotations:

@@ -13,6 +13,9 @@ dependencies = [
     "typename>=1.0.4",
 ]
 
+[project.scripts]
+markuplift = "markuplift.cli:cli"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
