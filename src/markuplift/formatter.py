@@ -1,4 +1,3 @@
-import re
 from pprint import pprint
 from typing import Callable, Optional
 from io import BytesIO
@@ -19,12 +18,6 @@ from markuplift.annotation import (
     PHYSICAL_LEVEL_ANNOTATION_KEY,
 )
 
-from markuplift.utilities import print_tree_with_annotations
-
-FALSE = ""  # Empty string is falsey when evaluated as a bool
-
-TRUE = "true"
-
 
 class Formatter:
 
@@ -36,7 +29,7 @@ class Formatter:
         strip_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
-        text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[str, str, int], str]] | None = None,
+        text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[str, "Formatter", int], str]] | None = None,
         indent_size = None,
         # TODO: Add an option for attribute_content_formatters (for e.g. wrapping style attributes)
         default_type: str | None = None,
@@ -68,10 +61,11 @@ class Formatter:
                 trailing whitespace removed).
 
             preserve_whitespace_predicate: A function that takes an lxml.etree.Element and returns
-                True if the whitespace in its content (i.e., not
-                stripped or normalized). If None, no elements have their whitespace preserved. It is
-                an error for an element to match both normalize_whitespace_predicate and
-                preserve_whitespace_predicate.
+                True if the whitespace in its content if the whitespace in its text content should
+                be preserved. Note that this can be overridden by xml:space="preserve"
+                or xml:space="default" and is lower precedence than the
+                normalize_whitespace_predicate, so if an element matches both predicates
+                the normalize_whitespace_predicate takes precedence.
 
             wrap_attributes_predicate: A function that takes an lxml.etree.Element and returns True
                 if its attributes should be wrapped onto multiple lines even if they would fit on a
@@ -79,9 +73,10 @@ class Formatter:
 
             text_content_formatters: A dictionary mapping predicates (functions that take an
                 lxml.etree.Element and return True or False) to formatter functions (functions that
-                take a string and return a formatted string, or None). If an element matches a predicate
-                in the dictionary, its text content will be passed to the corresponding formatter
-                function before being included in the output. If the formatter function is None, the
+                take a string a reference to a Formatter object and a physical indentation level).
+                If an element matches a predicate in the dictionary, its text content will be passed
+                to the corresponding formatter function before being included in the output. If the
+                formatter function is None, the
                 text content will be included as-is. If multiple predicates match an element, the
                 formatter function for the first matching predicate will be used. If None, no special
                 formatting is applied to any element's text content.
@@ -174,7 +169,7 @@ class Formatter:
         tree = etree.parse(BytesIO(doc.encode()))
         return self.format_tree(tree, doctype, xml_declaration)
 
-    def test_format_bytes(self, doc: bytes, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
+    def format_bytes(self, doc: bytes, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         """Format a markup document.
 
         Args:
@@ -236,27 +231,7 @@ class Formatter:
     def format_element(self, root: etree._Element, doctype: str | None = None) -> str:
         # Create a parallel tree to which we can add special attributes to each element to control
         # formatting.
-        annotations = Annotations()
-        print("Original tree:")
-        print_tree_with_annotations(root, annotations)
-        print("-----")
-        self._annotate_explicit_block_elements(annotations, root)
-        self._annotate_explicit_inline_elements(annotations, root)
-        self._annotate_mixed_content_siblings_as_inline(annotations, root)
-        self._annotate_inline_descendants_as_inline(annotations, root)
-        self._annotate_unmixed_block_descendants_as_block(annotations, root)
-        #self._annotate_xml_space(annotations, root)
-        self._annotate_explicit_whitespace_preserving_elements(annotations, root)
-        self._annotate_whitespace_preserving_descendants_as_whitespace_preserving(annotations, root)
-        self._annotate_explicit_whitespace_normalizing_elements(annotations, root)
-        self._annotate_explicit_stripped_elements(annotations, root)
-        self._annotate_xml_space(annotations, root)
-        self._annotate_whitespace_strict_descendants_as_whitespace_strict(annotations, root)
-        self._annotate_untyped_elements_as_default(annotations, root)
-        self._annotate_logical_level(annotations, root)
-        self._annotate_physical_level(annotations, root)
-        self._annotate_text_transform(annotations, root)
-        self._annotate_tail_transform(annotations, root)
+        annotations = self._annotate_tree(root)
 
         # Now we can format the document using the annotated tree to guide the formatting.
         parts = []
@@ -264,69 +239,25 @@ class Formatter:
         pprint(parts)
         return "".join(flatten(parts))
 
-    def _annotate_explicit_block_elements(self, annotations, root):
+    def _annotate_tree(self, root: etree._Element) -> Annotations:
+        annotations = Annotations()
+        # Later annotations may read or override annotations made earlier, so the order here matters.
         annotate_explicit_block_elements(root, annotations, self._mark_as_block)
-        print_tree_with_annotations(root, annotations, title="explicit block elements")
-
-    def _annotate_explicit_inline_elements(self, annotations, root):
         annotate_explicit_inline_elements(root, annotations, self._mark_as_inline)
-        print_tree_with_annotations(root, annotations, title="explicit inline elements")
-
-    def _annotate_mixed_content_siblings_as_inline(self, annotations, root):
         annotate_elements_in_mixed_content_as_inline(root, annotations)
-        print_tree_with_annotations(root, annotations, title="mixed content siblings as inline")
-
-    def _annotate_inline_descendants_as_inline(self, annotations, root):
         annotate_inline_descendants_as_inline(root, annotations)
-        print_tree_with_annotations(root, annotations, title="inline descendants as inline")
-
-    def _annotate_unmixed_block_descendants_as_block(self, annotations, root):
         annotate_unmixed_block_descendants_as_block(root, annotations)
-        print_tree_with_annotations(root, annotations, title="unmixed block descendants as block")
-
-    def _annotate_explicit_whitespace_preserving_elements(self, annotations, root):
         annotate_explicit_whitespace_preserving_elements(root, annotations, self._must_preserve_whitespace)
-        print_tree_with_annotations(root, annotations, title="explicit whitespace preservation")
-
-    def _annotate_whitespace_preserving_descendants_as_whitespace_preserving(self, annotations, root):
         annotate_whitespace_preserving_descendants_as_whitespace_preserving(root, annotations)
-        print_tree_with_annotations(root, annotations, title="whitespace-preserving descendants as whitespace-preserving")
-
-    def _annotate_explicit_whitespace_normalizing_elements(self, annotations, root):
         annotate_explicit_whitespace_normalizing_elements(root, annotations, self._must_normalize_whitespace)
-        print_tree_with_annotations(root, annotations, title="explicit whitespace normalization")
-
-    def _annotate_explicit_stripped_elements(self, annotations, root):
         annotate_explicit_stripped_elements(root, annotations, self._must_strip_whitespace)
-        print_tree_with_annotations(root, annotations, title="explicit stripped elements")
-
-    def _annotate_xml_space(self, annotations, root):
         annotate_xml_space(root, annotations)
-        print_tree_with_annotations(root, annotations, title="annotate xml:space")
-
-    def _annotate_whitespace_strict_descendants_as_whitespace_strict(self, annotations, root):
-        print_tree_with_annotations(root, annotations, title="whitespace-strict descendants as whitespace-strict")
-
-    def _annotate_untyped_elements_as_default(self, annotations, root):
         annotate_untyped_elements_as_default(root, annotations, self._default_type)
-        print_tree_with_annotations(root, annotations, title="untyped elements as default")
-
-    def _annotate_logical_level(self, annotations, root):
         annotate_logical_level(root, annotations)
-        print_tree_with_annotations(root, annotations, title="logical level")
-
-    def _annotate_physical_level(self, annotations, root):
         annotate_physical_level(root, annotations)
-        print_tree_with_annotations(root, annotations, title="physical level")
-
-    def _annotate_text_transform(self, annotations, root):
         annotate_text_transforms(root, annotations, self.one_indent)
-        print_tree_with_annotations(root, annotations, title="text transform")
-
-    def _annotate_tail_transform(self, annotations, root):
         annotate_tail_transforms(root, annotations, self.one_indent)
-        print_tree_with_annotations(root, annotations, title="tail transform")
-
+        return annotations
 
     def _format_element(self, annotations: Annotations, element: etree._Element, parts: list[str]):
         # A non-recursive, event-driven approach to formatting the element and its children.
@@ -374,7 +305,7 @@ class Formatter:
 
                 # CONTENT
                 if not is_self_closing:
-                    if text := self.text_content(annotations, node):
+                    if text := self._text_content(annotations, node):
                         escaped_text = escape(text)
                         parts.append(escaped_text)
 
@@ -385,7 +316,7 @@ class Formatter:
                     parts.append(closing_tag_parts)
 
                 # TAIL
-                if tail := self.tail_content(annotations, node):
+                if tail := self._tail_content(annotations, node):
                     escaped_tail = escape(tail)
                     parts.append(escaped_tail)
 
@@ -393,7 +324,7 @@ class Formatter:
                 # For now, assume that comments also have information available in annotations.
                 # TODO: Modify the annotation logic to handle comments properly.
                 parts.append("<!--")
-                if text := self.text_content(annotations, node):
+                if text := self._text_content(annotations, node):
                     escaped_text = escape(text)
                     if escaped_text.startswith("-"):
                         parts.append(" ")
@@ -402,7 +333,7 @@ class Formatter:
                         parts.append(" ")
                 parts.append("-->")
                 # TAIL
-                if tail := self.tail_content(annotations, node):
+                if tail := self._tail_content(annotations, node):
                     escaped_tail = escape(tail)
                     parts.append(escaped_tail)
 
@@ -414,7 +345,7 @@ class Formatter:
                 pi_parts.append("?>")
                 parts.append(pi_parts)
                 # TAIL
-                if tail := self.tail_content(annotations, node):
+                if tail := self._tail_content(annotations, node):
                     escaped_tail = escape(tail)
                     parts.append(escaped_tail)
 
@@ -422,10 +353,10 @@ class Formatter:
                 raise RuntimeError(f"Unexpected event {event} for node {node}")
 
     def _is_self_closing(self, annotations, element: etree._Element) -> bool:
-        text = self.text_content(annotations, element)
+        text = self._text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
 
-    def text_content(self, annotations, element):
+    def _text_content(self, annotations, element):
         text = element.text or ""
 
         text_transforms = annotations.annotation(element, "text_transforms", [])
@@ -440,17 +371,10 @@ class Formatter:
                 break
         return text
 
-    def tail_content(self, annotations, element):
+    def _tail_content(self, annotations, element):
         tail = element.tail or ""
 
         tail_transforms = annotations.annotation(element, "tail_transforms", [])
         for transform in tail_transforms:
             tail = transform(tail)
         return tail
-
-
-def has_xml_declaration_bytes(xml: bytes) -> bool:
-    # Remove optional UTF-8 BOM and leading whitespace bytes
-    xml = xml.lstrip(b'\xef\xbb\xbf\r\n\t ')
-    # Match only the XML declaration at the very start (as bytes)
-    return bool(re.match(br'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))

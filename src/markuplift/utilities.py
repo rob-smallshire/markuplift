@@ -1,3 +1,4 @@
+import re
 from itertools import groupby
 
 from lxml import etree
@@ -136,3 +137,10 @@ def normalize_ws(s: str) -> str:
         spaces if the input string had leading or trailing whitespace.
     """
     return "".join(split_whitespace(s))
+
+
+def has_xml_declaration_bytes(xml: bytes) -> bool:
+    # Remove optional UTF-8 BOM and leading whitespace bytes
+    xml = xml.lstrip(b'\xef\xbb\xbf\r\n\t ')
+    # Match only the XML declaration at the very start (as bytes)
+    return bool(re.match(br'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))
