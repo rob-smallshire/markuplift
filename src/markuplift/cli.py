@@ -108,7 +108,10 @@ def format(
         def combine_factories(xpath_list):
             if not xpath_list:
                 return None
-            factories = [matches_xpath(xpath) for xpath in xpath_list]
+            try:
+                factories = [matches_xpath(xpath) for xpath in xpath_list]
+            except ValueError as e:
+                raise click.ClickException(str(e))
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
                 return lambda e: any(pred(e) for pred in predicates)
@@ -117,7 +120,10 @@ def format(
         # Create text formatter factories from external programs
         text_formatter_factories = {}
         for xpath_expr, command in text_formatter:
-            factory = matches_xpath(xpath_expr)
+            try:
+                factory = matches_xpath(xpath_expr)
+            except ValueError as e:
+                raise click.ClickException(str(e))
             def create_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):
                     if not text.strip():

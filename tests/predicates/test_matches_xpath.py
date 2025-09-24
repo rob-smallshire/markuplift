@@ -1,6 +1,5 @@
 import pytest
 from lxml import etree
-import click
 
 from markuplift.predicates import matches_xpath
 
@@ -92,13 +91,9 @@ def test_matches_xpath_no_matches():
 
 def test_matches_xpath_invalid_expression():
     """Test that invalid XPath expressions raise appropriate errors."""
-    xml = "<root><div>content</div></root>"
-    tree = etree.fromstring(xml)
-
-    factory = matches_xpath("//invalid[[[")
-
-    with pytest.raises(click.ClickException, match="Invalid XPath expression"):
-        predicate = factory(tree)
+    # Error should be raised immediately when creating the factory, not when calling it
+    with pytest.raises(ValueError, match="Invalid XPath expression"):
+        matches_xpath("//invalid[[[")
 
 
 def test_matches_xpath_performance_optimization():

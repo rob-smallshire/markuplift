@@ -25,7 +25,6 @@ All factories return ElementPredicateFactory instances as defined in markuplift.
 """
 
 from lxml import etree
-import click
 
 # Import type aliases
 from markuplift.types import ElementPredicate, ElementPredicateFactory
@@ -39,13 +38,20 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that creates optimized XPath-based predicates
+
+    Raises:
+        ValueError: If the XPath expression is syntactically invalid
     """
+    # Validate XPath syntax immediately using a temporary element
+    try:
+        temp_element = etree.Element("temp")
+        temp_element.xpath(xpath_expr)
+    except etree.XPathEvalError as e:
+        raise ValueError(f"Invalid XPath expression '{xpath_expr}': {e}") from e
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
-        try:
-            # Evaluate XPath once and store results as a set for O(1) lookups
-            matches = set(root.xpath(xpath_expr))
-        except etree.XPathEvalError as e:
-            raise click.ClickException(f"Invalid XPath expression '{xpath_expr}': {e}")
+        # XPath is already validated, so this should not fail
+        matches = set(root.xpath(xpath_expr))
 
         def element_predicate(element: etree._Element) -> bool:
             return element in matches
