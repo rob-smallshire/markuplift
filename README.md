@@ -21,7 +21,6 @@ Markuplift provides flexible, configurable formatting of XML and HTML documents.
 - **External formatter integration** - Pipe element text content through external tools (e.g., js-beautify, prettier)
 - **Comprehensive format options** - Control indentation, attribute wrapping, self-closing tags, and more
 - **CLI and Python API** - Use from command line or integrate into your Python applications
-- **Performance optimized** - Uses factory pattern with single-pass XPath evaluation
 
 ## Quick Start
 
@@ -123,6 +122,7 @@ Markuplift is perfect for:
 - **Documentation** - Standardize markup in documentation systems
 - **Code generation** - Format dynamically generated XML/HTML with precise control
 - **CI/CD pipelines** - Ensure consistent markup formatting across your codebase
+- **Diffing and version control** - Improve readability of markup changes in version control systems
 
 ## Requirements
 
@@ -141,11 +141,3 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) 
 - Running tests and linting
 - Submitting pull requests
 - Reporting issues
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
-
----
-
-**Made with love by [Robert Smallshire](https://github.com/rob-smallshire)**
