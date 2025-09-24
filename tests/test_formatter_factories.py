@@ -3,7 +3,8 @@ from lxml import etree
 import pytest
 
 from helpers.predicates import is_block_or_root, is_inline
-from markuplift.formatter import Formatter, PredicateFactory
+from markuplift.formatter import Formatter
+from markuplift.types import ElementPredicateFactory
 
 
 def test_formatter_with_block_factory():

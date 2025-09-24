@@ -3,9 +3,7 @@ from inspect import cleandoc
 from pytest import mark
 
 from helpers.predicates import is_block_or_root, is_inline
-from markuplift.formatter import DocumentFormatter
-
-
+from markuplift import DocumentFormatter
 
 
 def test_formatter_from_compact():

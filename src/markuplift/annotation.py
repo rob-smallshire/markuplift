@@ -4,6 +4,9 @@ from enum import Enum
 
 from lxml import etree
 
+# Import ElementPredicate type alias
+from markuplift.types import ElementPredicate
+
 from markuplift.utilities import (
     is_in_mixed_content, parent_is_annotated_with, normalize_ws,
     siblings,
@@ -58,7 +61,7 @@ class AnnotationConflictError(Exception):
 def annotate_explicit_block_elements(
     root: etree._Element,
     annotations: Annotations,
-    block_predicate: Callable[[etree._Element], bool],
+    block_predicate: ElementPredicate,
 ):
     annotate_matches(root, annotations, block_predicate, TYPE_ANNOTATION_KEY, BLOCK_TYPE_ANNOTATION, conflict_mode=AnnotationConflictMode.RAISE)
 
@@ -66,7 +69,7 @@ def annotate_explicit_block_elements(
 def annotate_explicit_inline_elements(
     root: etree._Element,
     annotations: Annotations,
-    inline_predicate: Callable[[etree._Element], bool],
+    inline_predicate: ElementPredicate,
 ):
     annotate_matches(root, annotations, inline_predicate, TYPE_ANNOTATION_KEY, INLINE_TYPE_ANNOTATION, conflict_mode=AnnotationConflictMode.RAISE)
 
@@ -152,7 +155,7 @@ def annotate_xml_space(
 def annotate_explicit_whitespace_preserving_elements(
     root: etree._Element,
     annotations: Annotations,
-    predicate: Callable[[etree._Element], bool],
+    predicate: ElementPredicate,
 ):
     annotate_matches(
         root,
@@ -182,7 +185,7 @@ def annotate_whitespace_preserving_descendants_as_whitespace_preserving(
 def annotate_explicit_whitespace_normalizing_elements(
     root: etree._Element,
     annotations: Annotations,
-    predicate: Callable[[etree._Element], bool],
+    predicate: ElementPredicate,
 ):
     annotate_matches(
         root,
@@ -197,7 +200,7 @@ def annotate_explicit_whitespace_normalizing_elements(
 def annotate_explicit_stripped_elements(
     root: etree._Element,
     annotations: Annotations,
-    predicate: Callable[[etree._Element], bool],
+    predicate: ElementPredicate,
 ):
     annotate_matches(
         root,
@@ -414,7 +417,7 @@ def transform_text_following_block_preceding_inline(text: str, physical_level: i
 def annotate_matches(
     tree: etree._Element,
     annotations: Annotations,
-    predicate: Callable[[etree._Element], bool],
+    predicate: ElementPredicate,
     annotation_key: str,
     annotation_value: str,
     *,

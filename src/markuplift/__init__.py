@@ -1,4 +1,5 @@
-from .formatter import Formatter, DocumentFormatter
+from .formatter import Formatter
+from .document_formatter import DocumentFormatter
 
 __all__ = [
     "Formatter",
