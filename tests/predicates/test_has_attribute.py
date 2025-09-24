@@ -1,6 +1,7 @@
+import pytest
 from lxml import etree
 
-from markuplift.predicates import has_attribute
+from markuplift.predicates import has_attribute, PredicateError
 
 
 def test_has_attribute_simple_match():
@@ -146,16 +147,9 @@ def test_has_attribute_special_characters():
 
 def test_has_attribute_empty_attribute_name():
     """Test has_attribute with empty attribute name."""
-    xml = '<root><div class="test">content</div></root>'
-    tree = etree.fromstring(xml)
-
-    factory = has_attribute("")
-    predicate = factory(tree)
-
-    div_elem = tree.find("div")
-
-    # Empty attribute name should not match anything
-    assert predicate(div_elem) is False
+    # Empty attribute name should raise PredicateError
+    with pytest.raises(PredicateError, match="Attribute name cannot be empty"):
+        has_attribute("")
 
 
 def test_has_attribute_reusable_factory():

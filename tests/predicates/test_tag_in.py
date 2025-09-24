@@ -1,6 +1,7 @@
+import pytest
 from lxml import etree
 
-from markuplift.predicates import tag_in
+from markuplift.predicates import tag_in, PredicateError
 
 
 def test_tag_in_simple_match():
@@ -103,19 +104,9 @@ def test_tag_in_duplicate_tags():
 
 def test_tag_in_empty_tags():
     """Test tag_in with empty tags."""
-    xml = "<root><div>content</div></root>"
-    tree = etree.fromstring(xml)
-
-    factory = tag_in("", "div")
-    predicate = factory(tree)
-
-    div_elem = tree.find("div")
-    root_elem = tree
-
-    # div should match
-    assert predicate(div_elem) is True
-    # root should not match (tag is "root", not "")
-    assert predicate(root_elem) is False
+    # Empty tag name should raise PredicateError
+    with pytest.raises(PredicateError, match="Tag name cannot be empty"):
+        tag_in("", "div")
 
 
 def test_tag_in_case_sensitive():
@@ -163,18 +154,10 @@ def test_tag_in_with_namespaces():
 
 
 def test_tag_in_no_args():
-    """Test tag_in with no arguments (should match nothing)."""
-    xml = "<root><div>content</div></root>"
-    tree = etree.fromstring(xml)
-
-    factory = tag_in()  # No arguments
-    predicate = factory(tree)
-
-    div_elem = tree.find("div")
-    root_elem = tree
-
-    assert predicate(div_elem) is False
-    assert predicate(root_elem) is False
+    """Test tag_in with no arguments (should raise error)."""
+    # No arguments should raise PredicateError
+    with pytest.raises(PredicateError, match="At least one tag name must be provided"):
+        tag_in()
 
 
 def test_tag_in_reusable_factory():

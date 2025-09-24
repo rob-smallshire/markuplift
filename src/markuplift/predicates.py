@@ -39,6 +39,45 @@ class PredicateError(Exception):
     pass
 
 
+def _validate_tag_name(tag: str) -> None:
+    """Validate that a tag name is valid for XML.
+
+    Args:
+        tag: The tag name to validate
+
+    Raises:
+        PredicateError: If the tag name is invalid
+    """
+    if not tag:
+        raise PredicateError("Tag name cannot be empty")
+
+    # Use lxml to validate by attempting to create an element
+    try:
+        etree.Element(tag)
+    except ValueError as e:
+        raise PredicateError(f"Invalid tag name '{tag}': {e}") from e
+
+
+def _validate_attribute_name(attr: str) -> None:
+    """Validate that an attribute name is valid for XML.
+
+    Args:
+        attr: The attribute name to validate
+
+    Raises:
+        PredicateError: If the attribute name is invalid
+    """
+    if not attr:
+        raise PredicateError("Attribute name cannot be empty")
+
+    # Use lxml to validate by attempting to set an attribute
+    try:
+        elem = etree.Element("test")
+        elem.set(attr, "value")
+    except ValueError as e:
+        raise PredicateError(f"Invalid attribute name '{attr}': {e}") from e
+
+
 def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
     """Match elements using XPath expressions.
 
@@ -78,7 +117,11 @@ def tag_equals(tag: str) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements with the specified tag
+
+    Raises:
+        PredicateError: If the tag name is invalid
     """
+    _validate_tag_name(tag)
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag == tag
@@ -95,7 +138,16 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements with any of the specified tags
+
+    Raises:
+        PredicateError: If any tag name is invalid or if no tags are provided
     """
+    if not tags:
+        raise PredicateError("At least one tag name must be provided")
+
+    for tag in tags:
+        _validate_tag_name(tag)
+
     tag_set = set(tags)
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -114,15 +166,15 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements having the specified attribute
+
+    Raises:
+        PredicateError: If the attribute name is invalid
     """
+    _validate_attribute_name(attr)
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            if not attr:  # Handle empty attribute name
-                return False
-            try:
-                return attr in element.attrib
-            except ValueError:  # lxml raises ValueError for invalid attribute names
-                return False
+            return attr in element.attrib
         return element_predicate
 
     return create_document_predicate
@@ -137,7 +189,11 @@ def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements with the specified attribute value
+
+    Raises:
+        PredicateError: If the attribute name is invalid
     """
+    _validate_attribute_name(attr)
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.get(attr) == value
@@ -154,7 +210,12 @@ def attribute_count_min(min_count: int) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements with at least min_count attributes
+
+    Raises:
+        PredicateError: If min_count is negative
     """
+    if min_count < 0:
+        raise PredicateError(f"Minimum count must be non-negative, got {min_count}")
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return len(element.attrib) >= min_count
@@ -171,7 +232,12 @@ def attribute_count_max(max_count: int) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches elements with at most max_count attributes
+
+    Raises:
+        PredicateError: If max_count is negative
     """
+    if max_count < 0:
+        raise PredicateError(f"Maximum count must be non-negative, got {max_count}")
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return len(element.attrib) <= max_count
@@ -189,7 +255,17 @@ def attribute_count_between(min_count: int, max_count: int) -> ElementPredicateF
 
     Returns:
         An element predicate factory that matches elements with attribute count in the specified range
+
+    Raises:
+        PredicateError: If min_count or max_count is negative, or if min_count > max_count
     """
+    if min_count < 0:
+        raise PredicateError(f"Minimum count must be non-negative, got {min_count}")
+    if max_count < 0:
+        raise PredicateError(f"Maximum count must be non-negative, got {max_count}")
+    if min_count > max_count:
+        raise PredicateError(f"Minimum count ({min_count}) cannot be greater than maximum count ({max_count})")
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             attr_count = len(element.attrib)
@@ -221,7 +297,12 @@ def is_processing_instruction(target: str = None) -> ElementPredicateFactory:
 
     Returns:
         An element predicate factory that matches processing instruction nodes
+
+    Raises:
+        PredicateError: If target is an empty string
     """
+    if target == "":
+        raise PredicateError("Processing instruction target cannot be empty (use None for any target)")
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             if not isinstance(element, etree._ProcessingInstruction):

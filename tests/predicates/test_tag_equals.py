@@ -1,6 +1,7 @@
+import pytest
 from lxml import etree
 
-from markuplift.predicates import tag_equals
+from markuplift.predicates import tag_equals, PredicateError
 
 
 def test_tag_equals_simple_match():
@@ -91,17 +92,9 @@ def test_tag_equals_with_namespaces():
 
 def test_tag_equals_empty_tag():
     """Test tag_equals with empty string tag."""
-    xml = "<root><div>content</div></root>"
-    tree = etree.fromstring(xml)
-
-    factory = tag_equals("")
-    predicate = factory(tree)
-
-    div_elem = tree.find("div")
-    root_elem = tree
-
-    assert predicate(div_elem) is False
-    assert predicate(root_elem) is False
+    # Empty tag name should raise PredicateError
+    with pytest.raises(PredicateError, match="Tag name cannot be empty"):
+        tag_equals("")
 
 
 def test_tag_equals_reusable_factory():
