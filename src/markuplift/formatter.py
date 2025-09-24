@@ -20,9 +20,35 @@ from markuplift.annotation import (
 
 
 class Formatter:
+    """A configurable formatter for XML documents.
+
+    The Formatter class provides a flexible and extensible way to pretty-print and normalize XML documents.
+    It allows users to control the formatting of elements, attributes, and text content through a variety
+    of user-supplied predicate functions and formatting options. The Formatter can:
+
+    - Distinguish between block and inline elements using user-defined predicates, or infer types contextually.
+    - Normalize, strip, or preserve whitespace in element text content based on predicates or xml:space attributes.
+    - Apply custom formatting to text content using a mapping of predicates to formatter functions.
+    - Control attribute wrapping and indentation for improved readability.
+    - Handle comments, processing instructions, and DOCTYPE declarations appropriately.
+    - Output well-formed, indented XML as a string, with optional XML declaration and DOCTYPE.
+
+    The class is designed to be extensible and composable, making it suitable for a wide range of XML
+    formatting and transformation tasks, including:
+
+    - Reformatting XML for human readability or code review.
+    - Enforcing consistent whitespace and attribute layout in XML documents.
+    - Preparing XML for downstream processing or diffing.
+    - Supporting custom markup dialects with specialized formatting needs.
+
+    Clients can customize the Formatter by supplying their own predicate functions for block/inline
+    detection, whitespace handling, and attribute wrapping, as well as custom text content
+    formatters for embedded source code or data such as JavaScript, CSS, or JSON.
+    """
 
     def __init__(
         self,
+        *,
         block_predicate: Callable[[etree._Element], bool] | None = None,
         inline_predicate: Callable[[etree._Element], bool] | None = None,
         normalize_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
@@ -30,62 +56,43 @@ class Formatter:
         preserve_whitespace_predicate: Callable[[etree._Element], bool] | None = None,
         wrap_attributes_predicate: Callable[[etree._Element], bool] | None = None,
         text_content_formatters: dict[Callable[[etree._Element], bool], Callable[[str, "Formatter", int], str]] | None = None,
-        indent_size = None,
         # TODO: Add an option for attribute_content_formatters (for e.g. wrapping style attributes)
+        indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
-        """Initialize the formatter.
+        """Initialize a Formatter instance with customizable formatting logic.
 
         Args:
-            block_predicate: A function that takes an lxml.etree.Element and returns True if it
-                should be treated as a block element. If None, no elements are definitively treated
-                as block elements. Elements not selected by either block_predicate or inline_predicate
-                will be treated as block elements if they have any block children, and as inline
-                elements if they have only inline children or no children.
+            block_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                are always treated as block elements. If None, no elements are explicitly block by this predicate.
 
-            inline_predicate: A function that takes an lxml.etree.Element and returns True if it
-                should be treated as an inline element. If None, no elements are definitively
-                treated as inline elements. Elements not selected by either block_predicate or
-                inline_predicate will be treated as block elements if they have any block children,
-                and as inline elements if they have only inline children or no children.
+            inline_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                are always treated as inline elements. If None, no elements are explicitly inline by this predicate.
 
-            normalize_whitespace_predicate: A function that takes an lxml.etree.Element and returns
-                True if the whitespace in its text content should be normalized (i.e., leading and
-                trailing whitespace removed, and internal sequences of whitespace replaced with a
-                single space). This does not apply to tail text. If None, no elements have their
-                whitespace normalized. It is an error for an element to match both normalize_whitespace_predicate
-                and preserve_whitespace_predicate.
+            normalize_whitespace_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                will have their text content whitespace normalized (leading/trailing whitespace removed, internal whitespace collapsed).
+                This does not affect tail text. It is an error for an element to match both this and preserve_whitespace_predicate.
 
-            strip_whitespace_predicate: A function that takes an lxml.etree.Element and returns
-                True if the whitespace in its text content should be stripped (i.e., all leading and
-                trailing whitespace removed).
+            strip_whitespace_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                will have all leading and trailing whitespace stripped from their text content.
 
-            preserve_whitespace_predicate: A function that takes an lxml.etree.Element and returns
-                True if the whitespace in its content if the whitespace in its text content should
-                be preserved. Note that this can be overridden by xml:space="preserve"
-                or xml:space="default" and is lower precedence than the
-                normalize_whitespace_predicate, so if an element matches both predicates
-                the normalize_whitespace_predicate takes precedence.
+            preserve_whitespace_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                will have their text content whitespace preserved. This can be overridden by xml:space attributes or by
+                normalize_whitespace_predicate (which takes precedence if both match).
 
-            wrap_attributes_predicate: A function that takes an lxml.etree.Element and returns True
-                if its attributes should be wrapped onto multiple lines even if they would fit on a
-                single line. If None, no elements have their attributes wrapped.
+            wrap_attributes_predicate: Optional function (element -> bool). If provided, elements for which this returns True
+                will have their attributes wrapped onto multiple lines, even if they would fit on a single line.
 
-            text_content_formatters: A dictionary mapping predicates (functions that take an
-                lxml.etree.Element and return True or False) to formatter functions (functions that
-                take a string a reference to a Formatter object and a physical indentation level).
-                If an element matches a predicate in the dictionary, its text content will be passed
-                to the corresponding formatter function before being included in the output. If the
-                formatter function is None, the
-                text content will be included as-is. If multiple predicates match an element, the
-                formatter function for the first matching predicate will be used. If None, no special
-                formatting is applied to any element's text content.
+            text_content_formatters: Optional dictionary mapping predicate functions (element -> bool) to formatter functions.
+                Each predicate is a function that takes an element and returns True or False. Each formatter is a function
+                that takes (text: str, formatter: Formatter, physical_level: int) and returns a formatted string.
+                For each element, the first predicate that matches determines the formatter to use for its text content.
+                If None, no special formatting is applied to any element's text content.
 
-            indent_size: The number of spaces to use for each indentation level. Must be a non-negative
+            indent_size: Number of spaces to use for each indentation level. Must be non-negative. Defaults to 2.
 
-            default_type: The default type for elements that are not explicitly marked as block or inline,
-                and which don't otherwise have their type inferred contextually. Either "block" or "inline".
-                Default is "block".
+            default_type: The default type for elements not explicitly marked as block or inline, and not contextually inferred.
+                Must be either "block" or "inline". Defaults to "block".
         """
         if block_predicate is None:
             block_predicate = lambda e: False
@@ -131,23 +138,26 @@ class Formatter:
 
     @property
     def indent_char(self) -> str:
+        """The character used for indentation (always a single space)."""
         return self._indent_char
 
     @property
     def indent_size(self) -> int:
+        """The number of spaces used for each indentation level."""
         return self._indent_size
 
     @property
     def one_indent(self) -> str:
+        """A string representing a single indentation level (indent_size spaces)."""
         return self._one_indent
 
     def format_file(self, file_path: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
-        """Format a markup document from a file.
+        """Format an XML document from a file path.
 
         Args:
-            file_path: The path to the file containing the markup document.
-            doctype: An optional DOCTYPE declaration to prepend to the output document. This should
-                include the surrounding <!DOCTYPE ...> markup.
+            file_path: Path to the XML file to format.
+            doctype: Optional DOCTYPE declaration to prepend to the output. If not provided, uses the DOCTYPE from the file if available.
+            xml_declaration: If True, includes an XML declaration at the top of the output. If None, defaults to False.
 
         Returns:
             A pretty-printed XML string.
@@ -156,12 +166,12 @@ class Formatter:
         return self.format_tree(tree, doctype=doctype, xml_declaration=xml_declaration)
 
     def format_str(self, doc: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
-        """Format a markup document.
+        """Format an XML document from a string.
 
         Args:
-            doc: A string that can be parsed as XML.
-            doctype: An optional DOCTYPE declaration to prepend to the output document. This should
-                 include the surrounding <!DOCTYPE ...> markup.
+            doc: XML document as a string.
+            doctype: Optional DOCTYPE declaration to prepend to the output. If not provided, uses the DOCTYPE from the document if available.
+            xml_declaration: If True, includes an XML declaration at the top of the output. If None, defaults to False.
 
         Returns:
             A pretty-printed XML string.
@@ -170,12 +180,12 @@ class Formatter:
         return self.format_tree(tree, doctype, xml_declaration)
 
     def format_bytes(self, doc: bytes, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
-        """Format a markup document.
+        """Format an XML document from bytes.
 
         Args:
-            doc: A bytes object that can be parsed as XML.
-            doctype: An optional DOCTYPE declaration to prepend to the output document. This should
-                 include the surrounding <!DOCTYPE ...> markup.
+            doc: XML document as bytes.
+            doctype: Optional DOCTYPE declaration to prepend to the output. If not provided, uses the DOCTYPE from the document if available.
+            xml_declaration: If True, includes an XML declaration at the top of the output. If None, defaults to False.
 
         Returns:
             A pretty-printed XML string.
@@ -184,6 +194,16 @@ class Formatter:
         return self.format_tree(tree, doctype, xml_declaration)
 
     def format_tree(self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
+        """Format an XML document from an lxml ElementTree.
+
+        Args:
+            tree: An lxml.etree._ElementTree representing the XML document.
+            doctype: Optional DOCTYPE declaration to prepend to the output. If not provided, uses the DOCTYPE from the tree if available.
+            xml_declaration: If True, includes an XML declaration at the top of the output. If None, defaults to False.
+
+        Returns:
+            A pretty-printed XML string.
+        """
         parts = []
 
         if xml_declaration is None:
@@ -229,6 +249,15 @@ class Formatter:
         return "".join(flatten(parts))
 
     def format_element(self, root: etree._Element, doctype: str | None = None) -> str:
+        """Format a single XML element and its descendants.
+
+        Args:
+            root: The root lxml.etree._Element to format.
+            doctype: Optional DOCTYPE declaration to prepend to the output. Not used in this method, but included for API consistency.
+
+        Returns:
+            A pretty-printed XML string for the element and its subtree.
+        """
         # Create a parallel tree to which we can add special attributes to each element to control
         # formatting.
         annotations = self._annotate_tree(root)
