@@ -3,7 +3,7 @@ from lxml import etree
 
 import pytest
 
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 from markuplift.annotation import Annotations, INLINE_TYPE_ANNOTATION
 
 
@@ -99,7 +99,7 @@ def test_generated_html():
             (e.tag in {"img"} and (e.getparent() is not None) and is_block(e.getparent()))
         )
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block,
         strip_whitespace_predicate=lambda e: e.tag in {"title", "h1", "h2", "h3", "p", "li"},
         preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
@@ -136,7 +136,7 @@ def test_xml_doc():
 """
     )
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=lambda e: e.tag in {"chunked-content", "titles", "title", "chunks", "chunk", "heading", "paragraphs", "p"},
         strip_whitespace_predicate=lambda e: e.tag in {"supertitle", "title", "subtitle"},
         preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
@@ -147,7 +147,7 @@ def test_xml_doc():
     print(actual)
 
 
-def beautify_js(text: str, formatter: Formatter, physical_indent_level: int) -> str:
+def beautify_js(text: str, formatter: DocumentFormatter, physical_indent_level: int) -> str:
 
     text = text or ""
     if text.strip() == "":

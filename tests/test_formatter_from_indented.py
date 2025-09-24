@@ -3,7 +3,7 @@ from inspect import cleandoc
 from pytest import mark
 
 from helpers.predicates import is_inline, is_block_or_root
-from markuplift.formatter import Formatter
+from markuplift.formatter import DocumentFormatter
 
 
 def test_formatter_from_indented():
@@ -16,7 +16,7 @@ def test_formatter_from_indented():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
@@ -38,7 +38,7 @@ def test_formatter_with_inline_from_indented():
             <inline><inline>content</inline></inline>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -59,7 +59,7 @@ def test_formatter_block_and_inline_from_indented():
           </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
@@ -79,7 +79,7 @@ def test_formatter_inline_and_block_from_indented():
             <inline><block>text</block></inline>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -100,7 +100,7 @@ def test_formatter_mixed_from_indented():
             <block>before inline <inline>inline content</inline> after inline</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
@@ -118,7 +118,7 @@ def test_formatter_mixed_multiple_from_indented():
             <block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
@@ -137,7 +137,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_indented():
             <block>second block with <inline>inline content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)
@@ -157,7 +157,7 @@ def test_block_tail_text():
             <block>second block</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -176,7 +176,7 @@ def test_inline_root_from_indented():
     example = cleandoc("""
         <inline>some inline content</inline>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root
     )
     actual = formatter.format_str(example)

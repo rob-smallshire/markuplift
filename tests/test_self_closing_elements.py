@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
 from helpers.predicates import is_inline, is_block_or_root
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 
 
 def test_self_closing_already_single_tag():
@@ -12,7 +12,7 @@ def test_self_closing_already_single_tag():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "selfclosing",
     )
@@ -35,7 +35,7 @@ def test_self_closing_two_tags():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "selfclosing",
     )
@@ -58,7 +58,7 @@ def test_only_whitespace_in_tags():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "selfclosing",
     )
@@ -81,7 +81,7 @@ def test_only_whitespace_in_tags_with_whitespace_normalization():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "selfclosing",
         strip_whitespace_predicate=lambda e: e.tag == "selfclosing",
@@ -105,7 +105,7 @@ def test_self_closing_implicit_block():
                 </block>
             </root>
         """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
     )
     actual = formatter.format_str(example)

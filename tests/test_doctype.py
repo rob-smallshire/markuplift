@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
 from helpers.predicates import is_inline, is_block_or_root
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 
 
 def test_no_doctype():
@@ -10,7 +10,7 @@ def test_no_doctype():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -30,7 +30,7 @@ def test_with_doctype_from_string():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -51,7 +51,7 @@ def test_override_doctype():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )

@@ -3,7 +3,7 @@ from inspect import cleandoc
 from pytest import mark
 
 from helpers.predicates import is_inline, is_block_or_root
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 from markuplift.utilities import tagname
 
 
@@ -20,7 +20,7 @@ def test_comments_with_block_siblings_only():
             </container>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -50,7 +50,7 @@ def test_comments_with_mixed_inline_block_siblings():
             </container>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -81,7 +81,7 @@ def test_comments_with_true_mixed_content():
               </container>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -110,7 +110,7 @@ def test_hybrid_mixed_content_xhtml_list():
             </ul>
             More text after the nested list.</li>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=lambda e: e.tag in ("ul", "li"),
         inline_predicate=lambda e: e.tag in ("em", "strong", "span"),
     )
@@ -139,7 +139,7 @@ def test_processing_instructions_with_block_siblings():
             </container>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -167,7 +167,7 @@ def test_processing_instructions_with_mixed_content():
             </container>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -194,7 +194,7 @@ def test_comments_preserved_with_whitespace_normalization():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
         normalize_whitespace_predicate=lambda e: tagname(e) == "block"

@@ -3,7 +3,7 @@ import pytest
 from inspect import cleandoc
 
 from helpers.predicates import is_block_or_root
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 
 
 def test_normalize_text_whitespace():
@@ -15,7 +15,7 @@ def test_normalize_text_whitespace():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "block",
     )
@@ -38,7 +38,7 @@ def test_normalize_tail_whitespace():
             </block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "block",
     )
@@ -60,7 +60,7 @@ I've brought on my fan
 a gift from Edo
     </pre>
 </root>""")
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=lambda e: e.tag in {"root", "pre"},
         preserve_whitespace_predicate=lambda e: e.tag == "pre",
     )
@@ -86,7 +86,7 @@ I've brought on my fan
 from Edo</a>
     </pre>
 </root>""")
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=lambda e: e.tag in {"root", "pre"},
         preserve_whitespace_predicate=lambda e: e.tag == "pre",
     )
@@ -114,7 +114,7 @@ def test_xml_space_preserve_overrides_normalization():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag in ("normalized", "preserved"),
     )
@@ -141,7 +141,7 @@ def test_xml_space_default_allows_normalization():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "child",
     )
@@ -165,7 +165,7 @@ def test_character_entities_normalized():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "p",
     )
@@ -187,7 +187,7 @@ def test_leading_trailing_whitespace_preservation():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "p",
     )
@@ -211,7 +211,7 @@ def test_explicit_inline_with_normalization():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=lambda e: e.tag == "em",
         strip_whitespace_predicate=lambda e: e.tag == "div",
@@ -237,7 +237,7 @@ def test_normalization_with_mixed_element_scenario():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=lambda e: e.tag in ("root", "block"),
         inline_predicate=lambda e: e.tag == "inline",
         normalize_whitespace_predicate=lambda e: e.tag == "container",
@@ -265,7 +265,7 @@ def test_whitespace_only_text_nodes():
         </root>
     """)
 
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         normalize_whitespace_predicate=lambda e: e.tag == "p",
     )

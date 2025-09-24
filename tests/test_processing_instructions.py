@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
 from helpers.predicates import is_inline, is_block_or_root
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 
 
 def test_no_processing_instructions():
@@ -10,7 +10,7 @@ def test_no_processing_instructions():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -29,7 +29,7 @@ def test_add_xml_declaration():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -53,7 +53,7 @@ def test_add_xml_declaration_with_existing_processing_instruction():
             <block><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )
@@ -77,7 +77,7 @@ def test_xml_declaration_processing_instruction_preserved():
             <block><?php echo "Hello, World!"; ?><inline>Mixed content</inline></block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
     )

@@ -1,7 +1,7 @@
 from inspect import cleandoc
 
 from helpers.predicates import is_block_or_root, is_inline
-from markuplift import Formatter
+from markuplift import DocumentFormatter
 
 
 def test_element_with_simple_text_content():
@@ -10,7 +10,7 @@ def test_element_with_simple_text_content():
             <block>Some text</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
     )
     actual = formatter.format_str(example)
@@ -28,7 +28,7 @@ def test_element_with_text_content_containing_angled_brackets():
             <block>Some text with &lt; and &gt; characters</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
     )
     actual = formatter.format_str(example)
@@ -46,7 +46,7 @@ def test_element_with_simple_tail_content():
             <block>Some text<inline>with inline</inline> and tail text</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
     )
     actual = formatter.format_str(example)
@@ -64,7 +64,7 @@ def test_element_with_tail_content_containing_angled_brackets():
             <block>Some text<inline>with &lt;inline&gt;</inline> and tail text with &lt; and &gt; characters</block>
         </root>
     """)
-    formatter = Formatter(
+    formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
     )
     actual = formatter.format_str(example)
