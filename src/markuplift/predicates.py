@@ -30,6 +30,15 @@ from lxml import etree
 from markuplift.types import ElementPredicate, ElementPredicateFactory
 
 
+class PredicateError(Exception):
+    """Exception raised for errors in predicate configuration or evaluation.
+
+    This exception is raised when there are issues with predicate factory
+    parameters or configuration, such as invalid XPath expressions.
+    """
+    pass
+
+
 def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
     """Match elements using XPath expressions.
 
@@ -40,14 +49,14 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
         An element predicate factory that creates optimized XPath-based predicates
 
     Raises:
-        ValueError: If the XPath expression is syntactically invalid
+        PredicateError: If the XPath expression is syntactically invalid
     """
     # Validate XPath syntax immediately using a temporary element
     try:
-        temp_element = etree.Element("temp")
+        temp_element: etree._Element = etree.Element("temp")
         temp_element.xpath(xpath_expr)
     except etree.XPathEvalError as e:
-        raise ValueError(f"Invalid XPath expression '{xpath_expr}': {e}") from e
+        raise PredicateError(f"Invalid XPath expression '{xpath_expr}': {e}") from e
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         # XPath is already validated, so this should not fail

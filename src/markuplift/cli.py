@@ -14,7 +14,7 @@ import click
 from lxml import etree
 
 from markuplift.formatter import Formatter
-from markuplift.predicates import matches_xpath
+from markuplift.predicates import matches_xpath, PredicateError
 
 
 
@@ -110,7 +110,7 @@ def format(
                 return None
             try:
                 factories = [matches_xpath(xpath) for xpath in xpath_list]
-            except ValueError as e:
+            except PredicateError as e:
                 raise click.ClickException(str(e))
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
@@ -122,7 +122,7 @@ def format(
         for xpath_expr, command in text_formatter:
             try:
                 factory = matches_xpath(xpath_expr)
-            except ValueError as e:
+            except PredicateError as e:
                 raise click.ClickException(str(e))
             def create_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):

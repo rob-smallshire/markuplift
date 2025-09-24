@@ -1,7 +1,7 @@
 import pytest
 from lxml import etree
 
-from markuplift.predicates import matches_xpath
+from markuplift.predicates import matches_xpath, PredicateError
 
 
 def test_matches_xpath_simple_tag():
@@ -92,7 +92,7 @@ def test_matches_xpath_no_matches():
 def test_matches_xpath_invalid_expression():
     """Test that invalid XPath expressions raise appropriate errors."""
     # Error should be raised immediately when creating the factory, not when calling it
-    with pytest.raises(ValueError, match="Invalid XPath expression"):
+    with pytest.raises(PredicateError, match="Invalid XPath expression"):
         matches_xpath("//invalid[[[")
 
 
