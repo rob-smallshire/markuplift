@@ -1,35 +1,10 @@
 import subprocess
-from io import BytesIO
 
 import click
 from lxml import etree
 
 from markuplift.formatter import Formatter
-
-
-def create_xpath_predicate_factory(xpath_expr: str):
-    """Level 1: Create a factory for XPath-based predicates.
-
-    Returns a function that takes a document root and returns an optimized predicate.
-    This triple-nested approach evaluates XPath expressions only once per document
-    rather than once per element, dramatically improving performance.
-    """
-
-    def create_document_predicate(root: etree._Element):
-        """Level 2: Document context - evaluate XPath once per document."""
-        try:
-            # Evaluate XPath once and store results as a set for O(1) lookups
-            matches = set(root.xpath(xpath_expr))
-        except etree.XPathEvalError as e:
-            raise click.ClickException(f"Invalid XPath expression '{xpath_expr}': {e}")
-
-        def element_predicate(element: etree._Element) -> bool:
-            """Level 3: Fast O(1) membership test."""
-            return element in matches
-
-        return element_predicate
-
-    return create_document_predicate
+from markuplift.predicates import matches_xpath
 
 
 
@@ -123,7 +98,7 @@ def format(
         def combine_factories(xpath_list):
             if not xpath_list:
                 return None
-            factories = [create_xpath_predicate_factory(xpath) for xpath in xpath_list]
+            factories = [matches_xpath(xpath) for xpath in xpath_list]
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
                 return lambda e: any(pred(e) for pred in predicates)
@@ -132,7 +107,7 @@ def format(
         # Create text formatter factories from external programs
         text_formatter_factories = {}
         for xpath_expr, command in text_formatter:
-            factory = create_xpath_predicate_factory(xpath_expr)
+            factory = matches_xpath(xpath_expr)
             def create_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):
                     if not text.strip():
