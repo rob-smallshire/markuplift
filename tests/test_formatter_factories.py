@@ -302,3 +302,272 @@ def test_formatter_with_custom_defaults():
         </root>
     """)
     assert actual == expected
+
+
+def test_formatter_reuse_across_different_documents():
+    """Test that a single Formatter instance can efficiently handle multiple different documents."""
+    def block_factory(root: etree._Element) -> callable:
+        # Factory that adapts to different document structures
+        return lambda e: e.tag in ("html", "body", "div", "p", "root", "container", "item")
+
+    formatter = Formatter(block_predicate_factory=block_factory)
+
+    # Test with HTML-like structure
+    html_doc = "<html><body><div>HTML content</div></body></html>"
+    html_result = formatter.format_str(html_doc)
+    expected_html = cleandoc("""
+        <html>
+          <body>
+            <div>HTML content</div>
+          </body>
+        </html>
+    """)
+    assert html_result == expected_html
+
+    # Test with different XML structure
+    xml_doc = "<root><container><item>XML content</item></container></root>"
+    xml_result = formatter.format_str(xml_doc)
+    expected_xml = cleandoc("""
+        <root>
+          <container>
+            <item>XML content</item>
+          </container>
+        </root>
+    """)
+    assert xml_result == expected_xml
+
+
+def test_formatter_factory_called_once_per_document_multi_use():
+    """Test that factories are called exactly once per document, even when reusing Formatter."""
+    call_count = 0
+    documents_seen = []
+
+    def tracking_block_factory(root: etree._Element) -> callable:
+        nonlocal call_count
+        call_count += 1
+        documents_seen.append(root.tag)
+        return lambda e: e.tag in ("root", "div", "html", "body")
+
+    formatter = Formatter(block_predicate_factory=tracking_block_factory)
+
+    # Format first document
+    formatter.format_str("<root><div>first</div></root>")
+    assert call_count == 1
+    assert documents_seen == ["root"]
+
+    # Format second document
+    formatter.format_str("<html><body>second</body></html>")
+    assert call_count == 2
+    assert documents_seen == ["root", "html"]
+
+    # Format first document again
+    formatter.format_str("<root><div>third</div></root>")
+    assert call_count == 3
+    assert documents_seen == ["root", "html", "root"]
+
+
+def test_formatter_with_xpath_like_factory():
+    """Test Formatter with factory that simulates XPath-based predicate creation."""
+    def xpath_like_factory(root: etree._Element) -> callable:
+        # Simulate XPath evaluation: find all elements with specific attributes
+        elements_with_class = set()
+        for elem in root.iter():
+            if 'class' in elem.attrib:
+                elements_with_class.add(elem)
+
+        return lambda e: e in elements_with_class
+
+    formatter = Formatter(
+        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "div", "p"),
+        wrap_attributes_predicate_factory=xpath_like_factory
+    )
+
+    example = '<root><div class="styled">content</div><p>no class</p></root>'
+    actual = formatter.format_str(example)
+    expected = cleandoc("""
+        <root>
+          <div
+            class="styled"
+          >content</div>
+          <p>no class</p>
+        </root>
+    """)
+    assert actual == expected
+
+
+def test_formatter_factory_exception_handling():
+    """Test Formatter behavior when factory raises an exception."""
+    def failing_factory(root: etree._Element) -> callable:
+        raise ValueError("Factory failed")
+
+    formatter = Formatter(
+        block_predicate_factory=lambda root: lambda e: e.tag == "root",
+        normalize_whitespace_predicate_factory=failing_factory
+    )
+
+    example = "<root><p>text</p></root>"
+
+    # Should raise the factory exception
+    with pytest.raises(ValueError, match="Factory failed"):
+        formatter.format_str(example)
+
+
+def test_formatter_with_document_specific_predicates():
+    """Test that factory predicates can make document-specific decisions."""
+    def document_aware_factory(root: etree._Element) -> callable:
+        # Different behavior based on document type
+        if root.tag == "html":
+            # HTML mode: treat divs and ps as blocks
+            return lambda e: e.tag in ("html", "body", "div", "p")
+        else:
+            # XML mode: treat containers and items as blocks
+            return lambda e: e.tag in ("root", "container", "item")
+
+    formatter = Formatter(block_predicate_factory=document_aware_factory)
+
+    # Test HTML document
+    html_doc = "<html><body><div>content</div></body></html>"
+    html_result = formatter.format_str(html_doc)
+    expected_html = cleandoc("""
+        <html>
+          <body>
+            <div>content</div>
+          </body>
+        </html>
+    """)
+    assert html_result == expected_html
+
+    # Test XML document with different structure
+    xml_doc = "<root><container><item>content</item></container></root>"
+    xml_result = formatter.format_str(xml_doc)
+    expected_xml = cleandoc("""
+        <root>
+          <container>
+            <item>content</item>
+          </container>
+        </root>
+    """)
+    assert xml_result == expected_xml
+
+
+def test_formatter_complex_text_formatter_factories():
+    """Test Formatter with text formatters using factory-based predicate keys."""
+    def code_factory(root: etree._Element) -> callable:
+        # Find code elements with specific type attributes
+        code_elements = set()
+        for elem in root.iter("code"):
+            if elem.get("type") == "javascript":
+                code_elements.add(elem)
+        return lambda e: e in code_elements
+
+    def css_factory(root: etree._Element) -> callable:
+        return lambda e: e.tag == "style"
+
+    def js_formatter(text, doc_formatter, physical_level):
+        return text.replace(";", ";\n" + "  " * physical_level)
+
+    def css_formatter(text, doc_formatter, physical_level):
+        return text.replace("}", "}\n" + "  " * physical_level)
+
+    formatter = Formatter(
+        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "code", "style"),
+        text_content_formatters={
+            code_factory: js_formatter,
+            css_factory: css_formatter
+        }
+    )
+
+    example = cleandoc("""
+        <root>
+            <code type="javascript">var x=1;var y=2;</code>
+            <code type="python">print("hello")</code>
+            <style>body{color:red}div{margin:0}</style>
+        </root>
+    """)
+
+    result = formatter.format_str(example)
+
+    # Should format JavaScript but not Python code, and should format CSS
+    assert "var x=1;\n  var y=2;" in result
+    assert 'print("hello")' in result  # Unchanged
+    assert "body{color:red}\n  div{margin:0}" in result
+
+
+def test_formatter_with_namespace_aware_factory():
+    """Test Formatter with factory that handles namespaced elements."""
+    def namespace_factory(root: etree._Element) -> callable:
+        # Find elements in specific namespaces
+        ns_elements = set()
+        for elem in root.iter():
+            if elem.tag.startswith("{http://example.com/ns}"):
+                ns_elements.add(elem)
+        return lambda e: e in ns_elements
+
+    formatter = Formatter(
+        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "{http://example.com/ns}block"),
+        wrap_attributes_predicate_factory=namespace_factory
+    )
+
+    example = '<root xmlns:ns="http://example.com/ns"><ns:block ns:attr="value">content</ns:block></root>'
+    result = formatter.format_str(example)
+
+    # Should wrap attributes for namespaced elements
+    assert 'attr="value"' in result  # Namespace prefix stripped by lxml
+    assert result.count('\n') > 1  # Should have line breaks from attribute wrapping
+
+
+def test_formatter_empty_and_none_text_formatters():
+    """Test Formatter behavior with empty and None text formatter dictionaries."""
+    def block_factory(root: etree._Element) -> callable:
+        return lambda e: e.tag in ("root", "code")
+
+    # Test with empty dict
+    formatter1 = Formatter(
+        block_predicate_factory=block_factory,
+        text_content_formatters={}
+    )
+
+    # Test with None
+    formatter2 = Formatter(
+        block_predicate_factory=block_factory,
+        text_content_formatters=None
+    )
+
+    example = "<root><code>unchanged text</code></root>"
+    expected = cleandoc("""
+        <root>
+          <code>unchanged text</code>
+        </root>
+    """)
+
+    assert formatter1.format_str(example) == expected
+    assert formatter2.format_str(example) == expected
+
+
+def test_formatter_factory_predicate_consistency():
+    """Test that factory-generated predicates maintain consistency across multiple calls."""
+    evaluation_log = []
+
+    def logging_factory(root: etree._Element) -> callable:
+        target_elements = {elem for elem in root.iter() if elem.get("important") == "true"}
+
+        def predicate(element):
+            evaluation_log.append(element.tag)
+            return element in target_elements
+
+        return predicate
+
+    formatter = Formatter(
+        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "div"),
+        wrap_attributes_predicate_factory=logging_factory
+    )
+
+    example = '<root><div important="true" class="test">content</div><div>other</div></root>'
+    result = formatter.format_str(example)
+
+    # Verify the important div got attribute wrapping
+    assert 'class="test"' in result
+    assert result.count('\n') > 2  # Should have attribute wrapping
+
+    # Verify predicate was called for elements during formatting
+    assert "div" in evaluation_log
