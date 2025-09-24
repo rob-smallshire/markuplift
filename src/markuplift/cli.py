@@ -1,4 +1,5 @@
 import subprocess
+from io import BytesIO
 
 import click
 from lxml import etree
@@ -6,8 +7,36 @@ from lxml import etree
 from markuplift.formatter import Formatter
 
 
+def create_xpath_predicate_factory(xpath_expr: str):
+    """Level 1: Create a factory for XPath-based predicates.
+
+    Returns a function that takes a document root and returns an optimized predicate.
+    This triple-nested approach evaluates XPath expressions only once per document
+    rather than once per element, dramatically improving performance.
+    """
+
+    def create_document_predicate(root: etree._Element):
+        """Level 2: Document context - evaluate XPath once per document."""
+        try:
+            # Evaluate XPath once and store results as a set for O(1) lookups
+            matches = set(root.xpath(xpath_expr))
+        except etree.XPathEvalError as e:
+            raise click.ClickException(f"Invalid XPath expression '{xpath_expr}': {e}")
+
+        def element_predicate(element: etree._Element) -> bool:
+            """Level 3: Fast O(1) membership test."""
+            return element in matches
+
+        return element_predicate
+
+    return create_document_predicate
+
+
 def xpath_to_predicate(xpath_expr: str):
-    """Convert an XPath expression to a predicate function."""
+    """Legacy wrapper for backwards compatibility.
+
+    This is the old inefficient approach - kept for compatibility but not used in CLI.
+    """
 
     def predicate(element: etree._Element) -> bool:
         try:
@@ -23,9 +52,11 @@ def xpath_to_predicate(xpath_expr: str):
     return predicate
 
 
-def create_external_formatter(xpath_expr: str, command: str):
-    """Create a text formatter that uses an external program."""
-    predicate = xpath_to_predicate(xpath_expr)
+def create_external_formatter(xpath_expr: str, command: str, root: etree._Element):
+    """Create a text formatter that uses an external program with optimized XPath evaluation."""
+    # Create optimized predicate bound to this document
+    predicate_factory = create_xpath_predicate_factory(xpath_expr)
+    predicate = predicate_factory(root)
 
     def formatter_func(text: str, formatter: Formatter, physical_level: int) -> str:
         """Format text using external program."""
@@ -142,13 +173,25 @@ def format(
         # Read input content
         content = input_file.read()
 
-        # Build predicate functions from XPath expressions
-        block_predicates = [xpath_to_predicate(xpath) for xpath in block]
-        inline_predicates = [xpath_to_predicate(xpath) for xpath in inline]
-        normalize_predicates = [xpath_to_predicate(xpath) for xpath in normalize_whitespace]
-        preserve_predicates = [xpath_to_predicate(xpath) for xpath in preserve_whitespace]
-        strip_predicates = [xpath_to_predicate(xpath) for xpath in strip_whitespace]
-        wrap_attr_predicates = [xpath_to_predicate(xpath) for xpath in wrap_attributes]
+        # Parse the document early to get the root for XPath evaluation
+        tree = etree.parse(BytesIO(content.encode()))
+        root = tree.getroot()
+
+        # Create predicate factories from XPath expressions
+        block_factories = [create_xpath_predicate_factory(xpath) for xpath in block]
+        inline_factories = [create_xpath_predicate_factory(xpath) for xpath in inline]
+        normalize_factories = [create_xpath_predicate_factory(xpath) for xpath in normalize_whitespace]
+        preserve_factories = [create_xpath_predicate_factory(xpath) for xpath in preserve_whitespace]
+        strip_factories = [create_xpath_predicate_factory(xpath) for xpath in strip_whitespace]
+        wrap_attr_factories = [create_xpath_predicate_factory(xpath) for xpath in wrap_attributes]
+
+        # Create optimized document-bound predicates (XPath evaluated once per expression)
+        block_predicates = [factory(root) for factory in block_factories]
+        inline_predicates = [factory(root) for factory in inline_factories]
+        normalize_predicates = [factory(root) for factory in normalize_factories]
+        preserve_predicates = [factory(root) for factory in preserve_factories]
+        strip_predicates = [factory(root) for factory in strip_factories]
+        wrap_attr_predicates = [factory(root) for factory in wrap_attr_factories]
 
         # Combine multiple predicates with OR logic
         def combine_predicates(predicates):
@@ -159,7 +202,7 @@ def format(
         # Create text formatters from external programs
         text_formatters = {}
         for xpath_expr, command in text_formatter:
-            predicate, formatter_func = create_external_formatter(xpath_expr, command)
+            predicate, formatter_func = create_external_formatter(xpath_expr, command, root)
             text_formatters[predicate] = formatter_func
 
         # Create formatter with all options
@@ -175,8 +218,8 @@ def format(
             default_type=default_type,
         )
 
-        # Format the content
-        formatted = formatter.format_str(content, doctype=doctype, xml_declaration=xml_declaration)
+        # Format the already-parsed tree (no need to re-parse)
+        formatted = formatter.format_tree(tree, doctype=doctype, xml_declaration=xml_declaration)
 
         # Write output
         output.write(formatted)
