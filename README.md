@@ -73,7 +73,12 @@ formatter = Formatter(
 )
 
 # Format complex nested HTML (minified input)
-messy_html = '<ul><li>Getting Started<ul><li>Installation via <code>pip install markuplift</code></li><li>Basic <em>configuration</em> and setup</li></ul></li><li>Advanced Features<ul><li>Custom <strong>predicates</strong> and XPath</li><li>External formatter <code>integration</code></li></ul></li></ul>'
+messy_html = (
+    '<ul><li>Getting Started<ul><li>Installation via <code>pip install markuplift</code>'
+    '</li><li>Basic <em>configuration</em> and setup</li></ul></li><li>Advanced Features'
+    '<ul><li>Custom <strong>predicates</strong> and XPath</li><li>External formatter <co'
+    'de>integration</code></li></ul></li></ul>'
+)
 formatted = formatter.format_str(messy_html)
 print(formatted)
 ```
@@ -105,7 +110,13 @@ from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements
 
 # Real-world messy HTML (imagine this came from a CMS or generator)
-messy_html = '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key features include:</p><ul><li>Configurable <code>block</code> and <code>inline</code> elements</li><li>XPath-based element selection</li><li>Custom text formatters for <pre><code>code blocks</code></pre></li></ul></section></article>'
+messy_html = (
+    '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift is a <em>'
+    'powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key features include:<'
+    '/p><ul><li>Configurable <code>block</code> and <code>inline</code> elements</li><li>XPa'
+    'th-based element selection</li><li>Custom text formatters for <pre><code>code blocks</c'
+    'ode></pre></li></ul></section></article>'
+)
 
 formatter = Formatter(
     block_predicate_factory=html_block_elements(),
@@ -145,7 +156,13 @@ from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements
 
 # HTML form structure (typical from form builders)
-messy_form = '<form><fieldset><legend>User Information</legend><div><label>Name: <input type="text" name="name" required="required"/></label></div><div><label>Email: <input type="email" name="email"/></label></div><div><label><input type="checkbox" name="subscribe"/> Subscribe to <em>newsletter</em></label></div></fieldset><button type="submit">Submit <strong>Form</strong></button></form>'
+messy_form = (
+    '<form><fieldset><legend>User Information</legend><div><label>Name: <input type="text" '
+    'name="name" required="required"/></label></div><div><label>Email: <input type="email" '
+    'name="email"/></label></div><div><label><input type="checkbox" name="subscribe"/> Subs'
+    'cribe to <em>newsletter</em></label></div></fieldset><button type="submit">Submit <str'
+    'ong>Form</strong></button></form>'
+)
 
 formatter = Formatter(
     block_predicate_factory=html_block_elements(),
