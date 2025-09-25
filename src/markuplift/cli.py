@@ -152,7 +152,7 @@ def format(
             block_when=combine_factories(block),
             inline_when=combine_factories(inline),
             normalize_whitespace_when=combine_factories(normalize_whitespace),
-            strip_whitespace_predicate_factory=combine_factories(strip_whitespace),
+            strip_whitespace_when=combine_factories(strip_whitespace),
             preserve_whitespace_predicate_factory=combine_factories(preserve_whitespace),
             wrap_attributes_predicate_factory=combine_factories(wrap_attributes),
             text_content_formatters=text_formatter_factories,
