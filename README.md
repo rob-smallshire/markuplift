@@ -111,11 +111,11 @@ from markuplift.predicates import html_block_elements, html_inline_elements
 
 # Real-world messy HTML (imagine this came from a CMS or generator)
 messy_html = (
-    '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift is a <em>'
-    'powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key features include:<'
-    '/p><ul><li>Configurable <code>block</code> and <code>inline</code> elements</li><li>XPa'
-    'th-based element selection</li><li>Custom text formatters for <pre><code>code blocks</c'
-    'ode></pre></li></ul></section></article>'
+    '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift '
+    'is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key '
+    'features include:</p><ul><li>Configurable <code>block</code> and <code>inline<'
+    '/code> elements</li><li>XPath-based element selection</li><li>Custom text form'
+    'atters for <pre><code>code blocks</code></pre></li></ul></section></article>'
 )
 
 formatter = Formatter(
