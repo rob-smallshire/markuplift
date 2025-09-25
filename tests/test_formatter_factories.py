@@ -14,7 +14,7 @@ def test_formatter_with_block_factory():
     def block_factory(root: etree._Element) -> callable:
         return lambda e: e.tag in ("root", "div")
 
-    formatter = Formatter(block_predicate_factory=block_factory)
+    formatter = Formatter(block_when=block_factory)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -35,7 +35,7 @@ def test_formatter_with_inline_factory():
         return lambda e: e.tag == "span"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         inline_predicate_factory=inline_factory
     )
     actual = formatter.format_str(example)
@@ -59,7 +59,7 @@ def test_formatter_with_normalize_whitespace_factory():
         return lambda e: e.tag == "p"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         normalize_whitespace_predicate_factory=normalize_factory
     )
     actual = formatter.format_str(example)
@@ -86,7 +86,7 @@ def test_formatter_with_preserve_whitespace_factory():
         return lambda e: e.tag == "pre"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         preserve_whitespace_predicate_factory=preserve_factory
     )
     actual = formatter.format_str(example)
@@ -113,7 +113,7 @@ def test_formatter_with_strip_whitespace_factory():
         return lambda e: e.tag == "div"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         strip_whitespace_predicate_factory=strip_factory
     )
     actual = formatter.format_str(example)
@@ -136,7 +136,7 @@ def test_formatter_with_wrap_attributes_factory():
         return lambda e: e.tag == "div"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         wrap_attributes_predicate_factory=wrap_factory
     )
     actual = formatter.format_str(example)
@@ -167,7 +167,7 @@ def test_formatter_with_text_formatters():
         return text.replace("{", " { ").replace("}", " } ")
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         text_content_formatters={code_factory: simple_js_formatter}
     )
     actual = formatter.format_str(example)
@@ -203,7 +203,7 @@ def test_formatter_with_multiple_factories():
         return lambda e: e.tag == "div"
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         inline_predicate_factory=inline_factory,
         normalize_whitespace_predicate_factory=normalize_factory,
         wrap_attributes_predicate_factory=wrap_factory
@@ -232,7 +232,7 @@ def test_formatter_factory_receives_correct_root():
         received_roots.append(root.tag)
         return lambda e: e.tag in ("document", "item")
 
-    formatter = Formatter(block_predicate_factory=block_factory)
+    formatter = Formatter(block_when=block_factory)
     formatter.format_str(example)
 
     # Factory should be called once with the document root
@@ -245,7 +245,7 @@ def test_formatter_with_none_factories():
     example = "<root><div>content</div></root>"
 
     formatter = Formatter(
-        block_predicate_factory=None,
+        block_when=None,
         inline_predicate_factory=None,
         normalize_whitespace_predicate_factory=None,
         preserve_whitespace_predicate_factory=None,
@@ -275,7 +275,7 @@ def test_formatter_factory_caching():
         call_count += 1
         return lambda e: e.tag in ("root", "div")
 
-    formatter = Formatter(block_predicate_factory=block_factory)
+    formatter = Formatter(block_when=block_factory)
     formatter.format_str(example)
 
     # Factory should be called exactly once, not once per element
@@ -290,7 +290,7 @@ def test_formatter_with_custom_defaults():
         return lambda e: e.tag == "root"  # Only root is block
 
     formatter = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         default_type="inline",
         indent_size=4
     )
@@ -311,7 +311,7 @@ def test_formatter_reuse_across_different_documents():
         # Factory that adapts to different document structures
         return lambda e: e.tag in ("html", "body", "div", "p", "root", "container", "item")
 
-    formatter = Formatter(block_predicate_factory=block_factory)
+    formatter = Formatter(block_when=block_factory)
 
     # Test with HTML-like structure
     html_doc = "<html><body><div>HTML content</div></body></html>"
@@ -349,7 +349,7 @@ def test_formatter_factory_called_once_per_document_multi_use():
         documents_seen.append(root.tag)
         return lambda e: e.tag in ("root", "div", "html", "body")
 
-    formatter = Formatter(block_predicate_factory=tracking_block_factory)
+    formatter = Formatter(block_when=tracking_block_factory)
 
     # Format first document
     formatter.format_str("<root><div>first</div></root>")
@@ -379,7 +379,7 @@ def test_formatter_with_xpath_like_factory():
         return lambda e: e in elements_with_class
 
     formatter = Formatter(
-        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "div", "p"),
+        block_when=lambda root: lambda e: e.tag in ("root", "div", "p"),
         wrap_attributes_predicate_factory=xpath_like_factory
     )
 
@@ -402,7 +402,7 @@ def test_formatter_factory_exception_handling():
         raise ValueError("Factory failed")
 
     formatter = Formatter(
-        block_predicate_factory=lambda root: lambda e: e.tag == "root",
+        block_when=lambda root: lambda e: e.tag == "root",
         normalize_whitespace_predicate_factory=failing_factory
     )
 
@@ -424,7 +424,7 @@ def test_formatter_with_document_specific_predicates():
             # XML mode: treat containers and items as blocks
             return lambda e: e.tag in ("root", "container", "item")
 
-    formatter = Formatter(block_predicate_factory=document_aware_factory)
+    formatter = Formatter(block_when=document_aware_factory)
 
     # Test HTML document
     html_doc = "<html><body><div>content</div></body></html>"
@@ -471,7 +471,7 @@ def test_formatter_complex_text_formatter_factories():
         return text.replace("}", "}\n" + "  " * physical_level)
 
     formatter = Formatter(
-        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "code", "style"),
+        block_when=lambda root: lambda e: e.tag in ("root", "code", "style"),
         text_content_formatters={
             code_factory: js_formatter,
             css_factory: css_formatter
@@ -505,7 +505,7 @@ def test_formatter_with_namespace_aware_factory():
         return lambda e: e in ns_elements
 
     formatter = Formatter(
-        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "{http://example.com/ns}block"),
+        block_when=lambda root: lambda e: e.tag in ("root", "{http://example.com/ns}block"),
         wrap_attributes_predicate_factory=namespace_factory
     )
 
@@ -524,13 +524,13 @@ def test_formatter_empty_and_none_text_formatters():
 
     # Test with empty dict
     formatter1 = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         text_content_formatters={}
     )
 
     # Test with None
     formatter2 = Formatter(
-        block_predicate_factory=block_factory,
+        block_when=block_factory,
         text_content_formatters=None
     )
 
@@ -559,7 +559,7 @@ def test_formatter_factory_predicate_consistency():
         return predicate
 
     formatter = Formatter(
-        block_predicate_factory=lambda root: lambda e: e.tag in ("root", "div"),
+        block_when=lambda root: lambda e: e.tag in ("root", "div"),
         wrap_attributes_predicate_factory=logging_factory
     )
 

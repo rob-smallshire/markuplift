@@ -14,7 +14,7 @@ class TestReadmeExamples:
         """Test the Python API example with whitespace preservation from README."""
         # This is the exact example from the README
         formatter = Formatter(
-            block_predicate_factory=html_block_elements(),
+            block_when=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
             preserve_whitespace_predicate_factory=tag_in("pre", "code"),
             indent_size=2
@@ -48,7 +48,7 @@ class TestReadmeExamples:
     def test_real_world_article_example(self):
         """Test the real-world article example with normalize and preserve whitespace from README."""
         formatter = Formatter(
-            block_predicate_factory=html_block_elements(),
+            block_when=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
             preserve_whitespace_predicate_factory=tag_in("pre", "code"),
             normalize_whitespace_predicate_factory=any_of(tag_in("p", "li"), html_inline_elements()),
@@ -82,7 +82,7 @@ class TestReadmeExamples:
     def test_advanced_form_example(self):
         """Test the advanced example with comprehensive whitespace control from README."""
         formatter = Formatter(
-            block_predicate_factory=html_block_elements(),
+            block_when=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
             preserve_whitespace_predicate_factory=tag_in("pre", "code", "textarea"),
             normalize_whitespace_predicate_factory=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
@@ -129,7 +129,7 @@ class TestReadmeExamples:
     def test_block_inline_classification(self):
         """Test that our examples correctly demonstrate block vs inline element handling."""
         formatter = Formatter(
-            block_predicate_factory=html_block_elements(),
+            block_when=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
             indent_size=2
         )
@@ -148,7 +148,7 @@ class TestReadmeExamples:
     def test_mixed_content_in_lists(self):
         """Test the specific case mentioned: li with both text and sublist."""
         formatter = Formatter(
-            block_predicate_factory=html_block_elements(),
+            block_when=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
             indent_size=2
         )

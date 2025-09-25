@@ -67,7 +67,7 @@ from markuplift.predicates import html_block_elements, html_inline_elements, tag
 
 # Create formatter with whitespace handling
 formatter = Formatter(
-    block_predicate_factory=html_block_elements(),
+    block_when=html_block_elements(),
     inline_predicate_factory=html_inline_elements(),
     preserve_whitespace_predicate_factory=tag_in("pre", "code"),
     indent_size=2
@@ -120,7 +120,7 @@ messy_html = (
 )
 
 formatter = Formatter(
-    block_predicate_factory=html_block_elements(),
+    block_when=html_block_elements(),
     inline_predicate_factory=html_inline_elements(),
     preserve_whitespace_predicate_factory=tag_in("pre", "code"),
     normalize_whitespace_predicate_factory=any_of(tag_in("p", "li"), html_inline_elements()),
@@ -163,10 +163,12 @@ messy_html = (
 )
 
 formatter = Formatter(
-    block_predicate_factory=html_block_elements(),
+    block_when=html_block_elements(),
     inline_predicate_factory=html_inline_elements(),
     preserve_whitespace_predicate_factory=tag_in("pre", "code", "textarea"),
-    normalize_whitespace_predicate_factory=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
+    normalize_whitespace_predicate_factory=any_of(
+        tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()
+    ),
     indent_size=2
 )
 
