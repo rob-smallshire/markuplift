@@ -155,7 +155,7 @@ def format(
             strip_whitespace_when=combine_factories(strip_whitespace),
             preserve_whitespace_when=combine_factories(preserve_whitespace),
             wrap_attributes_when=combine_factories(wrap_attributes),
-            text_content_formatters=text_formatter_factories,
+            reformat_text_when=text_formatter_factories,
             indent_size=indent_size,
             default_type=default_type,
         )

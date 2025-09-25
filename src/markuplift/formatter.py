@@ -48,7 +48,7 @@ class Formatter:
         strip_whitespace_when: Factory for whitespace stripping
         preserve_whitespace_when: Factory for whitespace preservation
         wrap_attributes_when: Factory for attribute wrapping
-        text_content_formatters: Dict mapping factories to TextContentFormatter functions
+        reformat_text_when: Dict mapping factories to TextContentFormatter functions
         indent_size: Number of spaces per indentation level
         default_type: Default element type ('block' or 'inline') for unclassified elements
     """
@@ -62,20 +62,20 @@ class Formatter:
         strip_whitespace_when: ElementPredicateFactory | None = None,
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
-        text_content_formatters: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
+        reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
-        """Initialize a Formatter with predicate factory functions.
+        """Initialize a Formatter with predicate factory functions and other configuration.
 
         Args:
-            block_when: Factory function (root -> element predicate) for block elements.
-            inline_when: Factory function (root -> element predicate) for inline elements.
-            normalize_whitespace_when: Factory for whitespace normalization predicates.
-            strip_whitespace_when: Factory for whitespace stripping predicates.
-            preserve_whitespace_when: Factory for whitespace preservation predicates.
-            wrap_attributes_when: Factory for attribute wrapping predicates.
-            text_content_formatters: Dictionary mapping predicate factories to formatter functions.
+            block_when: Predicate factory function (root -> element predicate) for block elements.
+            inline_when: Predicate factory function (root -> element predicate) for inline elements.
+            normalize_whitespace_when: Predicate factory for whitespace normalization predicates.
+            strip_whitespace_when: Predicate factory for whitespace stripping predicates.
+            preserve_whitespace_when: Predicate factory for whitespace preservation predicates.
+            wrap_attributes_when: Predicate factory for attribute wrapping predicates.
+            reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -85,7 +85,7 @@ class Formatter:
         self._strip_predicate_factory = strip_whitespace_when or never_matches
         self._preserve_predicate_factory = preserve_whitespace_when or never_matches
         self._wrap_attributes_factory = wrap_attributes_when or never_matches
-        self._text_content_formatter_factories = text_content_formatters or {}
+        self._text_content_formatter_factories = reformat_text_when or {}
         self._indent_size = indent_size or 2
         self._default_type = default_type or "block"
 

@@ -168,7 +168,7 @@ def test_formatter_with_text_formatters():
 
     formatter = Formatter(
         block_when=block_factory,
-        text_content_formatters={code_factory: simple_js_formatter}
+        reformat_text_when={code_factory: simple_js_formatter}
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -251,7 +251,7 @@ def test_formatter_with_none_factories():
         preserve_whitespace_when=None,
         strip_whitespace_when=None,
         wrap_attributes_when=None,
-        text_content_formatters=None
+        reformat_text_when=None
     )
     actual = formatter.format_str(example)
 
@@ -472,7 +472,7 @@ def test_formatter_complex_text_formatter_factories():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "code", "style"),
-        text_content_formatters={
+        reformat_text_when={
             code_factory: js_formatter,
             css_factory: css_formatter
         }
@@ -525,13 +525,13 @@ def test_formatter_empty_and_none_text_formatters():
     # Test with empty dict
     formatter1 = Formatter(
         block_when=block_factory,
-        text_content_formatters={}
+        reformat_text_when={}
     )
 
     # Test with None
     formatter2 = Formatter(
         block_when=block_factory,
-        text_content_formatters=None
+        reformat_text_when=None
     )
 
     example = "<root><code>unchanged text</code></root>"
