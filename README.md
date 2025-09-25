@@ -75,10 +75,10 @@ formatter = Formatter(
 
 # Format complex HTML with code examples (preserves whitespace in <code>)
 messy_html = (
-    '<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p>'
-    '<ul><li>Installation: <code>   pip install markuplift   </code></li>'
-    '<li>Basic <em>configuration</em> and setup</li><li>Code example:'
-    '<pre>    def format_xml():\n        return "beautiful"\n    </pre></li></ul></div>'
+    '<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p><ul><li>'
+    'Installation: <code>   pip install markuplift   </code></li><li>Basic <em>conf'
+    'iguration</em> and setup</li><li>Code example:<pre>    def format_xml():\n    '
+    '    return "beautiful"\n    </pre></li></ul></div>'
 )
 formatted = formatter.format_str(messy_html)
 print(formatted)
@@ -111,12 +111,12 @@ from markuplift.predicates import html_block_elements, html_inline_elements, tag
 
 # Real-world messy HTML with code blocks and excessive whitespace
 messy_html = (
-    '<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2>'
-    '<p>Here\'s how to    use   our   API   with   proper   spacing:</p>'
-    '<pre><code>from markuplift import Formatter\nformatter = Formatter(\n    '
-    'preserve_whitespace=True\n)</code></pre><p>The   <em>preserve_whitespace</em>   '
-    'feature   keeps   code   formatting   intact   while   <strong>normalizing</strong>   '
-    'text   content!</p></section></article>'
+    '<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2><p>He'
+    're\'s how to    use   our   API   with   proper   spacing:</p><pre><code>from'
+    ' markuplift import Formatter\nformatter = Formatter(\n    preserve_whitespace'
+    '=True\n)</code></pre><p>The   <em>preserve_whitespace</em>   feature   keeps '
+    '  code   formatting   intact   while   <strong>normalizing</strong>   text   '
+    'content!</p></section></article>'
 )
 
 formatter = Formatter(
@@ -154,12 +154,13 @@ from markuplift.predicates import html_block_elements, html_inline_elements, tag
 
 # Technical documentation with code, forms, and mixed content
 messy_html = (
-    '<div><h2>API   Documentation</h2><p>Use this    form   to   test   the   API:</p>'
-    '<form><fieldset><legend>Configuration</legend><div><label>Code Sample: '
-    '<textarea name="code">    def example():\n        return "test"\n        # preserve formatting'
-    '</textarea></label></div><div><p>Inline   code   like   <code>   format()   </code>   '
-    'works   perfectly!</p></div></fieldset></form><h3>Expected   Output:</h3>'
-    '<pre>{\n  "status": "formatted",\n  "whitespace": "preserved"\n}</pre></div>'
+    '<div><h2>API   Documentation</h2><p>Use this    form   to   test   the   API:'
+    '</p><form><fieldset><legend>Configuration</legend><div><label>Code Sample: <t'
+    'extarea name="code">    def example():\n        return "test"\n        # pres'
+    'erve formatting</textarea></label></div><div><p>Inline   code   like   <code>'
+    '   format()   </code>   works   perfectly!</p></div></fieldset></form><h3>Exp'
+    'ected   Output:</h3><pre>{\n  "status": "formatted",\n  "whitespace": "preser'
+    'ved"\n}</pre></div>'
 )
 
 formatter = Formatter(
