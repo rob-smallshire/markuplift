@@ -60,7 +60,7 @@ def test_formatter_with_normalize_whitespace_factory():
 
     formatter = Formatter(
         block_when=block_factory,
-        normalize_whitespace_predicate_factory=normalize_factory
+        normalize_whitespace_when=normalize_factory
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -205,7 +205,7 @@ def test_formatter_with_multiple_factories():
     formatter = Formatter(
         block_when=block_factory,
         inline_when=inline_factory,
-        normalize_whitespace_predicate_factory=normalize_factory,
+        normalize_whitespace_when=normalize_factory,
         wrap_attributes_predicate_factory=wrap_factory
     )
     actual = formatter.format_str(example)
@@ -247,7 +247,7 @@ def test_formatter_with_none_factories():
     formatter = Formatter(
         block_when=None,
         inline_when=None,
-        normalize_whitespace_predicate_factory=None,
+        normalize_whitespace_when=None,
         preserve_whitespace_predicate_factory=None,
         strip_whitespace_predicate_factory=None,
         wrap_attributes_predicate_factory=None,
@@ -403,7 +403,7 @@ def test_formatter_factory_exception_handling():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag == "root",
-        normalize_whitespace_predicate_factory=failing_factory
+        normalize_whitespace_when=failing_factory
     )
 
     example = "<root><p>text</p></root>"

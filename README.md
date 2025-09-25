@@ -123,7 +123,7 @@ formatter = Formatter(
     block_when=html_block_elements(),
     inline_when=html_inline_elements(),
     preserve_whitespace_predicate_factory=tag_in("pre", "code"),
-    normalize_whitespace_predicate_factory=any_of(tag_in("p", "li"), html_inline_elements()),
+    normalize_whitespace_when=any_of(tag_in("p", "li"), html_inline_elements()),
     indent_size=2
 )
 
@@ -166,7 +166,7 @@ formatter = Formatter(
     block_when=html_block_elements(),
     inline_when=html_inline_elements(),
     preserve_whitespace_predicate_factory=tag_in("pre", "code", "textarea"),
-    normalize_whitespace_predicate_factory=any_of(
+    normalize_whitespace_when=any_of(
         tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()
     ),
     indent_size=2

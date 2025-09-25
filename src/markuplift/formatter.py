@@ -44,7 +44,7 @@ class Formatter:
     Args:
         block_when: Factory creating predicates for block-level elements
         inline_when: Factory creating predicates for inline elements
-        normalize_whitespace_predicate_factory: Factory for whitespace normalization
+        normalize_whitespace_when: Factory for whitespace normalization
         strip_whitespace_predicate_factory: Factory for whitespace stripping
         preserve_whitespace_predicate_factory: Factory for whitespace preservation
         wrap_attributes_predicate_factory: Factory for attribute wrapping
@@ -58,7 +58,7 @@ class Formatter:
         *,
         block_when: ElementPredicateFactory | None = None,
         inline_when: ElementPredicateFactory | None = None,
-        normalize_whitespace_predicate_factory: ElementPredicateFactory | None = None,
+        normalize_whitespace_when: ElementPredicateFactory | None = None,
         strip_whitespace_predicate_factory: ElementPredicateFactory | None = None,
         preserve_whitespace_predicate_factory: ElementPredicateFactory | None = None,
         wrap_attributes_predicate_factory: ElementPredicateFactory | None = None,
@@ -71,7 +71,7 @@ class Formatter:
         Args:
             block_when: Factory function (root -> element predicate) for block elements.
             inline_when: Factory function (root -> element predicate) for inline elements.
-            normalize_whitespace_predicate_factory: Factory for whitespace normalization predicates.
+            normalize_whitespace_when: Factory for whitespace normalization predicates.
             strip_whitespace_predicate_factory: Factory for whitespace stripping predicates.
             preserve_whitespace_predicate_factory: Factory for whitespace preservation predicates.
             wrap_attributes_predicate_factory: Factory for attribute wrapping predicates.
@@ -81,7 +81,7 @@ class Formatter:
         """
         self._block_predicate_factory = block_when or never_matches
         self._inline_predicate_factory = inline_when or never_matches
-        self._normalize_predicate_factory = normalize_whitespace_predicate_factory or never_matches
+        self._normalize_predicate_factory = normalize_whitespace_when or never_matches
         self._strip_predicate_factory = strip_whitespace_predicate_factory or never_matches
         self._preserve_predicate_factory = preserve_whitespace_predicate_factory or never_matches
         self._wrap_attributes_factory = wrap_attributes_predicate_factory or never_matches
