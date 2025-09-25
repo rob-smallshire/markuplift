@@ -46,7 +46,7 @@ class Formatter:
         inline_when: Factory creating predicates for inline elements
         normalize_whitespace_when: Factory for whitespace normalization
         strip_whitespace_when: Factory for whitespace stripping
-        preserve_whitespace_predicate_factory: Factory for whitespace preservation
+        preserve_whitespace_when: Factory for whitespace preservation
         wrap_attributes_predicate_factory: Factory for attribute wrapping
         text_content_formatters: Dict mapping factories to TextContentFormatter functions
         indent_size: Number of spaces per indentation level
@@ -60,7 +60,7 @@ class Formatter:
         inline_when: ElementPredicateFactory | None = None,
         normalize_whitespace_when: ElementPredicateFactory | None = None,
         strip_whitespace_when: ElementPredicateFactory | None = None,
-        preserve_whitespace_predicate_factory: ElementPredicateFactory | None = None,
+        preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_predicate_factory: ElementPredicateFactory | None = None,
         text_content_formatters: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
@@ -73,7 +73,7 @@ class Formatter:
             inline_when: Factory function (root -> element predicate) for inline elements.
             normalize_whitespace_when: Factory for whitespace normalization predicates.
             strip_whitespace_when: Factory for whitespace stripping predicates.
-            preserve_whitespace_predicate_factory: Factory for whitespace preservation predicates.
+            preserve_whitespace_when: Factory for whitespace preservation predicates.
             wrap_attributes_predicate_factory: Factory for attribute wrapping predicates.
             text_content_formatters: Dictionary mapping predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
@@ -83,7 +83,7 @@ class Formatter:
         self._inline_predicate_factory = inline_when or never_matches
         self._normalize_predicate_factory = normalize_whitespace_when or never_matches
         self._strip_predicate_factory = strip_whitespace_when or never_matches
-        self._preserve_predicate_factory = preserve_whitespace_predicate_factory or never_matches
+        self._preserve_predicate_factory = preserve_whitespace_when or never_matches
         self._wrap_attributes_factory = wrap_attributes_predicate_factory or never_matches
         self._text_content_formatter_factories = text_content_formatters or {}
         self._indent_size = indent_size or 2

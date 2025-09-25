@@ -87,7 +87,7 @@ def test_formatter_with_preserve_whitespace_factory():
 
     formatter = Formatter(
         block_when=block_factory,
-        preserve_whitespace_predicate_factory=preserve_factory
+        preserve_whitespace_when=preserve_factory
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -248,7 +248,7 @@ def test_formatter_with_none_factories():
         block_when=None,
         inline_when=None,
         normalize_whitespace_when=None,
-        preserve_whitespace_predicate_factory=None,
+        preserve_whitespace_when=None,
         strip_whitespace_when=None,
         wrap_attributes_predicate_factory=None,
         text_content_formatters=None
