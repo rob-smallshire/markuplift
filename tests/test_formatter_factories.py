@@ -36,7 +36,7 @@ def test_formatter_with_inline_factory():
 
     formatter = Formatter(
         block_when=block_factory,
-        inline_predicate_factory=inline_factory
+        inline_when=inline_factory
     )
     actual = formatter.format_str(example)
     expected = "<root><span>content</span></root>"
@@ -204,7 +204,7 @@ def test_formatter_with_multiple_factories():
 
     formatter = Formatter(
         block_when=block_factory,
-        inline_predicate_factory=inline_factory,
+        inline_when=inline_factory,
         normalize_whitespace_predicate_factory=normalize_factory,
         wrap_attributes_predicate_factory=wrap_factory
     )
@@ -246,7 +246,7 @@ def test_formatter_with_none_factories():
 
     formatter = Formatter(
         block_when=None,
-        inline_predicate_factory=None,
+        inline_when=None,
         normalize_whitespace_predicate_factory=None,
         preserve_whitespace_predicate_factory=None,
         strip_whitespace_predicate_factory=None,

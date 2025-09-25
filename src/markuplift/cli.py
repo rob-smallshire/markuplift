@@ -150,7 +150,7 @@ def format(
         # Create formatter with factory functions - much cleaner!
         formatter = Formatter(
             block_when=combine_factories(block),
-            inline_predicate_factory=combine_factories(inline),
+            inline_when=combine_factories(inline),
             normalize_whitespace_predicate_factory=combine_factories(normalize_whitespace),
             strip_whitespace_predicate_factory=combine_factories(strip_whitespace),
             preserve_whitespace_predicate_factory=combine_factories(preserve_whitespace),
