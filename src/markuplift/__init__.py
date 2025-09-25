@@ -88,5 +88,5 @@ __all__ = [
 from collections import namedtuple
 
 Version = namedtuple("Version", ["major", "minor", "patch"])
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 __version_info__ = Version(*(__version__.split(".")))
