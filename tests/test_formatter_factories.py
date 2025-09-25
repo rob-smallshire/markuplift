@@ -137,7 +137,7 @@ def test_formatter_with_wrap_attributes_factory():
 
     formatter = Formatter(
         block_when=block_factory,
-        wrap_attributes_predicate_factory=wrap_factory
+        wrap_attributes_when=wrap_factory
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -206,7 +206,7 @@ def test_formatter_with_multiple_factories():
         block_when=block_factory,
         inline_when=inline_factory,
         normalize_whitespace_when=normalize_factory,
-        wrap_attributes_predicate_factory=wrap_factory
+        wrap_attributes_when=wrap_factory
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -250,7 +250,7 @@ def test_formatter_with_none_factories():
         normalize_whitespace_when=None,
         preserve_whitespace_when=None,
         strip_whitespace_when=None,
-        wrap_attributes_predicate_factory=None,
+        wrap_attributes_when=None,
         text_content_formatters=None
     )
     actual = formatter.format_str(example)
@@ -380,7 +380,7 @@ def test_formatter_with_xpath_like_factory():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "div", "p"),
-        wrap_attributes_predicate_factory=xpath_like_factory
+        wrap_attributes_when=xpath_like_factory
     )
 
     example = '<root><div class="styled">content</div><p>no class</p></root>'
@@ -506,7 +506,7 @@ def test_formatter_with_namespace_aware_factory():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "{http://example.com/ns}block"),
-        wrap_attributes_predicate_factory=namespace_factory
+        wrap_attributes_when=namespace_factory
     )
 
     example = '<root xmlns:ns="http://example.com/ns"><ns:block ns:attr="value">content</ns:block></root>'
@@ -560,7 +560,7 @@ def test_formatter_factory_predicate_consistency():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "div"),
-        wrap_attributes_predicate_factory=logging_factory
+        wrap_attributes_when=logging_factory
     )
 
     example = '<root><div important="true" class="test">content</div><div>other</div></root>'
