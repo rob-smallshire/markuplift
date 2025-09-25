@@ -22,10 +22,67 @@ Example:
 
 from .formatter import Formatter
 from .document_formatter import DocumentFormatter
+from .types import ElementPredicate, ElementPredicateFactory
+from .annotation import INLINE_TYPE_ANNOTATION as INLINE_TYPE
+from .annotation import BLOCK_TYPE_ANNOTATION as BLOCK_TYPE
+from .predicates import (
+    all_of,
+    any_of,
+    attribute_count_between,
+    attribute_count_max,
+    attribute_count_min,
+    attribute_equals,
+    has_attribute,
+    has_child_elements,
+    has_mixed_content,
+    has_no_significant_content,
+    has_significant_content,
+    html_block_elements,
+    html_inline_elements,
+    html_metadata_elements,
+    html_void_elements,
+    html_whitespace_significant_elements,
+    is_comment,
+    is_element,
+    is_processing_instruction,
+    matches_xpath,
+    not_matching,
+    tag_equals,
+    tag_in,
+    PredicateError,
+)
 
 __all__ = [
+    "DocumentFormatter",
     "Formatter",
-    "DocumentFormatter"
+    "ElementPredicate",
+    "ElementPredicateFactory",
+    "PredicateError",
+    "INLINE_TYPE",
+    "BLOCK_TYPE",
+    "all_of",
+    "any_of",
+    "attribute_count_between",
+    "attribute_count_max",
+    "attribute_count_min",
+    "attribute_equals",
+    "has_attribute",
+    "has_child_elements",
+    "has_mixed_content",
+    "has_no_significant_content",
+    "has_significant_content",
+    "html_block_elements",
+    "html_inline_elements",
+    "html_metadata_elements",
+    "html_void_elements",
+    "html_whitespace_significant_elements",
+    "is_comment",
+    "is_element",
+    "is_processing_instruction",
+    "matches_xpath",
+    "not_matching",
+    "tag_equals",
+    "tag_in",
 ]
 
 from collections import namedtuple

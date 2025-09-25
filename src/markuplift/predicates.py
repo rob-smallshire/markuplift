@@ -72,7 +72,7 @@ def _validate_attribute_name(attr: str) -> None:
 
     # Use lxml to validate by attempting to set an attribute
     try:
-        elem = etree.Element("test")
+        elem: etree._Element = etree.Element("test")
         elem.set(attr, "value")
     except ValueError as e:
         raise PredicateError(f"Invalid attribute name '{attr}': {e}") from e
@@ -453,7 +453,7 @@ def html_void_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
-def whitespace_significant_elements() -> ElementPredicateFactory:
+def html_whitespace_significant_elements() -> ElementPredicateFactory:
     """Match elements where whitespace is significant.
 
     Returns:
