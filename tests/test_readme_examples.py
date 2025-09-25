@@ -166,3 +166,93 @@ class TestReadmeExamples:
 </ol>"""
 
         assert formatted.strip() == expected.strip()
+
+    def test_custom_css_class_predicate_example(self):
+        """Test the custom CSS class predicate example from README."""
+        # Implementation of has_css_class from README
+        def has_css_class(class_name: str):
+            """Factory for predicate matching elements with a specific CSS class."""
+            from markuplift.predicates import PredicateError
+            # Level 1: Configuration and validation
+            if not class_name or not class_name.strip():
+                raise PredicateError("CSS class name cannot be empty")
+            if ' ' in class_name:
+                raise PredicateError("CSS class name cannot contain spaces")
+
+            clean_class = class_name.strip()
+
+            def create_document_predicate(root):
+                # Level 2: Document-specific preparation - find all matching elements once
+                matching_elements = set()
+                for element in root.iter():
+                    class_attr = element.get('class', '')
+                    if class_attr and clean_class in class_attr.split():
+                        matching_elements.add(element)
+
+                def element_predicate(element):
+                    # Level 3: Fast membership test
+                    return element in matching_elements
+                return element_predicate
+            return create_document_predicate
+
+        # Test the exact usage example from README
+        formatter = Formatter(
+            block_when=html_block_elements(),
+            inline_when=html_inline_elements(),
+            preserve_whitespace_when=has_css_class("code-block"),
+            normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
+            indent_size=2
+        )
+
+        # Format HTML with CSS classes (exact example from README)
+        html = '<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>'
+        formatted = formatter.format_str(html)
+
+        expected_output = """<div class="container">
+  <p class="prose">Text content</p>
+  <pre class="code-block">preserved code</pre>
+</div>"""
+
+        assert formatted.strip() == expected_output.strip()
+
+    def test_custom_predicate_validation(self):
+        """Test validation in the custom CSS class predicate example."""
+        # Implementation of has_css_class from README
+        def has_css_class(class_name: str):
+            """Factory for predicate matching elements with a specific CSS class."""
+            from markuplift.predicates import PredicateError
+            # Level 1: Configuration and validation
+            if not class_name or not class_name.strip():
+                raise PredicateError("CSS class name cannot be empty")
+            if ' ' in class_name:
+                raise PredicateError("CSS class name cannot contain spaces")
+
+            clean_class = class_name.strip()
+
+            def create_document_predicate(root):
+                # Level 2: Document-specific preparation - find all matching elements once
+                matching_elements = set()
+                for element in root.iter():
+                    class_attr = element.get('class', '')
+                    if class_attr and clean_class in class_attr.split():
+                        matching_elements.add(element)
+
+                def element_predicate(element):
+                    # Level 3: Fast membership test
+                    return element in matching_elements
+                return element_predicate
+            return create_document_predicate
+
+        from markuplift.predicates import PredicateError
+        import pytest
+
+        # Test empty class name validation
+        with pytest.raises(PredicateError, match="CSS class name cannot be empty"):
+            has_css_class("")
+
+        with pytest.raises(PredicateError, match="CSS class name cannot be empty"):
+            has_css_class("   ")
+
+        # Test spaces in class name validation
+        with pytest.raises(PredicateError, match="CSS class name cannot contain spaces"):
+            has_css_class("class with spaces")

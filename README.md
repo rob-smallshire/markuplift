@@ -202,12 +202,84 @@ print(formatted)
 </div>
 ```
 
-## Documentation
+## Custom Element Predicate Factories
 
-- **[API Documentation](https://markuplift.readthedocs.io/)** - Comprehensive API reference
-- **[User Guide](https://markuplift.readthedocs.io/en/latest/guide/)** - Detailed usage examples and tutorials
-- **[Predicate Reference](https://markuplift.readthedocs.io/en/latest/predicates/)** - Built-in predicates and custom predicate creation
-- **[CLI Reference](https://markuplift.readthedocs.io/en/latest/cli/)** - Complete command-line interface documentation
+Markuplift uses the following types for creating custom formatting rules. The core types are:
+
+- **`ElementPredicate`**: `Callable[[etree._Element], bool]` - A function that tests if an element matches criteria
+- **`ElementPredicateFactory`**: `Callable[[etree._Element], ElementPredicate]` - A function that creates optimized, document-specific predicates. The element here is the root of the document.
+
+This architecture uses triple-nested functions to allow queries to be performed efficiently:
+
+1. **Outer function**: Accepts configuration parameters and performs validation
+2. **Middle function**: Accepts the document root and performs expensive preparation (queries, traversals)
+3. **Inner function**: Accepts individual elements and performs fast lookups against pre-computed results
+
+### Example: Custom CSS Class Predicate
+
+Here's how to create a custom predicate for elements with a specific CSS class:
+
+```python
+from lxml import etree
+
+from markuplift.predicates import PredicateError
+from markuplift.types import ElementPredicateFactory, ElementPredicate
+
+def has_css_class(class_name: str) -> ElementPredicateFactory:
+    """Factory for predicate matching elements with a specific CSS class."""
+    # Level 1: Configuration and validation
+    if not class_name or not class_name.strip():
+        raise PredicateError("CSS class name cannot be empty")
+    if ' ' in class_name:
+        raise PredicateError("CSS class name cannot contain spaces")
+
+    clean_class = class_name.strip()
+
+    def create_document_predicate(root: etree._Element) -> ElementPredicate:
+        # Level 2: Document-specific preparation - find all matching elements once
+        matching_elements = set()
+        for element in root.iter():
+            class_attr = element.get('class', '')
+            if class_attr and clean_class in class_attr.split():
+                matching_elements.add(element)
+
+        def element_predicate(element: etree._Element) -> bool:
+            # Level 3: Fast membership test
+            return element in matching_elements
+        return element_predicate
+    return create_document_predicate
+```
+
+This is especially powerful for complex predicates where the middle level can do expensive operations like XPath queries, regex compilation, or tree traversals once per document, then the inner function just does fast lookups against pre-computed results.
+
+### Using Custom Predicates
+
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements, any_of
+
+# Use custom predicate with built-in ones
+formatter = Formatter(
+    block_when=html_block_elements(),
+    inline_when=html_inline_elements(),
+    preserve_whitespace_when=has_css_class("code-block"),
+    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
+    indent_size=2
+)
+
+# Format HTML with CSS classes
+html = '<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>'
+formatted = formatter.format_str(html)
+print(formatted)
+```
+
+**Output:**
+```html
+<div class="container">
+  <p class="prose">Text content</p>
+  <pre class="code-block">preserved code</pre>
+</div>
+```
 
 ## Use Cases
 
