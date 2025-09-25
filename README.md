@@ -63,47 +63,117 @@ cat messy.xml | markuplift format --output formatted.xml
 
 ```python
 from markuplift import Formatter
-from markuplift.predicates import html_block_elements, tag_in
+from markuplift.predicates import html_block_elements, html_inline_elements
 
 # Create formatter with HTML-aware defaults
 formatter = Formatter(
     block_predicate_factory=html_block_elements(),
-    inline_predicate_factory=tag_in("em", "strong", "code", "a"),
+    inline_predicate_factory=html_inline_elements(),
     indent_size=2
 )
 
-# Format HTML string
-messy_html = "<div><p>Hello <em>world</em>!</p><p>Another paragraph.</p></div>"
+# Format complex nested HTML (minified input)
+messy_html = '<ul><li>Getting Started<ul><li>Installation via <code>pip install markuplift</code></li><li>Basic <em>configuration</em> and setup</li></ul></li><li>Advanced Features<ul><li>Custom <strong>predicates</strong> and XPath</li><li>External formatter <code>integration</code></li></ul></li></ul>'
 formatted = formatter.format_str(messy_html)
 print(formatted)
 ```
 
 **Output:**
 ```html
-<div>
-  <p>Hello <em>world</em>!</p>
-  <p>Another paragraph.</p>
-</div>
+<ul>
+  <li>Getting Started
+    <ul>
+      <li>Installation via <code>pip install markuplift</code></li>
+      <li>Basic <em>configuration</em> and setup</li>
+    </ul>
+  </li>
+  <li>Advanced Features
+    <ul>
+      <li>Custom <strong>predicates</strong> and XPath</li>
+      <li>External formatter <code>integration</code></li>
+    </ul>
+  </li>
+</ul>
+```
+
+### Real-World Example
+
+Here's Markuplift formatting a complex article structure with mixed content:
+
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements
+
+# Real-world messy HTML (imagine this came from a CMS or generator)
+messy_html = '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key features include:</p><ul><li>Configurable <code>block</code> and <code>inline</code> elements</li><li>XPath-based element selection</li><li>Custom text formatters for <pre><code>code blocks</code></pre></li></ul></section></article>'
+
+formatter = Formatter(
+    block_predicate_factory=html_block_elements(),
+    inline_predicate_factory=html_inline_elements(),
+    indent_size=2
+)
+
+formatted = formatter.format_str(messy_html)
+print(formatted)
+```
+
+**Output:**
+```html
+<article>
+  <h1>Using Markuplift</h1>
+  <section>
+    <h2>Introduction</h2>
+    <p>Markuplift is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p>
+    <p>Key features include:</p>
+    <ul>
+      <li>Configurable <code>block</code> and <code>inline</code> elements</li>
+      <li>XPath-based element selection</li>
+      <li>Custom text formatters for
+        <pre><code>code blocks</code></pre>
+      </li>
+    </ul>
+  </section>
+</article>
 ```
 
 ### Advanced Example
 
+Complex HTML form with custom formatting rules:
+
 ```python
 from markuplift import Formatter
-from markuplift.predicates import matches_xpath, html_block_elements
+from markuplift.predicates import html_block_elements, html_inline_elements
 
-# Custom formatter with XPath-based rules
+# HTML form structure (typical from form builders)
+messy_form = '<form><fieldset><legend>User Information</legend><div><label>Name: <input type="text" name="name" required="required"/></label></div><div><label>Email: <input type="email" name="email"/></label></div><div><label><input type="checkbox" name="subscribe"/> Subscribe to <em>newsletter</em></label></div></fieldset><button type="submit">Submit <strong>Form</strong></button></form>'
+
 formatter = Formatter(
     block_predicate_factory=html_block_elements(),
-    inline_predicate_factory=matches_xpath("//code | //kbd | //var"),
-    normalize_whitespace_predicate_factory=matches_xpath("//p | //div"),
-    preserve_whitespace_predicate_factory=matches_xpath("//pre | //script"),
-    text_content_formatters={
-        matches_xpath("//script[@type='text/javascript']"): lambda text, fmt, level: js_beautify(text),
-    }
+    inline_predicate_factory=html_inline_elements(),
+    indent_size=2
 )
 
-result = formatter.format_str(your_html)
+formatted = formatter.format_str(messy_form)
+print(formatted)
+```
+
+**Output:**
+```html
+<form>
+  <fieldset>
+    <legend>User Information</legend>
+    <div>
+      <label>Name: <input type="text" name="name" required="required" /></label>
+    </div>
+    <div>
+      <label>Email: <input type="email" name="email" /></label>
+    </div>
+    <div>
+      <label><input type="checkbox" name="subscribe" /> Subscribe to <em>newsletter</em></label>
+    </div>
+  </fieldset>
+  <button type="submit">Submit <strong>Form</strong></button>
+</form>
 ```
 
 ## Documentation
@@ -123,11 +193,6 @@ Markuplift is perfect for:
 - **Code generation** - Format dynamically generated XML/HTML with precise control
 - **CI/CD pipelines** - Ensure consistent markup formatting across your codebase
 - **Diffing and version control** - Improve readability of markup changes in version control systems
-
-## Requirements
-
-- **Python 3.12+**
-- **Dependencies**: `lxml`, `click`
 
 ## License
 
