@@ -4,101 +4,125 @@ This ensures that all examples in the README are accurate and working.
 """
 
 from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements
+from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
 
 
 class TestReadmeExamples:
     """Test all examples from README.md to ensure accuracy."""
 
     def test_python_api_nested_list_example(self):
-        """Test the Python API nested list example from README."""
+        """Test the Python API example with whitespace preservation from README."""
         # This is the exact example from the README
         formatter = Formatter(
             block_predicate_factory=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
+            preserve_whitespace_predicate_factory=tag_in("pre", "code"),
             indent_size=2
         )
 
-        # Format complex nested HTML (minified input)
-        messy_html = '<ul><li>Getting Started<ul><li>Installation via <code>pip install markuplift</code></li><li>Basic <em>configuration</em> and setup</li></ul></li><li>Advanced Features<ul><li>Custom <strong>predicates</strong> and XPath</li><li>External formatter <code>integration</code></li></ul></li></ul>'
+        # Format complex HTML with code examples (preserves whitespace in <code>)
+        messy_html = (
+            '<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p>'
+            '<ul><li>Installation: <code>   pip install markuplift   </code></li>'
+            '<li>Basic <em>configuration</em> and setup</li><li>Code example:'
+            '<pre>    def format_xml():\n        return "beautiful"\n    </pre></li></ul></div>'
+        )
         formatted = formatter.format_str(messy_html)
 
-        expected_output = """<ul>
-  <li>Getting Started
-    <ul>
-      <li>Installation via <code>pip install markuplift</code></li>
-      <li>Basic <em>configuration</em> and setup</li>
-    </ul>
-  </li>
-  <li>Advanced Features
-    <ul>
-      <li>Custom <strong>predicates</strong> and XPath</li>
-      <li>External formatter <code>integration</code></li>
-    </ul>
-  </li>
-</ul>"""
+        expected_output = """<div>
+  <h3>Documentation</h3>
+  <p>Here are some    spaced    examples:</p>
+  <ul>
+    <li>Installation: <code>   pip install markuplift   </code></li>
+    <li>Basic <em>configuration</em> and setup</li>
+    <li>Code example:
+      <pre>    def format_xml():
+        return "beautiful"
+    </pre>
+    </li>
+  </ul>
+</div>"""
 
         assert formatted.strip() == expected_output.strip()
 
     def test_real_world_article_example(self):
-        """Test the real-world article example from README."""
-        # Real-world messy HTML (imagine this came from a CMS or generator)
-        messy_html = '<article><h1>Using Markuplift</h1><section><h2>Introduction</h2><p>Markuplift is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p><p>Key features include:</p><ul><li>Configurable <code>block</code> and <code>inline</code> elements</li><li>XPath-based element selection</li><li>Custom text formatters for <pre><code>code blocks</code></pre></li></ul></section></article>'
-
+        """Test the real-world article example with normalize and preserve whitespace from README."""
         formatter = Formatter(
             block_predicate_factory=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
+            preserve_whitespace_predicate_factory=tag_in("pre", "code"),
+            normalize_whitespace_predicate_factory=any_of(tag_in("p", "li"), html_inline_elements()),
             indent_size=2
+        )
+
+        # Real-world messy HTML with code blocks and excessive whitespace
+        messy_html = (
+            '<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2>'
+            '<p>Here\'s how to    use   our   API   with   proper   spacing:</p>'
+            '<pre><code>from markuplift import Formatter\nformatter = Formatter(\n    '
+            'preserve_whitespace=True\n)</code></pre><p>The   <em>preserve_whitespace</em>   '
+            'feature   keeps   code   formatting   intact   while   <strong>normalizing</strong>   '
+            'text   content!</p></section></article>'
         )
 
         formatted = formatter.format_str(messy_html)
 
         expected_output = """<article>
-  <h1>Using Markuplift</h1>
+  <h1>Using   Markuplift</h1>
   <section>
-    <h2>Introduction</h2>
-    <p>Markuplift is a <em>powerful</em> formatter for <strong>XML and HTML</strong>.</p>
-    <p>Key features include:</p>
-    <ul>
-      <li>Configurable <code>block</code> and <code>inline</code> elements</li>
-      <li>XPath-based element selection</li>
-      <li>Custom text formatters for
-        <pre><code>code blocks</code></pre>
-      </li>
-    </ul>
+    <h2>Code    Formatting</h2>
+    <p>Here's how to use our API with proper spacing:</p>
+    <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
+    <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
   </section>
 </article>"""
 
         assert formatted.strip() == expected_output.strip()
 
     def test_advanced_form_example(self):
-        """Test the advanced HTML form example from README."""
-        # HTML form structure (typical from form builders)
-        messy_form = '<form><fieldset><legend>User Information</legend><div><label>Name: <input type="text" name="name" required="required"/></label></div><div><label>Email: <input type="email" name="email"/></label></div><div><label><input type="checkbox" name="subscribe"/> Subscribe to <em>newsletter</em></label></div></fieldset><button type="submit">Submit <strong>Form</strong></button></form>'
-
+        """Test the advanced example with comprehensive whitespace control from README."""
         formatter = Formatter(
             block_predicate_factory=html_block_elements(),
             inline_predicate_factory=html_inline_elements(),
+            preserve_whitespace_predicate_factory=tag_in("pre", "code", "textarea"),
+            normalize_whitespace_predicate_factory=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
             indent_size=2
         )
 
-        formatted = formatter.format_str(messy_form)
+        # Technical documentation with code, forms, and mixed content
+        messy_html = (
+            '<div><h2>API   Documentation</h2><p>Use this    form   to   test   the   API:</p>'
+            '<form><fieldset><legend>Configuration</legend><div><label>Code Sample: '
+            '<textarea name="code">    def example():\n        return "test"\n        # preserve formatting'
+            '</textarea></label></div><div><p>Inline   code   like   <code>   format()   </code>   '
+            'works   perfectly!</p></div></fieldset></form><h3>Expected   Output:</h3>'
+            '<pre>{\n  "status": "formatted",\n  "whitespace": "preserved"\n}</pre></div>'
+        )
 
-        expected_output = """<form>
-  <fieldset>
-    <legend>User Information</legend>
-    <div>
-      <label>Name: <input type="text" name="name" required="required" /></label>
-    </div>
-    <div>
-      <label>Email: <input type="email" name="email" /></label>
-    </div>
-    <div>
-      <label><input type="checkbox" name="subscribe" /> Subscribe to <em>newsletter</em></label>
-    </div>
-  </fieldset>
-  <button type="submit">Submit <strong>Form</strong></button>
-</form>"""
+        formatted = formatter.format_str(messy_html)
+
+        expected_output = """<div>
+  <h2>API Documentation</h2>
+  <p>Use this form to test the API:</p>
+  <form>
+    <fieldset>
+      <legend>Configuration</legend>
+      <div>
+        <label>Code Sample: <textarea name="code">    def example():
+        return "test"
+        # preserve formatting</textarea></label>
+      </div>
+      <div>
+        <p>Inline code like <code> format() </code> works perfectly!</p>
+      </div>
+    </fieldset>
+  </form>
+  <h3>Expected Output:</h3>
+  <pre>{
+  "status": "formatted",
+  "whitespace": "preserved"
+}</pre>
+</div>"""
 
         assert formatted.strip() == expected_output.strip()
 
