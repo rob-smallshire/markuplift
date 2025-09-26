@@ -7,9 +7,14 @@ Type Aliases:
     ElementPredicate: A function that tests an XML element and returns bool
     ElementPredicateFactory: A function that creates ElementPredicate instances
     TextContentFormatter: A function that formats element text content
+    AttributePredicate: A function that tests an element's attribute and returns bool
+    AttributePredicateFactory: A function that creates AttributePredicate instances
+    NameMatcher: String or regex pattern for matching attribute names
+    ValueMatcher: String or regex pattern for matching attribute values
 """
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, Union, TYPE_CHECKING
+from re import Pattern
 from lxml import etree
 
 if TYPE_CHECKING:
@@ -27,3 +32,18 @@ ElementPredicateFactory = Callable[[etree._Element], ElementPredicate]
 # The function takes the text content (str), the DocumentFormatter instance,
 # and the current indentation level (int), and returns the formatted text (str).
 TextContentFormatter = Callable[[str, "DocumentFormatter", int], str]
+
+# Type aliases for attribute matching
+# NameMatcher can be exact string match or regex pattern for attribute names
+NameMatcher = Union[str, Pattern[str]]
+
+# ValueMatcher can be exact string match or regex pattern for attribute values
+ValueMatcher = Union[str, Pattern[str]]
+
+# Type alias for attribute predicate functions
+# The function takes an XML element, attribute name, and attribute value, and returns a boolean.
+AttributePredicate = Callable[[etree._Element, str, str], bool]
+
+# Type alias for attribute predicate factory functions
+# The function takes the document root (etree._Element) and returns an AttributePredicate.
+AttributePredicateFactory = Callable[[etree._Element], AttributePredicate]

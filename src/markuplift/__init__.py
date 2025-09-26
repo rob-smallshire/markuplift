@@ -27,13 +27,16 @@ from .annotation import INLINE_TYPE_ANNOTATION as INLINE_TYPE
 from .annotation import BLOCK_TYPE_ANNOTATION as BLOCK_TYPE
 from .predicates import (
     all_of,
+    any_element,
     any_of,
     attribute_count_between,
     attribute_count_max,
     attribute_count_min,
     attribute_equals,
+    attribute_matches,
     has_attribute,
     has_child_elements,
+    has_class,
     has_mixed_content,
     has_no_significant_content,
     has_significant_content,
@@ -47,8 +50,10 @@ from .predicates import (
     is_processing_instruction,
     matches_xpath,
     not_matching,
+    pattern,
     tag_equals,
     tag_in,
+    tag_name,
     PredicateError,
 )
 
@@ -61,13 +66,16 @@ __all__ = [
     "INLINE_TYPE",
     "BLOCK_TYPE",
     "all_of",
+    "any_element",
     "any_of",
     "attribute_count_between",
     "attribute_count_max",
     "attribute_count_min",
     "attribute_equals",
+    "attribute_matches",
     "has_attribute",
     "has_child_elements",
+    "has_class",
     "has_mixed_content",
     "has_no_significant_content",
     "has_significant_content",
@@ -81,8 +89,10 @@ __all__ = [
     "is_processing_instruction",
     "matches_xpath",
     "not_matching",
+    "pattern",
     "tag_equals",
     "tag_in",
+    "tag_name",
 ]
 
 from collections import namedtuple

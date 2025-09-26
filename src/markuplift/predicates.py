@@ -17,17 +17,33 @@ Factory Categories:
     HTML Domain: html_block_elements, html_inline_elements, etc.
     Combinators: any_of, all_of, not_matching
 
+Attribute Chaining Support:
+    Functions decorated with @supports_attributes return PredicateFactory instances
+    that support .with_attribute() chaining syntax:
+
+        has_attribute("class").with_attribute("style", "color: red")
+        html_block_elements().with_attribute("data-config")
+        tag_in("div", "p").with_attribute("role", re.compile(r"button|link"))
+
 Standard Predicates:
     never_match: A standard ElementPredicate that always returns False
     never_matches: A standard ElementPredicateFactory that creates never-matching predicates
 
-All factories return ElementPredicateFactory instances as defined in markuplift.types.
+Most factories return ElementPredicateFactory instances, but decorated functions
+return PredicateFactory instances with enhanced chaining capabilities.
 """
 
 from lxml import etree
+import re
+from re import Pattern
+from typing import Union, Optional, Callable
 
 # Import type aliases
-from markuplift.types import ElementPredicate, ElementPredicateFactory
+from markuplift.types import (
+    ElementPredicate, ElementPredicateFactory,
+    AttributePredicate, AttributePredicateFactory,
+    NameMatcher, ValueMatcher
+)
 
 
 class PredicateError(Exception):
@@ -37,6 +53,153 @@ class PredicateError(Exception):
     parameters or configuration, such as invalid XPath expressions.
     """
     pass
+
+
+def _create_matcher(
+    value: Union[str, Pattern[str], None],
+    matcher_name: str,
+    allow_none: bool = False
+) -> Callable[[str], bool]:
+    """Create optimized matcher function for string/pattern matching.
+
+    This helper function creates efficient matcher functions at predicate factory
+    creation time, avoiding repeated type checking during predicate evaluation.
+
+    Args:
+        value: String for exact match, Pattern for regex, or None
+        matcher_name: Description for error messages ("name" or "value")
+        allow_none: Whether None values are permitted
+
+    Returns:
+        Callable that takes a string and returns bool
+
+    Raises:
+        TypeError: If value is not the expected type
+
+    Examples:
+        name_matcher = _create_matcher("style", "name", allow_none=False)
+        value_matcher = _create_matcher(re.compile(r"color:.*"), "value", allow_none=False)
+        optional_matcher = _create_matcher(None, "value", allow_none=True)
+    """
+    if value is None:
+        if allow_none:
+            return lambda s: True  # Match anything
+        else:
+            raise TypeError(f"{matcher_name} cannot be None")
+    elif isinstance(value, str):
+        return lambda s: s == value
+    elif isinstance(value, Pattern):
+        return lambda s: bool(value.match(s))
+    else:
+        allowed = "str, re.Pattern" + (", or None" if allow_none else "")
+        raise TypeError(f"{matcher_name} must be {allowed}, got {type(value).__name__}")
+
+
+class PredicateFactory:
+    """Base class for chainable predicate factories.
+
+    This class wraps ElementPredicateFactory functions to provide chainable
+    methods for attribute selection. All existing predicate functions will
+    return instances of this class while maintaining backward compatibility
+    as callable objects.
+
+    The chainable methods allow natural syntax like:
+        has_class("widget").with_attribute("style")
+        tag_name("img").with_attribute("src", re.compile(r"^https://"))
+    """
+
+    def __init__(self, factory_func: ElementPredicateFactory):
+        """Initialize with an ElementPredicateFactory function.
+
+        Args:
+            factory_func: Function that takes root element and returns ElementPredicate
+        """
+        self._factory_func = factory_func
+
+    def __call__(self, root: etree._Element) -> ElementPredicate:
+        """Make this object callable like the original ElementPredicateFactory.
+
+        Args:
+            root: The document root element
+
+        Returns:
+            ElementPredicate function for testing elements
+        """
+        return self._factory_func(root)
+
+    def with_attribute(
+        self,
+        name: NameMatcher,
+        value: Optional[ValueMatcher] = None
+    ) -> AttributePredicateFactory:
+        """Chain to create attribute predicate for specific attribute.
+
+        Args:
+            name: Attribute name (exact string) or regex pattern (re.Pattern)
+            value: Optional attribute value (exact string) or regex pattern (re.Pattern)
+
+        Returns:
+            AttributePredicateFactory that matches elements passing this predicate
+            and having the specified attribute name/value
+
+        Raises:
+            TypeError: If name or value is not the expected type
+
+        Examples:
+            has_class("widget").with_attribute("style")
+            tag_name("img").with_attribute("src", re.compile(r"^https://"))
+            matches_xpath("//div").with_attribute(re.compile(r"data-.*"))
+        """
+        # Create optimized matcher functions once at setup time
+        name_matcher = _create_matcher(name, "attribute_name", allow_none=False)
+        value_matcher = _create_matcher(value, "attribute_value", allow_none=True)
+
+        def attribute_factory(root: etree._Element) -> AttributePredicate:
+            element_predicate = self._factory_func(root)
+
+            def predicate(element: etree._Element, attr_name: str, attr_value: str) -> bool:
+                # Must match element predicate first and then use pre-compiled matchers
+                return (element_predicate(element) and
+                        name_matcher(attr_name) and
+                        value_matcher(attr_value))
+
+            return predicate
+        return attribute_factory
+
+
+def supports_attributes(func: Callable[..., ElementPredicateFactory]) -> Callable[..., PredicateFactory]:
+    """Decorator to add attribute chaining support to ElementPredicateFactory functions.
+
+    This decorator wraps functions that return ElementPredicateFactory instances,
+    enabling them to support the .with_attribute() chaining syntax. The decorated
+    function maintains full backward compatibility while gaining attribute predicate
+    capabilities.
+
+    Args:
+        func: Function that returns an ElementPredicateFactory
+
+    Returns:
+        Function that returns a PredicateFactory with attribute chaining support
+
+    Examples:
+        @supports_attributes
+        def has_significant_content() -> ElementPredicateFactory:
+            # existing implementation
+
+        # Now supports chaining:
+        has_significant_content().with_attribute("class", "important")
+        has_significant_content().with_attribute("data-config")
+    """
+    from functools import wraps
+
+    @wraps(func)
+    def wrapper(*args, **kwargs) -> PredicateFactory:
+        # Call the original function to get the ElementPredicateFactory
+        element_predicate_factory = func(*args, **kwargs)
+        # Wrap it in PredicateFactory to enable chaining
+        return PredicateFactory(element_predicate_factory)
+
+    return wrapper
 
 
 def _validate_tag_name(tag: str) -> None:
@@ -78,6 +241,7 @@ def _validate_attribute_name(attr: str) -> None:
         raise PredicateError(f"Invalid attribute name '{attr}': {e}") from e
 
 
+@supports_attributes
 def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
     """Match elements using XPath expressions.
 
@@ -87,7 +251,7 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
         xpath_expr: XPath expression that must return element nodes
 
     Returns:
-        An element predicate factory that creates optimized XPath-based predicates
+        A chainable predicate factory that creates optimized XPath-based predicates
 
     Raises:
         PredicateError: If XPath is invalid or returns non-element results
@@ -132,6 +296,7 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def tag_equals(tag: str) -> ElementPredicateFactory:
     """Match elements with a specific tag name.
 
@@ -139,7 +304,7 @@ def tag_equals(tag: str) -> ElementPredicateFactory:
         tag: Tag name to match
 
     Returns:
-        An element predicate factory that matches elements with the specified tag
+        A chainable predicate factory that matches elements with the specified tag
 
     Raises:
         PredicateError: If the tag name is invalid
@@ -153,6 +318,52 @@ def tag_equals(tag: str) -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
+def tag_name(tag: str) -> ElementPredicateFactory:
+    """Match elements with a specific tag name (alias for tag_equals).
+
+    This is a more readable alias for tag_equals that works well in chaining:
+    tag_name("div").with_attribute("class")
+
+    Args:
+        tag: Tag name to match
+
+    Returns:
+        A chainable predicate factory that matches elements with the specified tag
+
+    Raises:
+        PredicateError: If the tag name is invalid
+    """
+    return tag_equals(tag)
+
+
+@supports_attributes
+def has_class(class_name: str) -> ElementPredicateFactory:
+    """Match elements that have a specific CSS class.
+
+    This is a convenient function for matching elements by CSS class,
+    which is commonly used in HTML formatting.
+
+    Args:
+        class_name: CSS class name to match (exact match)
+
+    Returns:
+        A chainable predicate factory that matches elements with the specified class
+
+    Examples:
+        has_class("widget")
+        has_class("btn-primary").with_attribute("onclick")
+    """
+    def create_document_predicate(root: etree._Element) -> ElementPredicate:
+        def element_predicate(element: etree._Element) -> bool:
+            classes = element.get("class", "").split()
+            return class_name in classes
+        return element_predicate
+
+    return create_document_predicate
+
+
+@supports_attributes
 def tag_in(*tags: str) -> ElementPredicateFactory:
     """Match elements with any of the specified tag names.
 
@@ -164,6 +375,15 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
 
     Raises:
         PredicateError: If any tag name is invalid or if no tags are provided
+
+    Examples:
+        Basic usage:
+            tag_in("div", "p", "span")
+            tag_in("h1", "h2", "h3")
+
+        With chaining (enabled by @supports_attributes):
+            tag_in("div", "section").with_attribute("class", "container")
+            tag_in("img", "video").with_attribute("src")
     """
     if not tags:
         raise PredicateError("At least one tag name must be provided")
@@ -181,6 +401,7 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def has_attribute(attr: str) -> ElementPredicateFactory:
     """Match elements that have a specific attribute.
 
@@ -192,6 +413,15 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
 
     Raises:
         PredicateError: If the attribute name is invalid
+
+    Examples:
+        Basic usage:
+            has_attribute("class")
+            has_attribute("data-config")
+
+        With chaining (enabled by @supports_attributes):
+            has_attribute("class").with_attribute("role", "button")
+            has_attribute("data-*").with_attribute("style", re.compile(r"color:.*"))
     """
     _validate_attribute_name(attr)
 
@@ -353,6 +583,7 @@ def is_element() -> ElementPredicateFactory:
 
 
 # Content-based predicates
+@supports_attributes
 def has_significant_content() -> ElementPredicateFactory:
     """Match elements with non-whitespace text content.
 
@@ -416,11 +647,20 @@ def has_child_elements() -> ElementPredicateFactory:
 
 
 # Domain-specific predicates
+@supports_attributes
 def html_block_elements() -> ElementPredicateFactory:
     """Match common HTML block elements.
 
     Returns:
         An element predicate factory that matches common HTML block elements
+
+    Examples:
+        Basic usage:
+            html_block_elements()
+
+        With chaining (enabled by @supports_attributes):
+            html_block_elements().with_attribute("class", "container")
+            html_block_elements().with_attribute("role", re.compile(r"main|banner"))
     """
     BLOCK_ELEMENTS = {
         "address", "article", "aside", "blockquote", "details", "dialog", "dd", "div",
@@ -437,6 +677,7 @@ def html_block_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def html_inline_elements() -> ElementPredicateFactory:
     """Match common HTML inline elements.
 
@@ -620,3 +861,91 @@ def never_matches(root: etree._Element) -> ElementPredicate:
         An ElementPredicate that always returns False
     """
     return never_match
+
+
+# Direct attribute functions for "any element" scenarios
+def attribute_matches(
+    name: NameMatcher,
+    value: Optional[ValueMatcher] = None
+) -> AttributePredicateFactory:
+    """Match attributes on any element by name and optionally by value.
+
+    This function creates AttributePredicateFactory instances that match
+    attributes regardless of which element they're on. Use this for
+    general attribute matching across all elements.
+
+    Note: This is different from has_attribute() which returns an ElementPredicateFactory
+    for matching elements that have a specific attribute.
+
+    Args:
+        name: Attribute name (exact string) or regex pattern (re.Pattern)
+        value: Optional attribute value (exact string) or regex pattern (re.Pattern)
+
+    Returns:
+        AttributePredicateFactory that matches the specified attribute
+
+    Examples:
+        # Match any style attribute on any element
+        attribute_matches("style")
+
+        # Match class attribute with exact value
+        attribute_matches("class", "btn-primary")
+
+        # Match href attributes ending in .css
+        attribute_matches("href", re.compile(r".*\\.css$"))
+
+        # Match all data attributes with JSON values
+        attribute_matches(re.compile(r"data-.*"), re.compile(r"^\\{.*\\}$"))
+    """
+    # Create matchers at factory creation time for better performance
+    name_matcher = _create_matcher(name, "attribute_name", allow_none=False)
+    value_matcher = _create_matcher(value, "attribute_value", allow_none=True)
+
+    def factory(root: etree._Element) -> AttributePredicate:
+        def predicate(element: etree._Element, attr_name: str, attr_value: str) -> bool:
+            return name_matcher(attr_name) and value_matcher(attr_value)
+
+        return predicate
+    return factory
+
+
+@supports_attributes
+def any_element() -> ElementPredicateFactory:
+    """Match all elements - useful with .with_attribute() chaining.
+
+    This creates an ElementPredicateFactory that matches every element, which is
+    primarily useful for chaining with attribute selection methods.
+
+    Returns:
+        ElementPredicateFactory that matches all elements
+
+    Examples:
+        # These are equivalent
+        attribute_matches("style")
+        any_element().with_attribute("style")
+
+        # Useful for consistency in configuration
+        any_element().with_attribute("data-config", re.compile(r"^\\{.*\\}$"))
+    """
+    return lambda root: lambda element: True
+
+
+def pattern(regex: str) -> Pattern[str]:
+    """Create a compiled regex pattern for attribute matching.
+
+    This is a convenience function for users who prefer not to import
+    the re module directly. The returned Pattern objects can be used
+    anywhere NameMatcher or ValueMatcher is expected.
+
+    Args:
+        regex: Regular expression string to compile
+
+    Returns:
+        Compiled regex pattern
+
+    Examples:
+        attribute_matches("href", pattern(r".*\\.css$"))
+        attribute_matches(pattern(r"data-.*"))
+        tag_name("div").with_attribute("class", pattern(r".*btn.*"))
+    """
+    return re.compile(regex)

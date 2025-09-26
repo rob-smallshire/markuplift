@@ -14,7 +14,7 @@ from typing import Optional
 from xml.sax.saxutils import escape, quoteattr
 
 # Import type aliases
-from markuplift.types import ElementPredicate, TextContentFormatter
+from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate
 # Import standard predicates
 from markuplift.predicates import never_match
 
@@ -69,6 +69,7 @@ class DocumentFormatter:
         preserve_whitespace_predicate: ElementPredicate | None = None,
         wrap_attributes_predicate: ElementPredicate | None = None,
         text_content_formatters: dict[ElementPredicate, TextContentFormatter] | None = None,
+        attribute_content_formatters: dict[AttributePredicate, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
@@ -82,6 +83,7 @@ class DocumentFormatter:
             preserve_whitespace_predicate: Function (element -> bool) for whitespace preservation.
             wrap_attributes_predicate: Function (element -> bool) for attribute wrapping.
             text_content_formatters: Dictionary mapping predicates to formatter functions.
+            attribute_content_formatters: Dictionary mapping attribute predicates to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -106,6 +108,9 @@ class DocumentFormatter:
         if text_content_formatters is None:
             text_content_formatters = {}
 
+        if attribute_content_formatters is None:
+            attribute_content_formatters = {}
+
         if indent_size is None:
             indent_size = 2
 
@@ -122,6 +127,7 @@ class DocumentFormatter:
         self._must_preserve_whitespace = preserve_whitespace_predicate
         self._must_wrap_attributes = wrap_attributes_predicate
         self._text_content_formatters = text_content_formatters
+        self._attribute_content_formatters = attribute_content_formatters
         self._indent_char = " "
         self._indent_size = indent_size
         self._one_indent = self._indent_char * self._indent_size
@@ -301,7 +307,16 @@ class DocumentFormatter:
                             k = f"{prefix}:{k_qname.localname}"
                         else:
                             k = k_qname.localname
-                    escaped_value = quoteattr(v)
+                    # Apply attribute formatters
+                    formatted_value = v
+                    physical_level = annotations.annotation(node, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
+
+                    for predicate, format_func in self._attribute_content_formatters.items():
+                        if predicate(node, k, v):
+                            formatted_value = format_func(v, self, physical_level)
+                            break
+
+                    escaped_value = quoteattr(formatted_value)
                     opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
                 if real_attributes and must_wrap_attributes:
                     opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))

@@ -22,7 +22,7 @@ from markuplift.annotation import (
 )
 
 # Import type aliases
-from markuplift.types import ElementPredicateFactory, TextContentFormatter
+from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
 # Import standard predicates
 from markuplift.predicates import never_matches
 
@@ -63,6 +63,7 @@ class Formatter:
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
@@ -76,6 +77,7 @@ class Formatter:
             preserve_whitespace_when: Predicate factory for whitespace preservation predicates.
             wrap_attributes_when: Predicate factory for attribute wrapping predicates.
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
+            reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -86,6 +88,7 @@ class Formatter:
         self._preserve_predicate_factory = preserve_whitespace_when or never_matches
         self._wrap_attributes_factory = wrap_attributes_when or never_matches
         self._text_content_formatter_factories = reformat_text_when or {}
+        self._attribute_content_formatter_factories = reformat_attribute_when or {}
         self._indent_size = indent_size or 2
         self._default_type = default_type or "block"
 
@@ -224,6 +227,12 @@ class Formatter:
             predicate = factory(root)
             text_formatters[predicate] = formatter_func
 
+        # Create concrete attribute formatters
+        attribute_formatters = {}
+        for factory, formatter_func in self._attribute_content_formatter_factories.items():
+            predicate = factory(root)
+            attribute_formatters[predicate] = formatter_func
+
         # Create DocumentFormatter with concrete predicates and delegate formatting
         doc_formatter = DocumentFormatter(
             block_predicate=block_predicate,
@@ -233,6 +242,7 @@ class Formatter:
             preserve_whitespace_predicate=preserve_predicate,
             wrap_attributes_predicate=wrap_attributes_predicate,
             text_content_formatters=text_formatters,
+            attribute_content_formatters=attribute_formatters,
             indent_size=self._indent_size,
             default_type=self._default_type,
         )
