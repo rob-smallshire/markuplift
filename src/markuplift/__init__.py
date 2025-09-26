@@ -22,7 +22,14 @@ Example:
 
 from .formatter import Formatter
 from .document_formatter import DocumentFormatter
-from .types import ElementPredicate, ElementPredicateFactory
+from .types import (
+    AttributePredicate,
+    AttributePredicateFactory,
+    ElementPredicate,
+    ElementPredicateFactory,
+    NameMatcher,
+    ValueMatcher,
+)
 from .annotation import INLINE_TYPE_ANNOTATION as INLINE_TYPE
 from .annotation import BLOCK_TYPE_ANNOTATION as BLOCK_TYPE
 from .predicates import (
@@ -49,22 +56,19 @@ from .predicates import (
     is_element,
     is_processing_instruction,
     matches_xpath,
+    never_match,
+    never_matches,
     not_matching,
     pattern,
+    PredicateError,
+    PredicateFactory,
+    supports_attributes,
     tag_equals,
     tag_in,
     tag_name,
-    PredicateError,
 )
 
 __all__ = [
-    "DocumentFormatter",
-    "Formatter",
-    "ElementPredicate",
-    "ElementPredicateFactory",
-    "PredicateError",
-    "INLINE_TYPE",
-    "BLOCK_TYPE",
     "all_of",
     "any_element",
     "any_of",
@@ -73,6 +77,13 @@ __all__ = [
     "attribute_count_min",
     "attribute_equals",
     "attribute_matches",
+    "AttributePredicate",
+    "AttributePredicateFactory",
+    "BLOCK_TYPE",
+    "DocumentFormatter",
+    "ElementPredicate",
+    "ElementPredicateFactory",
+    "Formatter",
     "has_attribute",
     "has_child_elements",
     "has_class",
@@ -84,15 +95,23 @@ __all__ = [
     "html_metadata_elements",
     "html_void_elements",
     "html_whitespace_significant_elements",
+    "INLINE_TYPE",
     "is_comment",
     "is_element",
     "is_processing_instruction",
     "matches_xpath",
+    "NameMatcher",
+    "never_match",
+    "never_matches",
     "not_matching",
     "pattern",
+    "PredicateError",
+    "PredicateFactory",
+    "supports_attributes",
     "tag_equals",
     "tag_in",
     "tag_name",
+    "ValueMatcher",
 ]
 
 from collections import namedtuple

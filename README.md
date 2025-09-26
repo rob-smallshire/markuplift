@@ -203,6 +203,67 @@ print(formatted)
 </div>
 ```
 
+### Attribute Value Formatting
+
+Markuplift can also format attribute values using custom formatters. This is particularly useful for complex attributes like CSS styles. Here's an example that formats CSS styles with many properties as multiline:
+
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements
+
+def num_css_properties(style_value: str) -> int:
+    """Count the number of CSS properties in a style attribute value."""
+    return len([prop.strip() for prop in style_value.split(';') if prop.strip()])
+
+def css_multiline_formatter(value, formatter, level):
+    """Format CSS as multiline when it has many properties."""
+    properties = [prop.strip() for prop in value.split(';') if prop.strip()]
+    base_indent = formatter.one_indent * level
+    property_indent = formatter.one_indent * (level + 1)
+    formatted_props = [f"{property_indent}{prop}" for prop in properties]
+    return '\n' + ';\n'.join(formatted_props) + '\n' + base_indent
+
+# Format HTML with complex CSS styles
+formatter = Formatter(
+    block_when=html_block_elements(),
+    reformat_attribute_when={
+        # Only format styles with 4+ CSS properties using function matcher
+        html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
+    }
+)
+
+html = '''
+<div>
+    <p style="color: red;">Simple (1 property)</p>
+    <p style="color: blue; background: white;">Medium (2 properties)</p>
+    <p style="color: green; background: black; margin: 10px; padding: 5px;">Complex (4 properties)</p>
+</div>
+'''
+
+formatted = formatter.format_str(html.strip())
+print(formatted)
+```
+
+**Output:**
+```html
+<div>
+  <p style="color: red;">Simple (1 property)</p>
+  <p style="color: blue; background: white;">Medium (2 properties)</p>
+  <p style="
+    color: green;
+    background: black;
+    margin: 10px;
+    padding: 5px
+  ">Complex (4 properties)</p>
+</div>
+```
+
+This example demonstrates:
+- **Function matchers**: Using `lambda v: num_css_properties(v) >= 4` to conditionally format attributes
+- **Chainable predicates**: Combining element predicates (`html_block_elements()`) with attribute matching (`.with_attribute()`)
+- **Context-aware formatting**: Using `formatter.one_indent` for proper indentation at any nesting level
+- **Selective formatting**: Only complex styles are reformatted, simple ones remain inline
+
 ## Custom Element Predicate Factories
 
 Markuplift uses the following types for creating custom formatting rules. The core types are:
