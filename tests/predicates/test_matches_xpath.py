@@ -165,3 +165,81 @@ def test_matches_xpath_reusable_factory():
 
     assert predicate2(div2) is True
     assert predicate2(p2) is False
+
+
+def test_matches_xpath_rejects_attribute_results():
+    """Test that XPath expressions returning attributes are rejected."""
+    import re
+    xml = '<root><div class="test">content</div><span id="example">text</span></root>'
+    tree = etree.fromstring(xml)
+
+    factory = matches_xpath("//div/@class")
+
+    # Should raise error when creating predicate (not when creating factory)
+    with pytest.raises(PredicateError, match=re.escape("returned non-element results: {'_ElementUnicodeResult'}")):
+        factory(tree)
+
+
+def test_matches_xpath_rejects_text_results():
+    """Test that XPath expressions returning text nodes are rejected."""
+    import re
+    xml = "<root><div>content</div><span>text</span></root>"
+    tree = etree.fromstring(xml)
+
+    factory = matches_xpath("//div/text()")
+
+    # Should raise error when creating predicate
+    with pytest.raises(PredicateError, match=re.escape("returned non-element results: {'_ElementUnicodeResult'}")):
+        factory(tree)
+
+
+def test_matches_xpath_rejects_numeric_results():
+    """Test that XPath expressions returning numbers are rejected."""
+    import re
+    xml = "<root><div>content</div><span>text</span></root>"
+    tree = etree.fromstring(xml)
+
+    factory = matches_xpath("count(//div)")
+
+    # Should raise error when creating predicate
+    with pytest.raises(PredicateError, match=re.escape("returned non-element results: {float}")):
+        factory(tree)
+
+
+def test_matches_xpath_rejects_boolean_results():
+    """Test that XPath expressions returning booleans are rejected."""
+    import re
+    xml = "<root><div>content</div><span>text</span></root>"
+    tree = etree.fromstring(xml)
+
+    factory = matches_xpath("boolean(//div)")
+
+    # Should raise error when creating predicate
+    with pytest.raises(PredicateError, match=re.escape("returned non-element results: {bool}")):
+        factory(tree)
+
+
+def test_matches_xpath_rejects_mixed_results():
+    """Test that XPath expressions returning mixed types are rejected."""
+    xml = '<root><div class="test">content</div></root>'
+    tree = etree.fromstring(xml)
+
+    # This XPath would return both elements and attributes (though lxml may handle differently)
+    factory = matches_xpath("//div | //div/@class")
+
+    # Should raise error when creating predicate if it returns mixed types
+    with pytest.raises(PredicateError, match="returned non-element results"):
+        factory(tree)
+
+
+def test_matches_xpath_accepts_empty_results():
+    """Test that XPath expressions returning no results are accepted."""
+    xml = "<root><div>content</div></root>"
+    tree = etree.fromstring(xml)
+
+    factory = matches_xpath("//span")  # No span elements exist
+    predicate = factory(tree)
+
+    # Should not raise error for empty results
+    div_elem = tree.find("div")
+    assert predicate(div_elem) is False

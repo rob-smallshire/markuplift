@@ -81,14 +81,16 @@ def _validate_attribute_name(attr: str) -> None:
 def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
     """Match elements using XPath expressions.
 
+    Only supports XPath expressions that return element nodes.
+
     Args:
-        xpath_expr: XPath expression to evaluate
+        xpath_expr: XPath expression that must return element nodes
 
     Returns:
         An element predicate factory that creates optimized XPath-based predicates
 
     Raises:
-        PredicateError: If the XPath expression is syntactically invalid
+        PredicateError: If XPath is invalid or returns non-element results
     """
     # Validate XPath syntax immediately using a temporary element
     try:
@@ -98,8 +100,29 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
         raise PredicateError(f"Invalid XPath expression '{xpath_expr}': {e}") from e
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
-        # XPath is already validated, so this should not fail
-        matches = set(root.xpath(xpath_expr))
+        try:
+            xpath_results = root.xpath(xpath_expr)
+
+            # Handle non-iterable results (single values like count(), boolean())
+            if not isinstance(xpath_results, list):
+                raise PredicateError(
+                    f"XPath '{xpath_expr}' returned non-element results: {{{type(xpath_results).__name__}}}. "
+                    f"Only element-returning XPath expressions are supported."
+                )
+
+            # Validate that list results contain only elements
+            if xpath_results and not all(isinstance(item, etree._Element) for item in xpath_results):
+                non_element_types = {type(item).__name__ for item in xpath_results
+                                   if not isinstance(item, etree._Element)}
+                raise PredicateError(
+                    f"XPath '{xpath_expr}' returned non-element results: {non_element_types}. "
+                    f"Only element-returning XPath expressions are supported."
+                )
+
+            matches = set(xpath_results)
+
+        except etree.XPathEvalError as e:
+            raise PredicateError(f"XPath evaluation failed '{xpath_expr}': {e}") from e
 
         def element_predicate(element: etree._Element) -> bool:
             return element in matches
