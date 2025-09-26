@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(python:*)",
+      "Bash(uv run:*)",
+      "Bash(echo:*)",
+      "WebSearch",
+      "Bash(uv build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
