@@ -349,13 +349,13 @@ def test_invalid_name_type_error():
     import pytest
     from markuplift.predicates import attribute_matches
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got int"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got int"):
         attribute_matches(123)  # Invalid type
 
     with pytest.raises(TypeError, match="attribute_name cannot be None"):
         attribute_matches(None)  # None not allowed for name
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got list"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got list"):
         attribute_matches([])  # List not allowed
 
 
@@ -364,10 +364,10 @@ def test_invalid_value_type_error():
     import pytest
     from markuplift.predicates import attribute_matches
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got int"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got int"):
         attribute_matches("class", 123)  # Invalid type
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got list"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got list"):
         attribute_matches("class", [])  # List not allowed
 
 
@@ -397,10 +397,10 @@ def test_predicate_factory_with_attribute_error_cases():
     import pytest
     from markuplift.predicates import tag_name
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got int"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got int"):
         tag_name("div").with_attribute(123)
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got int"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got int"):
         tag_name("div").with_attribute("class", 123)
 
 
@@ -434,7 +434,7 @@ def test_chaining_with_invalid_types():
     with pytest.raises(TypeError, match="attribute_name cannot be None"):
         predicate_factory.with_attribute(None)
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got list"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got list"):
         predicate_factory.with_attribute("class", [])
 
 
@@ -445,19 +445,19 @@ def test_type_safety_edge_cases():
 
     # Test that boolean values are rejected
     import pytest
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got bool"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got bool"):
         attribute_matches(True)
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got bool"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got bool"):
         attribute_matches("class", False)
 
     # Test that dict/tuple values are rejected
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got dict"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got dict"):
         attribute_matches({})
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or None, got tuple"):
+    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got tuple"):
         attribute_matches("class", ())
 
     # Test any_element chaining with invalid types
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, got float"):
+    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got float"):
         any_element().with_attribute(3.14)  # Float not allowed

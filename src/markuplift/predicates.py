@@ -19,11 +19,18 @@ Factory Categories:
 
 Attribute Chaining Support:
     Functions decorated with @supports_attributes return PredicateFactory instances
-    that support .with_attribute() chaining syntax:
+    that support .with_attribute() chaining syntax with flexible matchers:
 
+        # String matching
         has_attribute("class").with_attribute("style", "color: red")
         html_block_elements().with_attribute("data-config")
+
+        # Regex matching
         tag_in("div", "p").with_attribute("role", re.compile(r"button|link"))
+
+        # Function matching (new!)
+        html_block_elements().with_attribute("style", lambda v: v.count(';') >= 3)
+        tag_in("input", "textarea").with_attribute("class", lambda v: "form" in v)
 
 Standard Predicates:
     never_match: A standard ElementPredicate that always returns False
@@ -56,18 +63,18 @@ class PredicateError(Exception):
 
 
 def _create_matcher(
-    value: Union[str, Pattern[str], None],
+    value: Union[str, Pattern[str], Callable[[str], bool], None],
     matcher_name: str,
     allow_none: bool = False
 ) -> Callable[[str], bool]:
-    """Create optimized matcher function for string/pattern matching.
+    """Create optimized matcher function for string/pattern/function matching.
 
     This helper function creates efficient matcher functions at predicate factory
     creation time, avoiding repeated type checking during predicate evaluation.
 
     Args:
-        value: String for exact match, Pattern for regex, or None
-        matcher_name: Description for error messages ("name" or "value")
+        value: String for exact match, Pattern for regex, callable for custom logic, or None
+        matcher_name: Description for error messages ("attribute_name" or "attribute_value")
         allow_none: Whether None values are permitted
 
     Returns:
@@ -75,11 +82,13 @@ def _create_matcher(
 
     Raises:
         TypeError: If value is not the expected type
+        RuntimeError: If callable matcher raises an exception or returns non-bool
 
     Examples:
-        name_matcher = _create_matcher("style", "name", allow_none=False)
-        value_matcher = _create_matcher(re.compile(r"color:.*"), "value", allow_none=False)
-        optional_matcher = _create_matcher(None, "value", allow_none=True)
+        name_matcher = _create_matcher("style", "attribute_name", allow_none=False)
+        value_matcher = _create_matcher(re.compile(r"color:.*"), "attribute_value", allow_none=False)
+        function_matcher = _create_matcher(lambda v: v.count(';') >= 3, "attribute_value", allow_none=False)
+        optional_matcher = _create_matcher(None, "attribute_value", allow_none=True)
     """
     if value is None:
         if allow_none:
@@ -90,8 +99,19 @@ def _create_matcher(
         return lambda s: s == value
     elif isinstance(value, Pattern):
         return lambda s: bool(value.match(s))
+    elif callable(value):
+        # Wrap user function to handle exceptions and validate return type
+        def safe_matcher(s):
+            try:
+                result = value(s)
+                if not isinstance(result, bool):
+                    raise TypeError(f"Matcher function must return bool, got {type(result).__name__}")
+                return result
+            except Exception as e:
+                raise RuntimeError(f"Error in {matcher_name} matcher function: {e}") from e
+        return safe_matcher
     else:
-        allowed = "str, re.Pattern" + (", or None" if allow_none else "")
+        allowed = "str, re.Pattern, or callable" + (", or None" if allow_none else "")
         raise TypeError(f"{matcher_name} must be {allowed}, got {type(value).__name__}")
 
 
@@ -135,8 +155,15 @@ class PredicateFactory:
         """Chain to create attribute predicate for specific attribute.
 
         Args:
-            name: Attribute name (exact string) or regex pattern (re.Pattern)
-            value: Optional attribute value (exact string) or regex pattern (re.Pattern)
+            name: Attribute name matcher - can be:
+                - str: Exact attribute name match
+                - re.Pattern: Regex pattern for attribute name
+                - Callable[[str], bool]: Custom function to test attribute name
+            value: Optional attribute value matcher - can be:
+                - str: Exact attribute value match
+                - re.Pattern: Regex pattern for attribute value
+                - Callable[[str], bool]: Custom function to test attribute value
+                - None: Match any value (default)
 
         Returns:
             AttributePredicateFactory that matches elements passing this predicate
@@ -144,11 +171,19 @@ class PredicateFactory:
 
         Raises:
             TypeError: If name or value is not the expected type
+            RuntimeError: If custom matcher function raises exception or returns non-bool
 
         Examples:
+            # String matching
             has_class("widget").with_attribute("style")
+
+            # Regex matching
             tag_name("img").with_attribute("src", re.compile(r"^https://"))
             matches_xpath("//div").with_attribute(re.compile(r"data-.*"))
+
+            # Function matching
+            html_block_elements().with_attribute("style", lambda v: v.count(';') >= 3)
+            tag_in("div", "p").with_attribute("class", lambda v: "btn" in v and "primary" in v)
         """
         # Create optimized matcher functions once at setup time
         name_matcher = _create_matcher(name, "attribute_name", allow_none=False)
@@ -878,24 +913,32 @@ def attribute_matches(
     for matching elements that have a specific attribute.
 
     Args:
-        name: Attribute name (exact string) or regex pattern (re.Pattern)
-        value: Optional attribute value (exact string) or regex pattern (re.Pattern)
+        name: Attribute name matcher - can be:
+            - str: Exact attribute name match
+            - re.Pattern: Regex pattern for attribute name
+            - Callable[[str], bool]: Custom function to test attribute name
+        value: Optional attribute value matcher - can be:
+            - str: Exact attribute value match
+            - re.Pattern: Regex pattern for attribute value
+            - Callable[[str], bool]: Custom function to test attribute value
+            - None: Match any value (default)
 
     Returns:
         AttributePredicateFactory that matches the specified attribute
 
     Examples:
-        # Match any style attribute on any element
+        # String matching
         attribute_matches("style")
-
-        # Match class attribute with exact value
         attribute_matches("class", "btn-primary")
 
-        # Match href attributes ending in .css
+        # Regex matching
         attribute_matches("href", re.compile(r".*\\.css$"))
-
-        # Match all data attributes with JSON values
         attribute_matches(re.compile(r"data-.*"), re.compile(r"^\\{.*\\}$"))
+
+        # Function matching
+        attribute_matches("style", lambda v: v.count(';') >= 3)  # Complex CSS
+        attribute_matches("class", lambda v: "btn" in v)         # Button classes
+        attribute_matches(lambda n: n.startswith("data-"), lambda v: len(v) > 10)  # Long data attrs
     """
     # Create matchers at factory creation time for better performance
     name_matcher = _create_matcher(name, "attribute_name", allow_none=False)

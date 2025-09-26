@@ -9,8 +9,8 @@ Type Aliases:
     TextContentFormatter: A function that formats element text content
     AttributePredicate: A function that tests an element's attribute and returns bool
     AttributePredicateFactory: A function that creates AttributePredicate instances
-    NameMatcher: String or regex pattern for matching attribute names
-    ValueMatcher: String or regex pattern for matching attribute values
+    NameMatcher: String, regex pattern, or custom function for matching attribute names
+    ValueMatcher: String, regex pattern, or custom function for matching attribute values
 """
 
 from typing import Callable, Union, TYPE_CHECKING
@@ -34,11 +34,11 @@ ElementPredicateFactory = Callable[[etree._Element], ElementPredicate]
 TextContentFormatter = Callable[[str, "DocumentFormatter", int], str]
 
 # Type aliases for attribute matching
-# NameMatcher can be exact string match or regex pattern for attribute names
-NameMatcher = Union[str, Pattern[str]]
+# NameMatcher can be exact string match, regex pattern, or custom function for attribute names
+NameMatcher = Union[str, Pattern[str], Callable[[str], bool]]
 
-# ValueMatcher can be exact string match or regex pattern for attribute values
-ValueMatcher = Union[str, Pattern[str]]
+# ValueMatcher can be exact string match, regex pattern, or custom function for attribute values
+ValueMatcher = Union[str, Pattern[str], Callable[[str], bool]]
 
 # Type alias for attribute predicate functions
 # The function takes an XML element, attribute name, and attribute value, and returns a boolean.
