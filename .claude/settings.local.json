@@ -8,7 +8,9 @@
       "Bash(uv run:*)",
       "Bash(echo:*)",
       "WebSearch",
-      "Bash(uv build:*)"
+      "Bash(uv build:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

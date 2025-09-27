@@ -25,6 +25,12 @@ pytest -v
 pytest tests/test_attribute_formatting.py
 pytest tests/test_comments.py
 pytest tests/test_doctype.py
+
+# Run approval tests (uses console diff output)
+pytest tests/test_with_real_data.py
+
+# Force console reporter for approval tests (if needed)
+pytest --approvaltests-use-reporter='PythonNativeReporter'
 ```
 
 ### Linting
@@ -71,6 +77,13 @@ uv run bump-my-version bump major
 - **`src/markuplift/utilities.py`**: Utility functions
 - **`src/markuplift/__init__.py`**: Package initialization and version info
 
+### Test Infrastructure
+
+- **`tests/data/`**: Real XML/HTML test files used as input for formatter testing
+- **`tests/approved/`**: Golden master files (`.approved.txt`) containing expected formatter output
+- **`tests/conftest.py`**: Pytest configuration with ApprovalTests console reporter setup
+- Uses ApprovalTests for golden master testing with console diff output suitable for CI/AI agents
+
 ### Key Classes
 
 - **`Formatter`**: Main formatting engine with configurable predicates for:
@@ -93,8 +106,15 @@ Tests are organized by functionality:
 - `test_processing_instructions.py`: XML processing instruction tests
 - `test_self_closing_elements.py`: Self-closing tag tests
 - `test_text_formatting.py`: Text content formatting tests
-- `test_with_real_data.py`: Integration tests with real-world data
+- `test_with_real_data.py`: **Approval tests** with real-world XML/HTML data (uses ApprovalTests)
+- `test_readme_examples.py`: Tests ensuring README examples work correctly
 - `helpers/predicates.py`: Test helper functions
+
+#### Approval Testing
+- Real messy input files in `tests/data/` (e.g., `messy_html_page.html`, `messy_xml_chunked_content.xml`)
+- Expected outputs in auto-generated `.approved.txt` files
+- Console diff output shows changes clearly for CI and AI agents
+- Use `pytest tests/test_with_real_data.py` to run approval tests
 
 ### Configuration
 

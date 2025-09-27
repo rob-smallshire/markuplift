@@ -58,6 +58,7 @@ test = [
     "approvaltests>=15.3.2",
     "hypothesis>=6.92.2",
     "pytest>=8.4.1",
+    "pytest-approvaltests>=0.2.4",
 ]
 dev = [
     "bump-my-version>=0.28.0",

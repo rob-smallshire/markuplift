@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<?xml-model href="urn:demon-schemas:chunked-content.rng" type="application/relax-ng+xml" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<chunked-content>
+    <titles><title>Title goes here</title>
+    </titles><chunks><chunk class="hidden-visible-visible fragment" data-fragment-group-id="echo">
+        <heading>Talking point one</heading>
+        <paragraphs><p>Be concise and keep the text to four lines or fewer.</p>
+    </paragraphs></chunk>
+    <chunk class="hidden-visible-visible fragment" data-fragment-group-id="foxtrot">
+        <heading>Talking point two</heading>
+        <paragraphs><p>Be concise and keep the text to four lines or fewer.</p>
+    </paragraphs></chunk>
+    <chunk class="hidden-visible-visible fragment" data-fragment-group-id="delta">
+        <heading><em>Talking point</em> three</heading>
+        <paragraphs><p>Be <mark>concise</mark> and keep the text to <mark><strong>four</strong> lines</mark> or fewer.</p>
+    </paragraphs></chunk>
+</chunks></chunked-content>
