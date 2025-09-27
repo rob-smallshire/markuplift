@@ -784,6 +784,35 @@ def html_metadata_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
+def css_block_elements() -> ElementPredicateFactory:
+    """Match HTML elements that browsers render as display: block by default.
+
+    This predicate factory matches elements based on their default CSS display property
+    as defined by browser user agent stylesheets, not MarkupLift's source formatting concepts.
+    These elements create their own formatting context and are safe for whitespace stripping.
+
+    Returns:
+        An element predicate factory that matches elements with CSS display: block
+
+    Examples:
+        Basic usage:
+            css_block_elements()
+
+        With chaining (enabled by @supports_attributes):
+            css_block_elements().with_attribute("class", "container")
+            css_block_elements().with_attribute("id", re.compile(r"main|content"))
+    """
+    return tag_in(
+        "address", "article", "aside", "blockquote", "canvas",
+        "dd", "div", "dl", "dt",
+        "fieldset", "figcaption", "figure", "footer", "form",
+        "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
+        "li", "main", "nav", "noscript",
+        "ol", "p", "section", "table", "tfoot", "ul", "video"
+    )
+
+
 # Combinator predicates
 def any_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFactory:
     """Match elements that satisfy any of the given predicates (OR logic).

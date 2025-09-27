@@ -204,6 +204,7 @@ def test_complex_chaining_scenario():
 
     result = formatter.format_str(xml.strip())
     # JSON formatting should be applied to pre element's data-config
+    # Note: XML escaping strategy uses smart quoting that avoids escaping when possible
     assert '{ "theme": "dark", "lineNumbers": true}' in result
     # CSS formatting should be applied to div's style
     assert 'margin - top:  1rem' in result

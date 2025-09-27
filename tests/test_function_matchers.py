@@ -177,8 +177,8 @@ def test_function_matcher_css_semicolon_counting():
     assert 'style="color: red;"' in result
     assert 'style="color: blue; background: white;"' in result
 
-    # Complex style should be multiline (contains newlines when unescaped)
-    assert '&#10;' in result  # Contains encoded newlines
+    # Complex style should be multiline (contains encoded newlines)
+    assert '&#10;' in result  # Contains encoded newlines (XML-strict)
 
 
 def test_mixed_matcher_types():

@@ -22,6 +22,9 @@ Example:
 
 from .formatter import Formatter
 from .document_formatter import DocumentFormatter
+from .html5_formatter import Html5Formatter
+from .xml_formatter import XmlFormatter
+from .doctype import DoctypeStrategy, Html5DoctypeStrategy, XmlDoctypeStrategy, NullDoctypeStrategy
 from .types import (
     AttributePredicate,
     AttributePredicateFactory,
@@ -47,6 +50,7 @@ from .predicates import (
     has_mixed_content,
     has_no_significant_content,
     has_significant_content,
+    css_block_elements,
     html_block_elements,
     html_inline_elements,
     html_metadata_elements,
@@ -81,6 +85,7 @@ __all__ = [
     "AttributePredicateFactory",
     "BLOCK_TYPE",
     "DocumentFormatter",
+    "DoctypeStrategy",
     "ElementPredicate",
     "ElementPredicateFactory",
     "Formatter",
@@ -90,11 +95,14 @@ __all__ = [
     "has_mixed_content",
     "has_no_significant_content",
     "has_significant_content",
+    "css_block_elements",
     "html_block_elements",
     "html_inline_elements",
     "html_metadata_elements",
     "html_void_elements",
     "html_whitespace_significant_elements",
+    "Html5DoctypeStrategy",
+    "Html5Formatter",
     "INLINE_TYPE",
     "is_comment",
     "is_element",
@@ -104,6 +112,7 @@ __all__ = [
     "never_match",
     "never_matches",
     "not_matching",
+    "NullDoctypeStrategy",
     "pattern",
     "PredicateError",
     "PredicateFactory",
@@ -112,6 +121,8 @@ __all__ = [
     "tag_in",
     "tag_name",
     "ValueMatcher",
+    "XmlDoctypeStrategy",
+    "XmlFormatter",
 ]
 
 from collections import namedtuple

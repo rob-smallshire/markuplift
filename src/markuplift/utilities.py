@@ -154,3 +154,31 @@ def has_xml_declaration_bytes(xml: bytes) -> bool:
     xml = xml.lstrip(b'\xef\xbb\xbf\r\n\t ')
     # Match only the XML declaration at the very start (as bytes)
     return bool(re.match(br'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))
+
+
+def html_friendly_quoteattr(value: str) -> str:
+    """Quote an attribute value with HTML-friendly newline handling.
+
+    Unlike xml.sax.saxutils.quoteattr(), this function allows literal newlines
+    in attribute values, which are valid in HTML and produce more readable output
+    for multiline content like CSS styles.
+
+    Args:
+        value: The attribute value to quote
+
+    Returns:
+        The quoted attribute value with HTML-friendly escaping
+
+    Examples:
+        >>> html_friendly_quoteattr("color: red;\\nbackground: blue;")
+        '"color: red;\\nbackground: blue;"'
+
+        >>> html_friendly_quoteattr('Say "hello"')
+        '"Say &quot;hello&quot;"'
+    """
+    # Escape ampersands first to avoid double-escaping
+    escaped = value.replace('&', '&amp;')
+    # Escape quotes
+    escaped = escaped.replace('"', '&quot;')
+    # Return wrapped in quotes - literal newlines are preserved
+    return f'"{escaped}"'

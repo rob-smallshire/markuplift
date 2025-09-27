@@ -1,0 +1,196 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/rob-smallshire/markuplift/master/docs/images/logo.png" alt="Markuplift Logo" width="300">
+
+  # Markuplift
+
+  **A configurable XML and HTML formatter for Python**
+
+  [![CI](https://img.shields.io/github/actions/workflow/status/rob-smallshire/markuplift/ci.yml?branch=master&label=CI)](https://github.com/rob-smallshire/markuplift/actions/workflows/ci.yml)
+  [![PyPI version](https://img.shields.io/pypi/v/markuplift)](https://pypi.org/project/markuplift/)
+  [![Python versions](https://img.shields.io/pypi/pyversions/markuplift)](https://pypi.org/project/markuplift/)
+  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rob-smallshire/markuplift/blob/master/LICENSE)
+  [![Downloads](https://img.shields.io/pypi/dm/markuplift)](https://pypi.org/project/markuplift/)
+</div>
+
+Markuplift provides flexible, configurable formatting of XML and HTML documents. Unlike basic pretty-printers, Markuplift gives you complete control over how your markup is formatted through user-defined predicates for block vs inline elements, whitespace handling, and custom text content formatters.
+
+## Key Features
+
+- **Configurable element classification** - Define block/inline elements using XPath expressions or Python predicates
+- **Flexible whitespace control** - Normalize, preserve, or strip whitespace on a per-element basis
+- **External formatter integration** - Pipe element text content through external tools (e.g., js-beautify, prettier)
+- **Comprehensive format options** - Control indentation, attribute wrapping, self-closing tags, and more
+- **CLI and Python API** - Use from command line or integrate into your Python applications
+
+## Quick Start
+
+### Installation
+
+Install from PyPI using pip:
+```bash
+pip install markuplift
+```
+
+Or using uv (recommended for modern Python development):
+```bash
+uv add markuplift
+```
+
+For development installation with all dependencies:
+```bash
+git clone https://github.com/rob-smallshire/markuplift.git
+cd markuplift
+uv sync --all-extras
+```
+
+### CLI Usage
+
+{{ cli_demo_content }}
+
+### Python API Example
+
+Here's how to format HTML with whitespace preservation in `<code>` and `<pre>` elements:
+
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements, tag_in
+
+# Create formatter with whitespace handling
+formatter = Formatter(
+    block_when=html_block_elements(),
+    inline_when=html_inline_elements(),
+    preserve_whitespace_when=tag_in("pre", "code"),
+    indent_size=2
+)
+
+# Messy input HTML
+messy_html = """{{ documentation_input }}"""
+
+formatted = formatter.format_str(messy_html)
+print(formatted)
+```
+
+**Output:**
+```html
+{{ documentation_output }}
+```
+
+### Real-World Example
+
+Here's Markuplift formatting a complex article structure with mixed content:
+
+**Input** (`article_example.html`):
+```html
+{{ article_input }}
+```
+
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
+
+formatter = Formatter(
+    block_when=html_block_elements(),
+    inline_when=html_inline_elements(),
+    preserve_whitespace_when=tag_in("pre", "code"),
+    normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
+    indent_size=2
+)
+
+# Format real-world messy HTML directly from file
+formatted = formatter.format_file('article_example.html')
+print(formatted)
+```
+
+**Output:**
+```html
+{{ article_output }}
+```
+
+### Custom CSS Class Predicates
+
+You can create custom predicates for advanced element matching:
+
+```python
+{{ has_css_class_source }}
+```
+
+**Usage:**
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements, any_of
+
+formatter = Formatter(
+    block_when=html_block_elements(),
+    inline_when=html_inline_elements(),
+    preserve_whitespace_when=has_css_class("code-block"),
+    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
+    indent_size=2
+)
+
+# Example HTML with CSS classes
+html = """{{ css_class_input }}"""
+formatted = formatter.format_str(html)
+print(formatted)
+```
+
+**Output:**
+```html
+{{ css_class_output }}
+```
+
+### Attribute Value Formatting
+
+Markuplift can format complex attribute values like CSS styles:
+
+**Input** (`attribute_formatting_example.html`):
+```html
+{{ attribute_formatting_input }}
+```
+
+```python
+{{ num_css_properties_source }}
+
+{{ css_multiline_formatter_source }}
+
+# Format HTML with complex CSS styles
+formatter = Formatter(
+    block_when=html_block_elements(),
+    reformat_attribute_when={
+        # Only format styles with 4+ CSS properties
+        html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
+    }
+)
+
+# Format HTML file with attribute formatting
+formatted = formatter.format_file('attribute_formatting_example.html')
+print(formatted)
+```
+
+**Output:**
+```html
+{{ attribute_formatting_output }}
+```
+
+## Use Cases
+
+Markuplift is perfect for:
+
+- **Web development** - Format HTML templates and components with consistent styling
+- **Data processing** - Clean up XML data feeds and configuration files
+- **Documentation** - Standardize markup in documentation systems
+- **Code generation** - Format dynamically generated XML/HTML with precise control
+- **CI/CD pipelines** - Ensure consistent markup formatting across your codebase
+- **Diffing and version control** - Improve readability of markup changes in version control systems
+
+## License
+
+Markuplift is released under the [MIT License](https://github.com/rob-smallshire/markuplift/blob/master/LICENSE).
+
+## Contributing
+
+Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Setting up the development environment
+- Running tests and linting
+- Submitting pull requests
+- Reporting issues

@@ -10,10 +10,7 @@ which are created with concrete ElementPredicate functions for optimal performan
 """
 
 from typing import Optional
-from io import BytesIO
-from xml.sax.saxutils import escape
 
-from les_iterables import flatten
 from lxml import etree
 
 from markuplift.document_formatter import DocumentFormatter
@@ -25,6 +22,12 @@ from markuplift.annotation import (
 from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
 # Import standard predicates
 from markuplift.predicates import never_matches
+# Import escaping strategies
+from markuplift.escaping import EscapingStrategy, XmlEscapingStrategy
+# Import parsing strategies
+from markuplift.parsing import ParsingStrategy, XmlParsingStrategy
+# Import doctype strategies
+from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
 
 
 class Formatter:
@@ -64,6 +67,9 @@ class Formatter:
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        escaping_strategy: EscapingStrategy | None = None,
+        parsing_strategy: ParsingStrategy | None = None,
+        doctype_strategy: DoctypeStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
@@ -78,6 +84,9 @@ class Formatter:
             wrap_attributes_when: Predicate factory for attribute wrapping predicates.
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
+            escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
+            parsing_strategy: Strategy for parsing document content. Defaults to XmlParsingStrategy.
+            doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -89,6 +98,9 @@ class Formatter:
         self._wrap_attributes_factory = wrap_attributes_when or never_matches
         self._text_content_formatter_factories = reformat_text_when or {}
         self._attribute_content_formatter_factories = reformat_attribute_when or {}
+        self._escaping_strategy = escaping_strategy or XmlEscapingStrategy()
+        self._parsing_strategy = parsing_strategy or XmlParsingStrategy()
+        self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
         self._indent_size = indent_size or 2
         self._default_type = default_type or "block"
 
@@ -120,7 +132,7 @@ class Formatter:
         Returns:
             A pretty-printed XML string.
         """
-        tree = etree.parse(file_path)
+        tree = self._parsing_strategy.parse_file(file_path)
         return self.format_tree(tree, doctype=doctype, xml_declaration=xml_declaration)
 
     def format_str(self, doc: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
@@ -134,7 +146,7 @@ class Formatter:
         Returns:
             A pretty-printed XML string.
         """
-        tree = etree.parse(BytesIO(doc.encode()))
+        tree = self._parsing_strategy.parse_string(doc)
         return self.format_tree(tree, doctype, xml_declaration)
 
     def format_bytes(self, doc: bytes, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
@@ -148,7 +160,7 @@ class Formatter:
         Returns:
             A pretty-printed XML string.
         """
-        tree = etree.parse(BytesIO(doc))
+        tree = self._parsing_strategy.parse_bytes(doc)
         return self.format_tree(tree, doctype, xml_declaration)
 
     def format_tree(self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
@@ -162,56 +174,30 @@ class Formatter:
         Returns:
             A pretty-printed XML string.
         """
-        parts = []
-
-        if xml_declaration is None:
-            xml_declaration = False
-
-        if xml_declaration:
-            parts.append(['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'])
-
-        doctype = doctype or (tree.docinfo.doctype if hasattr(tree, "docinfo") else None)
-        if doctype:
-            parts.append([doctype, "\n"])
-
-        # Handle comments and PIs before root element
-        for event, node in etree.iterwalk(tree, events=("comment", "pi", "start")):
-            if event == "comment" and isinstance(node, etree._Comment):
-                parts.append(["<!--"])
-                if text := node.text:
-                    escaped_text = escape(text)
-                    if escaped_text.startswith("-"):
-                        parts.append([" "])
-                    parts.append([escaped_text])
-                    if escaped_text.endswith("-"):
-                        parts.append([" "])
-                parts.append(["-->\n"])
-            elif event == "pi" and isinstance(node, etree._ProcessingInstruction):
-                pi_parts = []
-                pi_parts.append(f"<?{node.target}")
-                if node.text:
-                    pi_parts.append(f" {node.text}")
-                pi_parts.append("?>\n")
-                parts.append(pi_parts)
-            elif event == "start" and isinstance(node, etree._Element):
-                # Reached root element, stop processing
-                break
-
-        formatted = self.format_element(tree.getroot(), doctype)
-        if formatted:
-            parts.append(formatted)
-
-        return "".join(flatten(parts))
+        doc_formatter = self._create_document_formatter(tree.getroot())
+        return doc_formatter.format_tree(tree, doctype, xml_declaration)
 
     def format_element(self, root: etree._Element, doctype: str | None = None) -> str:
         """Format a single XML element and its descendants.
 
         Args:
             root: The root lxml.etree._Element to format.
-            doctype: Optional DOCTYPE declaration (not used, for API compatibility).
+            doctype: Optional DOCTYPE declaration to prepend to the output.
 
         Returns:
             A pretty-printed XML string for the element and its subtree.
+        """
+        doc_formatter = self._create_document_formatter(root)
+        return doc_formatter.format_element(root, doctype)
+
+    def _create_document_formatter(self, root: etree._Element) -> DocumentFormatter:
+        """Create a DocumentFormatter with concrete predicates for the given root.
+
+        Args:
+            root: The root element to create predicates for.
+
+        Returns:
+            A DocumentFormatter configured with concrete predicates.
         """
         # Create concrete predicates from factories using the document root
         block_predicate = self._block_predicate_factory(root)
@@ -233,8 +219,8 @@ class Formatter:
             predicate = factory(root)
             attribute_formatters[predicate] = formatter_func
 
-        # Create DocumentFormatter with concrete predicates and delegate formatting
-        doc_formatter = DocumentFormatter(
+        # Create DocumentFormatter with concrete predicates
+        return DocumentFormatter(
             block_predicate=block_predicate,
             inline_predicate=inline_predicate,
             normalize_whitespace_predicate=normalize_predicate,
@@ -243,8 +229,8 @@ class Formatter:
             wrap_attributes_predicate=wrap_attributes_predicate,
             text_content_formatters=text_formatters,
             attribute_content_formatters=attribute_formatters,
+            escaping_strategy=self._escaping_strategy,
+            doctype_strategy=self._doctype_strategy,
             indent_size=self._indent_size,
             default_type=self._default_type,
         )
-
-        return doc_formatter.format_element(root, doctype)

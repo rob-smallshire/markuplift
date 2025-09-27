@@ -1,0 +1,22 @@
+<div>
+  <h2>API Documentation</h2>
+  <p>Use this form to test the API:</p>
+  <form>
+    <fieldset>
+      <legend>Configuration</legend>
+      <div>
+        <label>Code Sample: <textarea name="code">    def example():
+        return "test"
+        # preserve formatting</textarea></label>
+      </div>
+      <div>
+        <p>Inline code like <code> format() </code> works perfectly!</p>
+      </div>
+    </fieldset>
+  </form>
+  <h3>Expected Output:</h3>
+  <pre>{
+  "status": "formatted",
+  "whitespace": "preserved"
+}</pre>
+</div>

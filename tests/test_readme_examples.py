@@ -3,14 +3,17 @@
 This ensures that all examples in the README are accurate and working.
 """
 
+from approvaltests import verify
 from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
+from examples.css_class_predicates import has_css_class
+from examples.attribute_formatters import num_css_properties, css_multiline_formatter
 
 
 class TestReadmeExamples:
     """Test all examples from README.md to ensure accuracy."""
 
-    def test_python_api_nested_list_example(self):
+    def test_python_api_nested_list_example(self, test_data_path):
         """Test the Python API example with whitespace preservation from README."""
         # This is the exact example from the README
         formatter = Formatter(
@@ -20,66 +23,33 @@ class TestReadmeExamples:
             indent_size=2
         )
 
-        # Format complex HTML with code examples (preserves whitespace in <code>)
-        messy_html = (
-            '<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p>'
-            '<ul><li>Installation: <code>   pip install markuplift   </code></li>'
-            '<li>Basic <em>configuration</em> and setup</li><li>Code example:'
-            '<pre>    def format_xml():\n        return "beautiful"\n    </pre></li></ul></div>'
-        )
+        # Load input from data file
+        html_file = test_data_path("readme_examples/documentation_example.html")
+        with open(html_file) as f:
+            messy_html = f.read()
+
         formatted = formatter.format_str(messy_html)
+        verify(formatted)
 
-        expected_output = """<div>
-  <h3>Documentation</h3>
-  <p>Here are some    spaced    examples:</p>
-  <ul>
-    <li>Installation: <code>   pip install markuplift   </code></li>
-    <li>Basic <em>configuration</em> and setup</li>
-    <li>Code example:
-      <pre>    def format_xml():
-        return "beautiful"
-    </pre>
-    </li>
-  </ul>
-</div>"""
-
-        assert formatted.strip() == expected_output.strip()
-
-    def test_real_world_article_example(self):
+    def test_real_world_article_example(self, test_data_path):
         """Test the real-world article example with normalize and preserve whitespace from README."""
         formatter = Formatter(
             block_when=html_block_elements(),
             inline_when=html_inline_elements(),
             preserve_whitespace_when=tag_in("pre", "code"),
-            normalize_whitespace_when=any_of(tag_in("p", "li"), html_inline_elements()),
+            normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
             indent_size=2
         )
 
-        # Real-world messy HTML with code blocks and excessive whitespace
-        messy_html = (
-            '<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2>'
-            '<p>Here\'s how to    use   our   API   with   proper   spacing:</p>'
-            '<pre><code>from markuplift import Formatter\nformatter = Formatter(\n    '
-            'preserve_whitespace=True\n)</code></pre><p>The   <em>preserve_whitespace</em>   '
-            'feature   keeps   code   formatting   intact   while   <strong>normalizing</strong>   '
-            'text   content!</p></section></article>'
-        )
+        # Load input from data file
+        html_file = test_data_path("readme_examples/article_example.html")
+        with open(html_file) as f:
+            messy_html = f.read()
 
         formatted = formatter.format_str(messy_html)
+        verify(formatted)
 
-        expected_output = """<article>
-  <h1>Using   Markuplift</h1>
-  <section>
-    <h2>Code    Formatting</h2>
-    <p>Here's how to use our API with proper spacing:</p>
-    <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
-    <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
-  </section>
-</article>"""
-
-        assert formatted.strip() == expected_output.strip()
-
-    def test_advanced_form_example(self):
+    def test_advanced_form_example(self, test_data_path):
         """Test the advanced example with comprehensive whitespace control from README."""
         formatter = Formatter(
             block_when=html_block_elements(),
@@ -89,42 +59,13 @@ class TestReadmeExamples:
             indent_size=2
         )
 
-        # Technical documentation with code, forms, and mixed content
-        messy_html = (
-            '<div><h2>API   Documentation</h2><p>Use this    form   to   test   the   API:</p>'
-            '<form><fieldset><legend>Configuration</legend><div><label>Code Sample: '
-            '<textarea name="code">    def example():\n        return "test"\n        # preserve formatting'
-            '</textarea></label></div><div><p>Inline   code   like   <code>   format()   </code>   '
-            'works   perfectly!</p></div></fieldset></form><h3>Expected   Output:</h3>'
-            '<pre>{\n  "status": "formatted",\n  "whitespace": "preserved"\n}</pre></div>'
-        )
+        # Load input from data file
+        html_file = test_data_path("readme_examples/form_example.html")
+        with open(html_file) as f:
+            messy_html = f.read()
 
         formatted = formatter.format_str(messy_html)
-
-        expected_output = """<div>
-  <h2>API Documentation</h2>
-  <p>Use this form to test the API:</p>
-  <form>
-    <fieldset>
-      <legend>Configuration</legend>
-      <div>
-        <label>Code Sample: <textarea name="code">    def example():
-        return "test"
-        # preserve formatting</textarea></label>
-      </div>
-      <div>
-        <p>Inline code like <code> format() </code> works perfectly!</p>
-      </div>
-    </fieldset>
-  </form>
-  <h3>Expected Output:</h3>
-  <pre>{
-  "status": "formatted",
-  "whitespace": "preserved"
-}</pre>
-</div>"""
-
-        assert formatted.strip() == expected_output.strip()
+        verify(formatted)
 
     def test_block_inline_classification(self):
         """Test that our examples correctly demonstrate block vs inline element handling."""
@@ -167,34 +108,8 @@ class TestReadmeExamples:
 
         assert formatted.strip() == expected.strip()
 
-    def test_custom_css_class_predicate_example(self):
+    def test_custom_css_class_predicate_example(self, test_data_path):
         """Test the custom CSS class predicate example from README."""
-        # Implementation of has_css_class from README
-        def has_css_class(class_name: str):
-            """Factory for predicate matching elements with a specific CSS class."""
-            from markuplift.predicates import PredicateError
-            # Level 1: Configuration and validation
-            if not class_name or not class_name.strip():
-                raise PredicateError("CSS class name cannot be empty")
-            if ' ' in class_name:
-                raise PredicateError("CSS class name cannot contain spaces")
-
-            clean_class = class_name.strip()
-
-            def create_document_predicate(root):
-                # Level 2: Document-specific preparation - find all matching elements once
-                matching_elements = set()
-                for element in root.iter():
-                    class_attr = element.get('class', '')
-                    if class_attr and clean_class in class_attr.split():
-                        matching_elements.add(element)
-
-                def element_predicate(element):
-                    # Level 3: Fast membership test
-                    return element in matching_elements
-                return element_predicate
-            return create_document_predicate
-
         # Test the exact usage example from README
         formatter = Formatter(
             block_when=html_block_elements(),
@@ -204,45 +119,16 @@ class TestReadmeExamples:
             indent_size=2
         )
 
-        # Format HTML with CSS classes (exact example from README)
-        html = '<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>'
+        # Load input from data file
+        html_file = test_data_path("readme_examples/css_class_example.html")
+        with open(html_file) as f:
+            html = f.read()
+
         formatted = formatter.format_str(html)
-
-        expected_output = """<div class="container">
-  <p class="prose">Text content</p>
-  <pre class="code-block">preserved code</pre>
-</div>"""
-
-        assert formatted.strip() == expected_output.strip()
+        verify(formatted)
 
     def test_custom_predicate_validation(self):
         """Test validation in the custom CSS class predicate example."""
-        # Implementation of has_css_class from README
-        def has_css_class(class_name: str):
-            """Factory for predicate matching elements with a specific CSS class."""
-            from markuplift.predicates import PredicateError
-            # Level 1: Configuration and validation
-            if not class_name or not class_name.strip():
-                raise PredicateError("CSS class name cannot be empty")
-            if ' ' in class_name:
-                raise PredicateError("CSS class name cannot contain spaces")
-
-            clean_class = class_name.strip()
-
-            def create_document_predicate(root):
-                # Level 2: Document-specific preparation - find all matching elements once
-                matching_elements = set()
-                for element in root.iter():
-                    class_attr = element.get('class', '')
-                    if class_attr and clean_class in class_attr.split():
-                        matching_elements.add(element)
-
-                def element_predicate(element):
-                    # Level 3: Fast membership test
-                    return element in matching_elements
-                return element_predicate
-            return create_document_predicate
-
         from markuplift.predicates import PredicateError
         import pytest
 
@@ -256,3 +142,22 @@ class TestReadmeExamples:
         # Test spaces in class name validation
         with pytest.raises(PredicateError, match="CSS class name cannot contain spaces"):
             has_css_class("class with spaces")
+
+    def test_attribute_formatting_example(self, test_data_path):
+        """Test the attribute formatting example from README."""
+        # Format HTML with complex CSS styles
+        formatter = Formatter(
+            block_when=html_block_elements(),
+            reformat_attribute_when={
+                # Only format styles with 4+ CSS properties using function matcher
+                html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
+            }
+        )
+
+        # Load input from data file
+        html_file = test_data_path("readme_examples/attribute_formatting_example.html")
+        with open(html_file) as f:
+            html = f.read()
+
+        formatted = formatter.format_str(html.strip())
+        verify(formatted)

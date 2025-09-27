@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<configuration>
+<database><host>localhost</host><port>5432</port><name>myapp</name></database>
+<features><feature name="logging" enabled="true">   <level>INFO</level>  <file>/var/log/app.log</file>   </feature>
+<feature name="caching" enabled="false"></feature><feature name="auth" enabled="true"><provider>oauth</provider><timeout>3600</timeout></feature>
+</features>
+</configuration>

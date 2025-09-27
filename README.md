@@ -45,21 +45,130 @@ uv sync --all-extras
 
 ### CLI Usage
 
-```bash
-# Basic formatting
-markuplift format input.xml
+Here are three comprehensive examples showing different ways to use MarkupLift from the command line:
 
-# Format with custom block elements
-markuplift format input.html --block "//div | //section | //article"
+#### Demo 1: Basic XML Formatting
 
-# Use external JavaScript formatter for script tags
-markuplift format input.html --text-formatter "//script[@type='text/javascript']" "js-beautify"
+This demonstrates the most basic usage - formatting a messy XML configuration file with default settings.
 
-# Format from stdin to stdout
-cat messy.xml | markuplift format --output formatted.xml
+**Input:**
+
+```xml
+<!-- messy_config.xml -->
+<?xml version="1.0"?>
+<configuration>
+<database><host>localhost</host><port>5432</port><name>myapp</name></database>
+<features><feature name="logging" enabled="true">   <level>INFO</level>  <file>/var/log/app.log</file>   </feature>
+<feature name="caching" enabled="false"></feature><feature name="auth" enabled="true"><provider>oauth</provider><timeout>3600</timeout></feature>
+</features>
+</configuration>
 ```
 
-### Python API
+**Command:**
+```bash
+$ markuplift format messy_config.xml
+```
+
+```xml
+<!-- Formatted output -->
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>myapp</name>
+  </database>
+  <features>
+    <feature name="logging" enabled="true">
+      <level>INFO</level>
+      <file>/var/log/app.log</file>
+    </feature>
+    <feature name="caching" enabled="false" />
+    <feature name="auth" enabled="true">
+      <provider>oauth</provider>
+      <timeout>3600</timeout>
+    </feature>
+  </features>
+</configuration>
+```
+
+#### Demo 2: Custom Block Elements
+
+This shows how to customize which elements are treated as block elements using XPath expressions. This is particularly useful for HTML documents where you want specific semantic elements to be formatted as blocks.
+
+**Input:**
+
+```html
+<!-- messy_article.html -->
+<!DOCTYPE html>
+<html><head><title>Blog Post</title></head><body><div><article><header><h1>Understanding     XML     Formatting</h1></header><section><p>XML formatting is   important   for   readability.</p><div><code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code></div><p>Here's how    to   format   it   properly:</p></section></article></div></body></html>
+```
+
+**Command:**
+```bash
+$ markuplift format messy_article.html --block "//div | //section | //article"
+```
+
+```html
+<!-- Formatted output -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Blog Post</title>
+  </head>
+  <body>
+    <div>
+      <article>
+        <header>
+          <h1>Understanding     XML     Formatting</h1>
+        </header>
+        <section>
+          <p>XML formatting is   important   for   readability.</p>
+          <div>
+            <code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code>
+          </div>
+          <p>Here's how    to   format   it   properly:</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</html>
+```
+
+#### Demo 3: Stdin/Stdout Processing
+
+This demonstrates pipeline usage, reading from stdin and formatting the output. This is useful for integrating MarkupLift into shell scripts and build processes.
+
+**Command:**
+```bash
+$ cat messy_config.xml | markuplift format --output formatted_config.xml
+```
+
+```xml
+<!-- Formatted output -->
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>myapp</name>
+  </database>
+  <features>
+    <feature name="logging" enabled="true">
+      <level>INFO</level>
+      <file>/var/log/app.log</file>
+    </feature>
+    <feature name="caching" enabled="false" />
+    <feature name="auth" enabled="true">
+      <provider>oauth</provider>
+      <timeout>3600</timeout>
+    </feature>
+  </features>
+</configuration>
+```
+
+
+### Python API Example
+
+Here's how to format HTML with whitespace preservation in `<code>` and `<pre>` elements:
 
 ```python
 from markuplift import Formatter
@@ -73,13 +182,11 @@ formatter = Formatter(
     indent_size=2
 )
 
-# Format complex HTML with code examples (preserves whitespace in <code>)
-messy_html = (
-    '<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p><ul><li>'
-    'Installation: <code>   pip install markuplift   </code></li><li>Basic <em>conf'
-    'iguration</em> and setup</li><li>Code example:<pre>    def format_xml():\n    '
-    '    return "beautiful"\n    </pre></li></ul></div>'
-)
+# Messy input HTML
+messy_html = """<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p><ul><li>Installation: <code>   pip install markuplift   </code></li><li>Basic <em>configuration</em> and setup</li><li>Code example:<pre>    def format_xml():
+        return "beautiful"
+    </pre></li></ul></div>"""
+
 formatted = formatter.format_str(messy_html)
 print(formatted)
 ```
@@ -105,38 +212,37 @@ print(formatted)
 
 Here's Markuplift formatting a complex article structure with mixed content:
 
+**Input** (`article_example.html`):
+```html
+<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2><p>Here's how to    use   our   API   with   proper   spacing:</p><pre><code>from markuplift import Formatter
+formatter = Formatter(
+    preserve_whitespace=True
+)</code></pre><p>The   <em>preserve_whitespace</em>   feature   keeps   code   formatting   intact   while   <strong>normalizing</strong>   text   content!</p></section></article>
+```
+
 ```python
 from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
-
-# Real-world messy HTML with code blocks and excessive whitespace
-messy_html = (
-    '<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2><p>He'
-    're\'s how to    use   our   API   with   proper   spacing:</p><pre><code>from'
-    ' markuplift import Formatter\nformatter = Formatter(\n    preserve_whitespace'
-    '=True\n)</code></pre><p>The   <em>preserve_whitespace</em>   feature   keeps '
-    '  code   formatting   intact   while   <strong>normalizing</strong>   text   '
-    'content!</p></section></article>'
-)
 
 formatter = Formatter(
     block_when=html_block_elements(),
     inline_when=html_inline_elements(),
     preserve_whitespace_when=tag_in("pre", "code"),
-    normalize_whitespace_when=any_of(tag_in("p", "li"), html_inline_elements()),
+    normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
     indent_size=2
 )
 
-formatted = formatter.format_str(messy_html)
+# Format real-world messy HTML directly from file
+formatted = formatter.format_file('article_example.html')
 print(formatted)
 ```
 
 **Output:**
 ```html
 <article>
-  <h1>Using   Markuplift</h1>
+  <h1>Using Markuplift</h1>
   <section>
-    <h2>Code    Formatting</h2>
+    <h2>Code Formatting</h2>
     <p>Here's how to use our API with proper spacing:</p>
     <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
     <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
@@ -144,79 +250,130 @@ print(formatted)
 </article>
 ```
 
-### Advanced Example
+### Custom CSS Class Predicates
 
-Technical documentation with comprehensive whitespace control:
+You can create custom predicates for advanced element matching:
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
+def has_css_class(class_name: str) -> ElementPredicateFactory:
+    """Factory for predicate matching elements with a specific CSS class.
 
-# Technical documentation with code, forms, and mixed content
-messy_html = (
-    '<div><h2>API   Documentation</h2><p>Use this    form   to   test   the   API:'
-    '</p><form><fieldset><legend>Configuration</legend><div><label>Code Sample: <t'
-    'extarea name="code">    def example():\n        return "test"\n        # pres'
-    'erve formatting</textarea></label></div><div><p>Inline   code   like   <code>'
-    '   format()   </code>   works   perfectly!</p></div></fieldset></form><h3>Exp'
-    'ected   Output:</h3><pre>{\n  "status": "formatted",\n  "whitespace": "preser'
-    'ved"\n}</pre></div>'
-)
+    This demonstrates the triple-nested function pattern used by MarkupLift
+    for efficient document-specific predicate optimization.
+
+    Args:
+        class_name: The CSS class name to match (without spaces)
+
+    Returns:
+        ElementPredicateFactory that creates optimized predicates
+
+    Raises:
+        PredicateError: If class_name is empty or contains spaces
+
+    Example:
+        >>> formatter = Formatter(
+        ...     preserve_whitespace_when=has_css_class("code-block")
+        ... )
+    """
+    # Level 1: Configuration and validation
+    if not class_name or not class_name.strip():
+        raise PredicateError("CSS class name cannot be empty")
+    if ' ' in class_name:
+        raise PredicateError("CSS class name cannot contain spaces")
+
+    clean_class = class_name.strip()
+
+    def create_document_predicate(root) -> ElementPredicate:
+        # Level 2: Document-specific preparation - find all matching elements once
+        matching_elements = set()
+        for element in root.iter():
+            class_attr = element.get('class', '')
+            if class_attr and clean_class in class_attr.split():
+                matching_elements.add(element)
+
+        def element_predicate(element) -> bool:
+            # Level 3: Fast membership test
+            return element in matching_elements
+        return element_predicate
+    return create_document_predicate
+```
+
+**Usage:**
+```python
+from markuplift import Formatter
+from markuplift.predicates import html_block_elements, html_inline_elements, any_of
 
 formatter = Formatter(
     block_when=html_block_elements(),
     inline_when=html_inline_elements(),
-    preserve_whitespace_when=tag_in("pre", "code", "textarea"),
-    normalize_whitespace_when=any_of(
-        tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()
-    ),
+    preserve_whitespace_when=has_css_class("code-block"),
+    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
     indent_size=2
 )
 
-formatted = formatter.format_str(messy_html)
+# Example HTML with CSS classes
+html = """<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>"""
+formatted = formatter.format_str(html)
 print(formatted)
 ```
 
 **Output:**
 ```html
-<div>
-  <h2>API Documentation</h2>
-  <p>Use this form to test the API:</p>
-  <form>
-    <fieldset>
-      <legend>Configuration</legend>
-      <div>
-        <label>Code Sample: <textarea name="code">    def example():
-        return "test"
-        # preserve formatting</textarea></label>
-      </div>
-      <div>
-        <p>Inline code like <code> format() </code> works perfectly!</p>
-      </div>
-    </fieldset>
-  </form>
-  <h3>Expected Output:</h3>
-  <pre>{
-  "status": "formatted",
-  "whitespace": "preserved"
-}</pre>
+<div class="container">
+  <p class="prose">Text content</p>
+  <pre class="code-block">preserved code</pre>
 </div>
 ```
 
 ### Attribute Value Formatting
 
-Markuplift can also format attribute values using custom formatters. This is particularly useful for complex attributes like CSS styles. Here's an example that formats CSS styles with many properties as multiline:
+Markuplift can format complex attribute values like CSS styles:
+
+**Input** (`attribute_formatting_example.html`):
+```html
+<div>
+    <p style="color: red;">Simple (1 property)</p>
+    <p style="color: blue; background: white;">Medium (2 properties)</p>
+    <p style="color: green; background: black; margin: 10px; padding: 5px;">Complex (4 properties)</p>
+</div>
+```
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements
-
 def num_css_properties(style_value: str) -> int:
-    """Count the number of CSS properties in a style attribute value."""
+    """Count the number of CSS properties in a style attribute value.
+
+    Args:
+        style_value: The CSS style attribute value
+
+    Returns:
+        Number of CSS properties found
+
+    Example:
+        >>> num_css_properties("color: red; background: blue")
+        2
+        >>> num_css_properties("color: red;")
+        1
+    """
     return len([prop.strip() for prop in style_value.split(';') if prop.strip()])
 
 def css_multiline_formatter(value, formatter, level):
-    """Format CSS as multiline when it has many properties."""
+    """Format CSS as multiline when it has many properties.
+
+    This formatter takes CSS style attributes and formats them with proper
+    indentation when they contain multiple properties.
+
+    Args:
+        value: The CSS style attribute value to format
+        formatter: The MarkupLift formatter instance (for accessing indent settings)
+        level: The current indentation level in the document
+
+    Returns:
+        Formatted CSS string with proper indentation
+
+    Example:
+        Input:  "color: green; background: black; margin: 10px; padding: 5px"
+        Output: "\\n    color: green;\\n    background: black;\\n    margin: 10px;\\n    padding: 5px\\n  "
+    """
     properties = [prop.strip() for prop in value.split(';') if prop.strip()]
     base_indent = formatter.one_indent * level
     property_indent = formatter.one_indent * (level + 1)
@@ -227,20 +384,13 @@ def css_multiline_formatter(value, formatter, level):
 formatter = Formatter(
     block_when=html_block_elements(),
     reformat_attribute_when={
-        # Only format styles with 4+ CSS properties using function matcher
+        # Only format styles with 4+ CSS properties
         html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
     }
 )
 
-html = '''
-<div>
-    <p style="color: red;">Simple (1 property)</p>
-    <p style="color: blue; background: white;">Medium (2 properties)</p>
-    <p style="color: green; background: black; margin: 10px; padding: 5px;">Complex (4 properties)</p>
-</div>
-'''
-
-formatted = formatter.format_str(html.strip())
+# Format HTML file with attribute formatting
+formatted = formatter.format_file('attribute_formatting_example.html')
 print(formatted)
 ```
 
@@ -255,91 +405,6 @@ print(formatted)
     margin: 10px;
     padding: 5px
   ">Complex (4 properties)</p>
-</div>
-```
-
-This example demonstrates:
-- **Function matchers**: Using `lambda v: num_css_properties(v) >= 4` to conditionally format attributes
-- **Chainable predicates**: Combining element predicates (`html_block_elements()`) with attribute matching (`.with_attribute()`)
-- **Context-aware formatting**: Using `formatter.one_indent` for proper indentation at any nesting level
-- **Selective formatting**: Only complex styles are reformatted, simple ones remain inline
-
-## Custom Element Predicate Factories
-
-Markuplift uses the following types for creating custom formatting rules. The core types are:
-
-- **`ElementPredicate`**: `Callable[[etree._Element], bool]` - A function that tests if an element matches criteria
-- **`ElementPredicateFactory`**: `Callable[[etree._Element], ElementPredicate]` - A function that creates optimized, document-specific predicates. The element here is the root of the document.
-
-This architecture uses triple-nested functions to allow queries to be performed efficiently:
-
-1. **Outer function**: Accepts configuration parameters and performs validation
-2. **Middle function**: Accepts the document root and performs expensive preparation (queries, traversals)
-3. **Inner function**: Accepts individual elements and performs fast lookups against pre-computed results
-
-### Example: Custom CSS Class Predicate
-
-Here's how to create a custom predicate for elements with a specific CSS class:
-
-```python
-from lxml import etree
-
-from markuplift.predicates import PredicateError
-from markuplift.types import ElementPredicateFactory, ElementPredicate
-
-def has_css_class(class_name: str) -> ElementPredicateFactory:
-    """Factory for predicate matching elements with a specific CSS class."""
-    # Level 1: Configuration and validation
-    if not class_name or not class_name.strip():
-        raise PredicateError("CSS class name cannot be empty")
-    if ' ' in class_name:
-        raise PredicateError("CSS class name cannot contain spaces")
-
-    clean_class = class_name.strip()
-
-    def create_document_predicate(root: etree._Element) -> ElementPredicate:
-        # Level 2: Document-specific preparation - find all matching elements once
-        matching_elements = set()
-        for element in root.iter():
-            class_attr = element.get('class', '')
-            if class_attr and clean_class in class_attr.split():
-                matching_elements.add(element)
-
-        def element_predicate(element: etree._Element) -> bool:
-            # Level 3: Fast membership test
-            return element in matching_elements
-        return element_predicate
-    return create_document_predicate
-```
-
-This is especially powerful for complex predicates where the middle level can do expensive operations like XPath queries, regex compilation, or tree traversals once per document, then the inner function just does fast lookups against pre-computed results.
-
-### Using Custom Predicates
-
-```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, any_of
-
-# Use custom predicate with built-in ones
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=has_css_class("code-block"),
-    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
-    indent_size=2
-)
-
-# Format HTML with CSS classes
-html = '<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>'
-formatted = formatter.format_str(html)
-print(formatted)
-```
-
-**Output:**
-```html
-<div class="container">
-  <p class="prose">Text content</p>
-  <pre class="code-block">preserved code</pre>
 </div>
 ```
 

@@ -10,7 +10,13 @@
       "WebSearch",
       "Bash(uv build:*)",
       "Bash(mkdir:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/cli_demo.sh:*)",
+      "Read(//private/tmp/claude/**)",
+      "Bash(uv sync:*)",
+      "WebFetch(domain:html.spec.whatwg.org)",
+      "WebFetch(domain:www.w3schools.com)"
     ],
     "deny": [],
     "ask": []

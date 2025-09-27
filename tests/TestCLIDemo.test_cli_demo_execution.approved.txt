@@ -1,0 +1,94 @@
+=== MarkupLift CLI Demo ===
+
+📁 Created demo files:
+   - messy_config.xml (unformatted XML configuration)
+   - messy_article.html (unformatted HTML article)
+
+📝 Before formatting (messy_config.xml):
+----------------------------------------
+<?xml version="1.0"?>
+<configuration>
+<database><host>localhost</host><port>5432</port><name>myapp</name></database>
+<features><feature name="logging" enabled="true">   <level>INFO</level>  <file>/var/log/app.log</file>   </feature>
+<feature name="caching" enabled="false"></feature><feature name="auth" enabled="true"><provider>oauth</provider><timeout>3600</timeout></feature>
+</features>
+</configuration>
+
+✨ Basic formatting:
+$ markuplift format messy_config.xml
+----------------------------------------
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>myapp</name>
+  </database>
+  <features>
+    <feature name="logging" enabled="true">
+      <level>INFO</level>
+      <file>/var/log/app.log</file>
+    </feature>
+    <feature name="caching" enabled="false" />
+    <feature name="auth" enabled="true">
+      <provider>oauth</provider>
+      <timeout>3600</timeout>
+    </feature>
+  </features>
+</configuration>
+
+📝 Before formatting (messy_article.html):
+-------------------------------------------
+<!DOCTYPE html>
+<html><head><title>Blog Post</title></head><body><div><article><header><h1>Understanding     XML     Formatting</h1></header><section><p>XML formatting is   important   for   readability.</p><div><code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code></div><p>Here's how    to   format   it   properly:</p></section></article></div></body></html>
+
+✨ Format with custom block elements:
+$ markuplift format messy_article.html --block "//div | //section | //article"
+------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Blog Post</title>
+  </head>
+  <body>
+    <div>
+      <article>
+        <header>
+          <h1>Understanding     XML     Formatting</h1>
+        </header>
+        <section>
+          <p>XML formatting is   important   for   readability.</p>
+          <div>
+            <code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code>
+          </div>
+          <p>Here's how    to   format   it   properly:</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</html>
+
+✨ Format from stdin to file:
+$ cat messy_config.xml | markuplift format --output formatted_config.xml
+--------------------------------------------------------------------------
+✅ Saved to formatted_config.xml:
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>myapp</name>
+  </database>
+  <features>
+    <feature name="logging" enabled="true">
+      <level>INFO</level>
+      <file>/var/log/app.log</file>
+    </feature>
+    <feature name="caching" enabled="false" />
+    <feature name="auth" enabled="true">
+      <provider>oauth</provider>
+      <timeout>3600</timeout>
+    </feature>
+  </features>
+</configuration>
+
+🧹 Cleanup:
+✅ Demo complete!
