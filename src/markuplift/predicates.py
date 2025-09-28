@@ -128,13 +128,28 @@ class PredicateFactory:
         tag_name("img").with_attribute("src", re.compile(r"^https://"))
     """
 
-    def __init__(self, factory_func: ElementPredicateFactory):
-        """Initialize with an ElementPredicateFactory function.
+    _factory_func: ElementPredicateFactory
+
+    def __new__(cls, factory_func: ElementPredicateFactory):
+        """Create a new PredicateFactory, or return existing instance if already wrapped.
+
+        This optimization avoids double-wrapping when a PredicateFactory instance
+        is passed to PredicateFactory() again.
 
         Args:
-            factory_func: Function that takes root element and returns ElementPredicate
+            factory_func: Function or PredicateFactory that creates ElementPredicate
+
+        Returns:
+            PredicateFactory instance (either new or existing)
         """
-        self._factory_func = factory_func
+        if isinstance(factory_func, cls):
+            # Already a PredicateFactory, return it as-is
+            return factory_func
+
+        # Create new instance for functions or other callable types
+        instance = super().__new__(cls)
+        instance._factory_func = factory_func
+        return instance
 
     def __call__(self, root: etree._Element) -> ElementPredicate:
         """Make this object callable like the original ElementPredicateFactory.
