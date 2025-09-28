@@ -19,8 +19,12 @@ import jinja2
 # Add src to path so we can import examples
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from examples.css_class_predicates import has_css_class
-from examples.attribute_formatters import num_css_properties, css_multiline_formatter
+from examples.attribute_formatters import num_css_properties, css_multiline_formatter, format_attribute_formatting_example
+from examples.python_api_basic import format_documentation_example
+from examples.real_world_article import format_article_example
+from examples.complex_predicates import elements_with_attribute_values, table_cells_in_columns
+from examples.complex_predicates_usage import format_complex_predicates_example
+from examples.xml_document_formatting import format_xml_document_example
 from markuplift import Formatter
 from markuplift.predicates import html_block_elements
 
@@ -148,19 +152,6 @@ def format_cli_demo_for_readme() -> str:
                 i += 1
 
             result.append(f'```{format_type}')
-
-            # Add filename comment if we have one
-            if filename and not is_output:
-                if format_type == "xml":
-                    result.append(f'<!-- {filename} -->')
-                else:
-                    result.append(f'<!-- {filename} -->')
-            elif is_output:
-                if format_type == "xml":
-                    result.append(f'<!-- Formatted output -->')
-                else:
-                    result.append(f'<!-- Formatted output -->')
-
             result.append('\n'.join(xml_lines).strip())
             result.append('```')
             result.append('')
@@ -213,20 +204,27 @@ def generate_readme():
         'documentation_input': load_test_data('documentation_example.html'),
         'article_input': load_test_data('article_example.html'),
         'form_input': load_test_data('form_example.html'),
-        'css_class_input': load_test_data('css_class_example.html'),
+        'complex_predicates_input': load_test_data('complex_predicates_example.html'),
+        'xml_document_input': load_test_data('xml_document_example.xml'),
         'attribute_formatting_input': load_test_data('attribute_formatting_example.html'),
 
         # Example outputs (verified by ApprovalTests)
         'documentation_output': load_approved_output('test_python_api_nested_list_example'),
         'article_output': load_approved_output('test_real_world_article_example'),
         'form_output': load_approved_output('test_advanced_form_example'),
-        'css_class_output': load_approved_output('test_custom_css_class_predicate_example'),
+        'complex_predicates_output': load_approved_output('test_complex_predicates_example'),
+        'xml_document_output': load_approved_output('test_xml_document_formatting_example'),
         'attribute_formatting_output': load_approved_output('test_attribute_formatting_example'),
 
         # Example function source code
-        'has_css_class_source': get_function_source(has_css_class),
+        'code_in_documentation_sections_source': f"{get_function_source(elements_with_attribute_values)}\n\n{get_function_source(table_cells_in_columns)}",
+        'complex_predicates_usage_source': get_function_source(format_complex_predicates_example),
+        'xml_document_formatting_source': get_function_source(format_xml_document_example),
         'num_css_properties_source': get_function_source(num_css_properties),
         'css_multiline_formatter_source': get_function_source(css_multiline_formatter),
+        'attribute_formatting_source': get_function_source(format_attribute_formatting_example),
+        'python_api_basic_source': get_function_source(format_documentation_example),
+        'real_world_article_source': get_function_source(format_article_example),
     }
 
     # Setup Jinja2

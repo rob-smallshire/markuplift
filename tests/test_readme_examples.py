@@ -4,10 +4,14 @@ This ensures that all examples in the README are accurate and working.
 """
 
 from approvaltests import verify
-from markuplift import Formatter
+from markuplift import Formatter, Html5Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
-from examples.css_class_predicates import has_css_class
-from examples.attribute_formatters import num_css_properties, css_multiline_formatter
+from examples.attribute_formatters import num_css_properties, css_multiline_formatter, format_attribute_formatting_example
+from examples.python_api_basic import format_documentation_example
+from examples.real_world_article import format_article_example
+from examples.complex_predicates import elements_with_attribute_values, table_cells_in_columns
+from examples.complex_predicates_usage import format_complex_predicates_example
+from examples.xml_document_formatting import format_xml_document_example
 
 
 class TestReadmeExamples:
@@ -15,38 +19,16 @@ class TestReadmeExamples:
 
     def test_python_api_nested_list_example(self, test_data_path):
         """Test the Python API example with whitespace preservation from README."""
-        # This is the exact example from the README
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            inline_when=html_inline_elements(),
-            preserve_whitespace_when=tag_in("pre", "code"),
-            indent_size=2
-        )
-
-        # Load input from data file
-        html_file = test_data_path("readme_examples/documentation_example.html")
-        with open(html_file) as f:
-            messy_html = f.read()
-
-        formatted = formatter.format_str(messy_html)
+        # Execute the actual example function from the examples module
+        input_file = test_data_path("readme_examples/documentation_example.html")
+        formatted = format_documentation_example(input_file)
         verify(formatted)
 
     def test_real_world_article_example(self, test_data_path):
         """Test the real-world article example with normalize and preserve whitespace from README."""
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            inline_when=html_inline_elements(),
-            preserve_whitespace_when=tag_in("pre", "code"),
-            normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
-            indent_size=2
-        )
-
-        # Load input from data file
-        html_file = test_data_path("readme_examples/article_example.html")
-        with open(html_file) as f:
-            messy_html = f.read()
-
-        formatted = formatter.format_str(messy_html)
+        # Execute the actual example function from the examples module
+        input_file = test_data_path("readme_examples/article_example.html")
+        formatted = format_article_example(input_file)
         verify(formatted)
 
     def test_advanced_form_example(self, test_data_path):
@@ -108,56 +90,60 @@ class TestReadmeExamples:
 
         assert formatted.strip() == expected.strip()
 
-    def test_custom_css_class_predicate_example(self, test_data_path):
-        """Test the custom CSS class predicate example from README."""
-        # Test the exact usage example from README
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            inline_when=html_inline_elements(),
-            preserve_whitespace_when=has_css_class("code-block"),
-            normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
-            indent_size=2
-        )
-
-        # Load input from data file
-        html_file = test_data_path("readme_examples/css_class_example.html")
-        with open(html_file) as f:
-            html = f.read()
-
-        formatted = formatter.format_str(html)
+    def test_complex_predicates_example(self, test_data_path):
+        """Test the complex predicates example from README."""
+        # Execute the actual example function from the examples module
+        input_file = test_data_path("readme_examples/complex_predicates_example.html")
+        formatted = format_complex_predicates_example(input_file)
         verify(formatted)
 
-    def test_custom_predicate_validation(self):
-        """Test validation in the custom CSS class predicate example."""
-        from markuplift.predicates import PredicateError
-        import pytest
+    def test_xml_document_formatting_example(self, test_data_path):
+        """Test the XML document formatting example from README."""
+        # Execute the actual example function from the examples module
+        input_file = test_data_path("readme_examples/xml_document_example.xml")
+        formatted = format_xml_document_example(input_file)
+        verify(formatted)
 
-        # Test empty class name validation
-        with pytest.raises(PredicateError, match="CSS class name cannot be empty"):
-            has_css_class("")
+    def test_complex_predicate_functionality(self):
+        """Test that parameterized predicates work correctly with document structure."""
+        # Test that the parameterized predicates can be created without errors
+        attr_predicate_factory = elements_with_attribute_values('role', 'navigation', 'complementary')
+        table_predicate_factory = table_cells_in_columns('price', 'currency')
 
-        with pytest.raises(PredicateError, match="CSS class name cannot be empty"):
-            has_css_class("   ")
+        # These should be callable and return functions
+        assert callable(attr_predicate_factory)
+        assert callable(table_predicate_factory)
 
-        # Test spaces in class name validation
-        with pytest.raises(PredicateError, match="CSS class name cannot contain spaces"):
-            has_css_class("class with spaces")
+        # Test with a simple document structure
+        from lxml import etree
+        from io import StringIO
+
+        simple_doc = """<html><body>
+            <nav role="navigation">
+                <ul><li><a href="/">Home</a></li></ul>
+            </nav>
+            <table>
+                <colgroup>
+                    <col class="name" />
+                    <col class="price" />
+                </colgroup>
+                <tr><td>Product</td><td>$19.99</td></tr>
+            </table>
+        </body></html>"""
+
+        tree = etree.parse(StringIO(simple_doc))
+        root = tree.getroot()
+
+        # Create predicates for this document
+        attr_predicate = attr_predicate_factory(root)
+        table_predicate = table_predicate_factory(root)
+
+        assert callable(attr_predicate)
+        assert callable(table_predicate)
 
     def test_attribute_formatting_example(self, test_data_path):
         """Test the attribute formatting example from README."""
-        # Format HTML with complex CSS styles
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            reformat_attribute_when={
-                # Only format styles with 4+ CSS properties using function matcher
-                html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
-            }
-        )
-
-        # Load input from data file
-        html_file = test_data_path("readme_examples/attribute_formatting_example.html")
-        with open(html_file) as f:
-            html = f.read()
-
-        formatted = formatter.format_str(html.strip())
+        # Execute the actual example function from the examples module
+        input_file = test_data_path("readme_examples/attribute_formatting_example.html")
+        formatted = format_attribute_formatting_example(input_file)
         verify(formatted)

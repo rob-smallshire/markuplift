@@ -135,3 +135,4 @@ The project uses `pyproject.toml` for configuration:
 - The codebase follows Python 3.12+ type annotations
 - To run the tests and other Python-based commands that need tools from the environment, use `uv run`.
 - Refer to FORMATTING_RULES.md before making any code or test changes.
+- Update the README.md file only by modify the template @scripts/README.md.j2 and the examples embedded within by running @scripts/generate_readme.py with `uv run python scripts/generate_readme.py`

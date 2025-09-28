@@ -46,3 +46,33 @@ def css_multiline_formatter(value, formatter, level):
     property_indent = formatter.one_indent * (level + 1)
     formatted_props = [f"{property_indent}{prop}" for prop in properties]
     return '\n' + ';\n'.join(formatted_props) + '\n' + base_indent
+
+
+def format_attribute_formatting_example(input_file):
+    """Format HTML with complex CSS styles using Html5Formatter.
+
+    This example demonstrates attribute value formatting where CSS styles
+    with 4 or more properties are formatted across multiple lines for
+    better readability.
+
+    Args:
+        input_file: Path to the HTML file to format
+
+    Returns:
+        str: The formatted HTML output
+    """
+    from pathlib import Path
+    from markuplift import Html5Formatter
+    from markuplift.predicates import html_block_elements
+
+    # Format HTML with complex CSS styles using Html5Formatter
+    formatter = Html5Formatter(
+        reformat_attribute_when={
+            # Only format styles with 4+ CSS properties
+            html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
+        }
+    )
+
+    # Format HTML file with attribute formatting
+    formatted = formatter.format_file(input_file)
+    return formatted

@@ -16,11 +16,59 @@ Markuplift provides flexible, configurable formatting of XML and HTML documents.
 
 ## Key Features
 
+- **Specialized formatters** - `Html5Formatter` for HTML with HTML5 defaults, `XmlFormatter` for strict XML compliance
+- **Type-safe configuration** - Use `ElementType` enum for better type safety and IDE support
 - **Configurable element classification** - Define block/inline elements using XPath expressions or Python predicates
 - **Flexible whitespace control** - Normalize, preserve, or strip whitespace on a per-element basis
 - **External formatter integration** - Pipe element text content through external tools (e.g., js-beautify, prettier)
 - **Comprehensive format options** - Control indentation, attribute wrapping, self-closing tags, and more
 - **CLI and Python API** - Use from command line or integrate into your Python applications
+
+## Understanding Block vs Inline Elements
+
+> **Important:** Markuplift's "block" and "inline" concepts are about **formatting and whitespace handling**, in the source, not CSS layout or browser rendering. These classifications determine how Markuplift adds newlines and indentation around elements.
+
+### Block Elements
+**Block elements** get their own lines with proper indentation. Typical examples include structural elements like `<p>`, `<div>`, `<ul>`, `<li>`, `<h1>`, etc.
+
+### Inline Elements
+**Inline elements** flow within text content without adding line breaks. Typical examples include text formatting elements like `<em>`, `<strong>`, `<code>`, `<a>`, etc.
+
+### Example: Why This Matters
+
+**Input (messy):**
+```html
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p><ul><li>First item with <code>inline code</code></li><li>Second item</li></ul>
+```
+
+**With proper block/inline classification:**
+```html
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p>
+<ul>
+  <li>First item with <code>inline code</code></li>
+  <li>Second item</li>
+</ul>
+```
+
+Notice how:
+- **Block elements** (`<p>`, `<ul>`, `<li>`) get their own lines and indentation
+- **Inline elements** (`<em>`, `<strong>`, `<code>`) stay within the text flow
+- Whitespace is added **around** elements, not **within** their text content
+
+**What would happen with wrong classification:**
+```html
+<!-- If <em> and <strong> were treated as block: -->
+<p>This paragraph contains
+  <em>emphasized text</em>
+   and
+  <strong>bold text</strong>
+.</p>
+<!-- Breaks the text flow! -->
+
+<!-- If <ul> and <li> were treated as inline: -->
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p><ul><li>First item with <code>inline code</code></li><li>Second item</li></ul>
+<!-- Poor readability! -->
+```
 
 ## Quick Start
 
@@ -54,14 +102,12 @@ This demonstrates the most basic usage - formatting a messy XML configuration fi
 **Input:**
 
 ```xml
-<!-- messy_config.xml -->
-<?xml version="1.0"?>
-<configuration>
-<database><host>localhost</host><port>5432</port><name>myapp</name></database>
-<features><feature name="logging" enabled="true">   <level>INFO</level>  <file>/var/log/app.log</file>   </feature>
-<feature name="caching" enabled="false"></feature><feature name="auth" enabled="true"><provider>oauth</provider><timeout>3600</timeout></feature>
-</features>
-</configuration>
+<?xml version="1.0"?><configuration><database><host>localhost</host><port>
+5432</port><name>myapp</name></database><features><feature name="logging"
+enabled="true">   <level>INFO</level>  <file>/var/log/app.log</file>
+</feature><feature name="caching" enabled="false"></feature><feature name=
+"auth" enabled="true"><provider>oauth</provider><timeout>3600</timeout>
+</feature></features></configuration>
 ```
 
 **Command:**
@@ -70,11 +116,11 @@ $ markuplift format messy_config.xml
 ```
 
 ```xml
-<!-- Formatted output -->
 <configuration>
   <database>
     <host>localhost</host>
-    <port>5432</port>
+    <port>
+5432</port>
     <name>myapp</name>
   </database>
   <features>
@@ -98,18 +144,21 @@ This shows how to customize which elements are treated as block elements using X
 **Input:**
 
 ```html
-<!-- messy_article.html -->
 <!DOCTYPE html>
-<html><head><title>Blog Post</title></head><body><div><article><header><h1>Understanding     XML     Formatting</h1></header><section><p>XML formatting is   important   for   readability.</p><div><code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code></div><p>Here's how    to   format   it   properly:</p></section></article></div></body></html>
+<html><head><title>Blog Post</title></head><body><div><article><header>
+<h1>Understanding     XML     Formatting</h1></header><section><p>XML
+formatting is   important   for   readability.</p><div>
+<code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code>
+</div><p>Here's how    to   format   it   properly:</p></section></article>
+</div></body></html>
 ```
 
 **Command:**
 ```bash
-$ markuplift format messy_article.html --block "//div | //section | //article"
+$ markuplift format-html messy_article.html --block "//div | //section | //article"
 ```
 
 ```html
-<!-- Formatted output -->
 <!DOCTYPE html>
 <html>
   <head>
@@ -119,14 +168,12 @@ $ markuplift format messy_article.html --block "//div | //section | //article"
     <div>
       <article>
         <header>
-          <h1>Understanding     XML     Formatting</h1>
+          <h1>Understanding XML Formatting</h1>
         </header>
         <section>
-          <p>XML formatting is   important   for   readability.</p>
-          <div>
-            <code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code>
-          </div>
-          <p>Here's how    to   format   it   properly:</p>
+          <p>XML formatting is important for readability.</p>
+          <div><code class="language-xml">&lt;root&gt;&lt;child&gt;content&lt;/child&gt;&lt;/root&gt;</code></div>
+          <p>Here's how to format it properly:</p>
         </section>
       </article>
     </div>
@@ -144,11 +191,11 @@ $ cat messy_config.xml | markuplift format --output formatted_config.xml
 ```
 
 ```xml
-<!-- Formatted output -->
 <configuration>
   <database>
     <host>localhost</host>
-    <port>5432</port>
+    <port>
+5432</port>
     <name>myapp</name>
   </database>
   <features>
@@ -168,44 +215,54 @@ $ cat messy_config.xml | markuplift format --output formatted_config.xml
 
 ### Python API Example
 
-Here's how to format HTML with whitespace preservation in `<code>` and `<pre>` elements:
+Here's how to format HTML with proper block/inline classification and whitespace preservation in `<code>` and `<pre>` elements:
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, tag_in
+def format_documentation_example(input_file: Path):
+    """Format HTML with proper block/inline classification and whitespace preservation.
 
-# Create formatter with whitespace handling
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=tag_in("pre", "code"),
-    indent_size=2
-)
+    This is the main Python API example shown in the README.
 
-# Messy input HTML
-messy_html = """<div><h3>Documentation</h3><p>Here are some    spaced    examples:</p><ul><li>Installation: <code>   pip install markuplift   </code></li><li>Basic <em>configuration</em> and setup</li><li>Code example:<pre>    def format_xml():
-        return "beautiful"
-    </pre></li></ul></div>"""
+    Args:
+        input_file: Path to the HTML file to format
 
-formatted = formatter.format_str(messy_html)
-print(formatted)
+    Returns:
+        str: The formatted HTML output
+    """
+    # Create HTML5 formatter with custom whitespace handling
+    # Html5Formatter includes sensible HTML5 defaults:
+    # - Block elements: <div>, <p>, <ul>, <li>, <h1>-<h6>, etc. get newlines + indentation
+    # - Inline elements: <em>, <strong>, <code>, <a>, etc. flow within text
+    formatter = Html5Formatter(
+        preserve_whitespace_when=tag_in("pre", "code"),  # Keep original spacing inside these
+        indent_size=2
+    )
+
+    # Load and format HTML from file
+    formatted = formatter.format_file(input_file)
+    return formatted
 ```
 
 **Output:**
 ```html
-<div>
-  <h3>Documentation</h3>
-  <p>Here are some    spaced    examples:</p>
-  <ul>
-    <li>Installation: <code>   pip install markuplift   </code></li>
-    <li>Basic <em>configuration</em> and setup</li>
-    <li>Code example:
-      <pre>    def format_xml():
+<!DOCTYPE html>
+<html>
+  <body>
+    <div>
+      <h3>Documentation</h3>
+      <p>Here are some spaced examples:</p>
+      <ul>
+        <li>Installation: <code>   pip install markuplift   </code></li>
+        <li>Basic <em>configuration</em> and setup</li>
+        <li>Code example:
+          <pre>    def format_xml():
         return "beautiful"
     </pre>
-    </li>
-  </ul>
-</div>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>
 ```
 
 ### Real-World Example
@@ -214,115 +271,291 @@ Here's Markuplift formatting a complex article structure with mixed content:
 
 **Input** (`article_example.html`):
 ```html
-<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2><p>Here's how to    use   our   API   with   proper   spacing:</p><pre><code>from markuplift import Formatter
+<article><h1>Using   Markuplift</h1><section><h2>Code    Formatting</h2>
+<p>Here's how to    use   our   API   with   proper   spacing:</p><pre><code>from markuplift import Formatter
 formatter = Formatter(
     preserve_whitespace=True
-)</code></pre><p>The   <em>preserve_whitespace</em>   feature   keeps   code   formatting   intact   while   <strong>normalizing</strong>   text   content!</p></section></article>
+)</code></pre><p>The   <em>preserve_whitespace</em>   feature   keeps
+code   formatting   intact   while   <strong>normalizing</strong>   text
+content!</p></section></article>
 ```
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
+def format_article_example(input_file: Path):
+    """Format complex article structure with mixed content.
 
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=tag_in("pre", "code"),
-    normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
-    indent_size=2
-)
+    This is the real-world example shown in the README demonstrating
+    Html5Formatter with custom whitespace handling.
 
-# Format real-world messy HTML directly from file
-formatted = formatter.format_file('article_example.html')
-print(formatted)
+    Args:
+        input_file: Path to the HTML file to format
+
+    Returns:
+        str: The formatted HTML output
+    """
+    # Html5Formatter provides HTML5-optimized defaults
+    formatter = Html5Formatter(
+        preserve_whitespace_when=tag_in("pre", "code"),
+        normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
+        indent_size=2
+    )
+
+    # Format real-world messy HTML directly from file
+    formatted = formatter.format_file(input_file)
+    return formatted
 ```
 
 **Output:**
 ```html
-<article>
-  <h1>Using Markuplift</h1>
-  <section>
-    <h2>Code Formatting</h2>
-    <p>Here's how to use our API with proper spacing:</p>
-    <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
-    <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
-  </section>
-</article>
+<!DOCTYPE html>
+<html>
+  <body>
+    <article>
+      <h1>Using Markuplift</h1>
+      <section>
+        <h2>Code Formatting</h2>
+        <p>Here's how to use our API with proper spacing:</p>
+        <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
+        <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
+      </section>
+    </article>
+  </body>
+</html>
 ```
 
-### Custom CSS Class Predicates
+### Parameterized Custom Predicates
 
-You can create custom predicates for advanced element matching:
+You can create predicates that accept parameters, making them reusable for different situations. Here are examples that show how to customize formatting based on programming languages and CSS classes:
 
 ```python
-def has_css_class(class_name: str) -> ElementPredicateFactory:
-    """Factory for predicate matching elements with a specific CSS class.
+def elements_with_attribute_values(attribute_name: str, *values: str) -> ElementPredicateFactory:
+    """Factory for predicate matching elements with specific attribute values.
 
-    This demonstrates the triple-nested function pattern used by MarkupLift
-    for efficient document-specific predicate optimization.
+    This creates a predicate that matches elements where the specified attribute
+    contains any of the given values. Useful for formatting based on element
+    roles, types, or semantic meaning.
 
     Args:
-        class_name: The CSS class name to match (without spaces)
+        attribute_name: Name of the attribute to check (e.g., 'class', 'role', 'type')
+        *values: Attribute values to match against
 
     Returns:
         ElementPredicateFactory that creates optimized predicates
 
-    Raises:
-        PredicateError: If class_name is empty or contains spaces
-
     Example:
-        >>> formatter = Formatter(
-        ...     preserve_whitespace_when=has_css_class("code-block")
+        >>> # Format table cells differently based on their role
+        >>> formatter = Html5Formatter(
+        ...     block_when=elements_with_attribute_values('role', 'header', 'columnheader')
+        ... )
+
+        >>> # Special handling for form elements by type
+        >>> formatter = Html5Formatter(
+        ...     wrap_attributes_when=elements_with_attribute_values('type', 'email', 'password', 'url')
         ... )
     """
-    # Level 1: Configuration and validation
-    if not class_name or not class_name.strip():
-        raise PredicateError("CSS class name cannot be empty")
-    if ' ' in class_name:
-        raise PredicateError("CSS class name cannot contain spaces")
-
-    clean_class = class_name.strip()
-
     def create_document_predicate(root) -> ElementPredicate:
-        # Level 2: Document-specific preparation - find all matching elements once
+        # Pre-scan document to find all matching elements
         matching_elements = set()
+
         for element in root.iter():
-            class_attr = element.get('class', '')
-            if class_attr and clean_class in class_attr.split():
-                matching_elements.add(element)
+            attr_value = element.get(attribute_name, '')
+            if attr_value:
+                # Check if any of the target values appear in the attribute
+                attr_words = attr_value.lower().split()
+                if any(value.lower() in attr_words for value in values):
+                    matching_elements.add(element)
 
         def element_predicate(element) -> bool:
-            # Level 3: Fast membership test
             return element in matching_elements
+
         return element_predicate
+
+    return create_document_predicate
+
+def table_cells_in_columns(*column_types: str) -> ElementPredicateFactory:
+    """Factory for predicate matching table cells in columns with specific semantic types.
+
+    This matches <td> or <th> elements that are in table columns designated for
+    specific types of data (like 'price', 'date', 'name', etc.). Column types
+    are determined by class attributes on the <col>, <th>, or <td> elements.
+
+    Args:
+        *column_types: Column type names to match (e.g., 'price', 'currency', 'date', 'number')
+
+    Returns:
+        ElementPredicateFactory that creates optimized predicates
+
+    Example:
+        >>> # Right-align numeric and currency columns
+        >>> formatter = Html5Formatter(
+        ...     wrap_attributes_when=table_cells_in_columns('price', 'currency', 'number')
+        ... )
+
+        >>> # Preserve formatting in date and time columns
+        >>> formatter = Html5Formatter(
+        ...     preserve_whitespace_when=table_cells_in_columns('date', 'time', 'timestamp')
+        ... )
+    """
+    def create_document_predicate(root) -> ElementPredicate:
+        matching_elements = set()
+
+        # Find all tables and analyze their column structure
+        for table in root.iter('table'):
+            column_classes = []
+
+            # Method 1: Check <col> elements for column classes
+            colgroup = table.find('colgroup')
+            if colgroup is not None:
+                for col in colgroup.findall('col'):
+                    col_class = col.get('class', '')
+                    column_classes.append(col_class.lower().split())
+
+            # Method 2: Check header row for column classes
+            if not column_classes:
+                thead = table.find('thead')
+                if thead is not None:
+                    header_row = thead.find('tr')
+                    if header_row is not None:
+                        for th in header_row.findall('th'):
+                            th_class = th.get('class', '')
+                            column_classes.append(th_class.lower().split())
+
+            # If we found column structure, match cells in target columns
+            if column_classes:
+                for row in table.iter('tr'):
+                    cells = row.findall('td') + row.findall('th')
+                    for col_index, cell in enumerate(cells):
+                        if col_index < len(column_classes):
+                            cell_classes = column_classes[col_index]
+                            # Also check the cell's own class attribute
+                            cell_own_classes = cell.get('class', '').lower().split()
+                            all_classes = cell_classes + cell_own_classes
+
+                            # Check if any column type matches
+                            if any(col_type.lower() in all_classes for col_type in column_types):
+                                matching_elements.add(cell)
+
+        def element_predicate(element) -> bool:
+            return element in matching_elements
+
+        return element_predicate
+
     return create_document_predicate
 ```
 
 **Usage:**
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, any_of
+def format_complex_predicates_example(input_file: Path):
+    """Format HTML using parameterized predicates for content-aware formatting.
 
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=has_css_class("code-block"),
-    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
-    indent_size=2
-)
+    This example shows how to use predicates with parameters to apply different
+    formatting rules based on semantic meaning and document structure.
 
-# Example HTML with CSS classes
-html = """<div class="container"><p class="prose">Text content</p><pre class="code-block">preserved code</pre></div>"""
-formatted = formatter.format_str(html)
-print(formatted)
+    Args:
+        input_file: Path to the HTML file to format
+
+    Returns:
+        str: The formatted HTML output
+    """
+    # Create formatter with parameterized predicate-based rules
+    formatter = Html5Formatter(
+        # Treat navigation and sidebar elements as block elements
+        block_when=elements_with_attribute_values('role', 'navigation', 'complementary'),
+        # Apply special formatting to currency and numeric table columns
+        wrap_attributes_when=table_cells_in_columns('price', 'currency', 'number'),
+        # Standard Html5Formatter defaults for other elements
+        indent_size=2
+    )
+
+    # Format the document with semantic-aware predicate rules
+    formatted = formatter.format_file(input_file)
+    return formatted
+```
+
+**Input** (`complex_predicates_example.html`):
+```html
+<nav role="navigation"><ul><li><a href="/">Home</a></li><li><a href="/
+products">Products</a></li></ul></nav><main><h1>Product Catalog</h1>
+<table><colgroup><col class="name"><col class="price"><col class="currency">
+<col class="stock"></colgroup><thead><tr><th>Product</th><th>Price</th><th>
+Currency</th><th>Stock</th></tr></thead><tbody><tr><td>Widget A</td><td>
+19.99</td><td>USD</td><td>150</td></tr><tr><td>Widget B</td><td>29.99</td>
+<td>EUR</td><td>75</td></tr></tbody></table></main><aside role="
+complementary"><h2>Special Offers</h2><p>Check out our latest deals!</p>
+<table><thead><tr><th class="product">Item</th><th class="discount">
+Discount</th><th class="date">Valid Until</th></tr></thead><tbody><tr><td>
+Premium Widget</td><td>20%</td><td>2024-12-31</td></tr></tbody></table>
+</aside>
 ```
 
 **Output:**
 ```html
-<div class="container">
-  <p class="prose">Text content</p>
-  <pre class="code-block">preserved code</pre>
-</div>
+<!DOCTYPE html>
+<html>
+  <body>
+    <nav role="navigation">
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/
+products">Products</a></li>
+      </ul>
+    </nav>
+    <main>
+      <h1>Product Catalog</h1>
+      <table>
+        <colgroup>
+          <col class="name" />
+          <col class="price" />
+          <col class="currency" />
+          <col class="stock" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Price</th>
+            <th> Currency</th>
+            <th>Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Widget A</td>
+            <td> 19.99</td>
+            <td>USD</td>
+            <td>150</td>
+          </tr>
+          <tr>
+            <td>Widget B</td>
+            <td>29.99</td>
+            <td>EUR</td>
+            <td>75</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+    <aside role="
+complementary">
+      <h2>Special Offers</h2>
+      <p>Check out our latest deals!</p>
+      <table>
+        <thead>
+          <tr>
+            <th class="product">Item</th>
+            <th class="discount"> Discount</th>
+            <th class="date">Valid Until</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td> Premium Widget</td>
+            <td>20%</td>
+            <td>2024-12-31</td>
+          </tr>
+        </tbody>
+      </table>
+    </aside>
+  </body>
+</html>
 ```
 
 ### Attribute Value Formatting
@@ -380,44 +613,133 @@ def css_multiline_formatter(value, formatter, level):
     formatted_props = [f"{property_indent}{prop}" for prop in properties]
     return '\n' + ';\n'.join(formatted_props) + '\n' + base_indent
 
-# Format HTML with complex CSS styles
-formatter = Formatter(
-    block_when=html_block_elements(),
-    reformat_attribute_when={
-        # Only format styles with 4+ CSS properties
-        html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
-    }
-)
+def format_attribute_formatting_example(input_file):
+    """Format HTML with complex CSS styles using Html5Formatter.
 
-# Format HTML file with attribute formatting
-formatted = formatter.format_file('attribute_formatting_example.html')
-print(formatted)
+    This example demonstrates attribute value formatting where CSS styles
+    with 4 or more properties are formatted across multiple lines for
+    better readability.
+
+    Args:
+        input_file: Path to the HTML file to format
+
+    Returns:
+        str: The formatted HTML output
+    """
+    from pathlib import Path
+    from markuplift import Html5Formatter
+    from markuplift.predicates import html_block_elements
+
+    # Format HTML with complex CSS styles using Html5Formatter
+    formatter = Html5Formatter(
+        reformat_attribute_when={
+            # Only format styles with 4+ CSS properties
+            html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
+        }
+    )
+
+    # Format HTML file with attribute formatting
+    formatted = formatter.format_file(input_file)
+    return formatted
 ```
 
 **Output:**
 ```html
-<div>
-  <p style="color: red;">Simple (1 property)</p>
-  <p style="color: blue; background: white;">Medium (2 properties)</p>
-  <p style="
-    color: green;
-    background: black;
-    margin: 10px;
-    padding: 5px
-  ">Complex (4 properties)</p>
-</div>
+<!DOCTYPE html>
+<html>
+  <body>
+    <div>
+      <p style="color: red;">Simple (1 property)</p>
+      <p style="color: blue; background: white;">Medium (2 properties)</p>
+      <p style="
+        color: green;
+        background: black;
+        margin: 10px;
+        padding: 5px
+      ">Complex (4 properties)</p>
+    </div>
+  </body>
+</html>
 ```
+
+### XML Document Formatting
+
+For XML documents, use `XmlFormatter` which provides XML-strict parsing and escaping:
+
+```python
+def format_xml_document_example(input_file: Path):
+    """Format XML document with custom structure using XmlFormatter.
+
+    This demonstrates XmlFormatter with XML-strict parsing and escaping,
+    showing how to define custom XML element classifications.
+
+    Args:
+        input_file: Path to the XML file to format
+
+    Returns:
+        str: The formatted XML output
+    """
+    # Define custom XML structure with ElementType enum
+    formatter = XmlFormatter(
+        block_when=tag_in("document", "section", "paragraph", "metadata"),
+        inline_when=tag_in("emphasis", "code", "link"),
+        preserve_whitespace_when=tag_in("code-block", "verbatim"),
+        default_type=ElementType.BLOCK,  # Use enum for type safety
+        indent_size=2
+    )
+
+    # Format the XML document
+    formatted = formatter.format_file(input_file)
+    return formatted
+```
+
+**Input** (`xml_document_example.xml`):
+```xml
+<document><metadata><title>API Reference</title><version>2.1</version></metadata>
+<section><paragraph>This API provides <emphasis>robust</emphasis> data
+processing with <code>xml.parse()</code> methods.</paragraph>
+<code-block>
+import xml.etree.ElementTree as ET
+root = ET.parse('data.xml').getroot()
+</code-block></section></document>
+```
+
+**Output:**
+```xml
+<document>
+  <metadata>
+    <title>API Reference</title>
+    <version>2.1</version>
+  </metadata>
+  <section>
+    <paragraph>This API provides <emphasis>robust</emphasis> data
+processing with <code>xml.parse()</code> methods.</paragraph>
+    <code-block>
+import xml.etree.ElementTree as ET
+root = ET.parse('data.xml').getroot()
+</code-block>
+  </section>
+</document>
+```
+
+## Choosing the Right Formatter
+
+- **`Html5Formatter`** - For HTML documents. Includes sensible HTML5 defaults for block/inline elements, HTML5-compliant parsing, and HTML-friendly escaping
+- **`XmlFormatter`** - For XML documents. Provides strict XML compliance, XML-compliant escaping, and no assumptions about element types
+- **`Formatter`** - For advanced use cases requiring full control over parsing and escaping strategies
 
 ## Use Cases
 
 Markuplift is perfect for:
 
-- **Web development** - Format HTML templates and components with consistent styling
-- **Data processing** - Clean up XML data feeds and configuration files
-- **Documentation** - Standardize markup in documentation systems
-- **Code generation** - Format dynamically generated XML/HTML with precise control
-- **CI/CD pipelines** - Ensure consistent markup formatting across your codebase
-- **Diffing and version control** - Improve readability of markup changes in version control systems
+- **Web development** - Format HTML templates and components with `Html5Formatter` for consistent styling and HTML5 compliance
+- **API documentation** - Use `XmlFormatter` for XML API specs and configuration files with strict validation
+- **Content management** - Standardize markup in CMS systems with custom element classification rules
+- **Code generation** - Format dynamically generated XML/HTML with precise control using `ElementType` enums
+- **CI/CD pipelines** - Ensure consistent markup formatting across your codebase with CLI integration
+- **Legacy system migration** - Clean up and standardize markup from legacy systems with flexible predicate rules
+- **Static site generation** - Format template files and generated content with specialized formatters
+- **Diffing and version control** - Improve readability of markup changes with consistent formatting
 
 ## License
 

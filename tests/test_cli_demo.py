@@ -67,13 +67,13 @@ class TestCLIDemo:
         add_output(messy_article.read_text().strip())
         add_output("")
 
-        add_output("✨ Format with custom block elements:")
-        add_output('$ markuplift format messy_article.html --block "//div | //section | //article"')
-        add_output("------------------------------------------------------------------------------")
+        add_output("✨ Format HTML with semantic block elements:")
+        add_output('$ markuplift format-html messy_article.html --block "//div | //section | //article"')
+        add_output("--------------------------------------------------------------------------------")
 
-        # Run actual CLI command with block elements
+        # Run actual CLI command with HTML5 formatter and block elements
         result = subprocess.run(
-            ["uv", "run", "markuplift", "format", str(messy_article), "--block", "//div | //section | //article"],
+            ["uv", "run", "markuplift", "format-html", str(messy_article), "--block", "//div | //section | //article"],
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent.parent

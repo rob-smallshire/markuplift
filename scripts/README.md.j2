@@ -16,11 +16,59 @@ Markuplift provides flexible, configurable formatting of XML and HTML documents.
 
 ## Key Features
 
+- **Specialized formatters** - `Html5Formatter` for HTML with HTML5 defaults, `XmlFormatter` for strict XML compliance
+- **Type-safe configuration** - Use `ElementType` enum for better type safety and IDE support
 - **Configurable element classification** - Define block/inline elements using XPath expressions or Python predicates
 - **Flexible whitespace control** - Normalize, preserve, or strip whitespace on a per-element basis
 - **External formatter integration** - Pipe element text content through external tools (e.g., js-beautify, prettier)
 - **Comprehensive format options** - Control indentation, attribute wrapping, self-closing tags, and more
 - **CLI and Python API** - Use from command line or integrate into your Python applications
+
+## Understanding Block vs Inline Elements
+
+> **Important:** Markuplift's "block" and "inline" concepts are about **formatting and whitespace handling**, in the source, not CSS layout or browser rendering. These classifications determine how Markuplift adds newlines and indentation around elements.
+
+### Block Elements
+**Block elements** get their own lines with proper indentation. Typical examples include structural elements like `<p>`, `<div>`, `<ul>`, `<li>`, `<h1>`, etc.
+
+### Inline Elements
+**Inline elements** flow within text content without adding line breaks. Typical examples include text formatting elements like `<em>`, `<strong>`, `<code>`, `<a>`, etc.
+
+### Example: Why This Matters
+
+**Input (messy):**
+```html
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p><ul><li>First item with <code>inline code</code></li><li>Second item</li></ul>
+```
+
+**With proper block/inline classification:**
+```html
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p>
+<ul>
+  <li>First item with <code>inline code</code></li>
+  <li>Second item</li>
+</ul>
+```
+
+Notice how:
+- **Block elements** (`<p>`, `<ul>`, `<li>`) get their own lines and indentation
+- **Inline elements** (`<em>`, `<strong>`, `<code>`) stay within the text flow
+- Whitespace is added **around** elements, not **within** their text content
+
+**What would happen with wrong classification:**
+```html
+<!-- If <em> and <strong> were treated as block: -->
+<p>This paragraph contains
+  <em>emphasized text</em>
+   and
+  <strong>bold text</strong>
+.</p>
+<!-- Breaks the text flow! -->
+
+<!-- If <ul> and <li> were treated as inline: -->
+<p>This paragraph contains <em>emphasized text</em> and <strong>bold text</strong>.</p><ul><li>First item with <code>inline code</code></li><li>Second item</li></ul>
+<!-- Poor readability! -->
+```
 
 ## Quick Start
 
@@ -49,25 +97,10 @@ uv sync --all-extras
 
 ### Python API Example
 
-Here's how to format HTML with whitespace preservation in `<code>` and `<pre>` elements:
+Here's how to format HTML with proper block/inline classification and whitespace preservation in `<code>` and `<pre>` elements:
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, tag_in
-
-# Create formatter with whitespace handling
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=tag_in("pre", "code"),
-    indent_size=2
-)
-
-# Messy input HTML
-messy_html = """{{ documentation_input }}"""
-
-formatted = formatter.format_str(messy_html)
-print(formatted)
+{{ python_api_basic_source }}
 ```
 
 **Output:**
@@ -85,20 +118,7 @@ Here's Markuplift formatting a complex article structure with mixed content:
 ```
 
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
-
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=tag_in("pre", "code"),
-    normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
-    indent_size=2
-)
-
-# Format real-world messy HTML directly from file
-formatted = formatter.format_file('article_example.html')
-print(formatted)
+{{ real_world_article_source }}
 ```
 
 **Output:**
@@ -106,36 +126,27 @@ print(formatted)
 {{ article_output }}
 ```
 
-### Custom CSS Class Predicates
+### Parameterized Custom Predicates
 
-You can create custom predicates for advanced element matching:
+You can create predicates that accept parameters, making them reusable for different situations. Here are examples that show how to customize formatting based on programming languages and CSS classes:
 
 ```python
-{{ has_css_class_source }}
+{{ code_in_documentation_sections_source }}
 ```
 
 **Usage:**
 ```python
-from markuplift import Formatter
-from markuplift.predicates import html_block_elements, html_inline_elements, any_of
+{{ complex_predicates_usage_source }}
+```
 
-formatter = Formatter(
-    block_when=html_block_elements(),
-    inline_when=html_inline_elements(),
-    preserve_whitespace_when=has_css_class("code-block"),
-    normalize_whitespace_when=any_of(has_css_class("prose"), html_inline_elements()),
-    indent_size=2
-)
-
-# Example HTML with CSS classes
-html = """{{ css_class_input }}"""
-formatted = formatter.format_str(html)
-print(formatted)
+**Input** (`complex_predicates_example.html`):
+```html
+{{ complex_predicates_input }}
 ```
 
 **Output:**
 ```html
-{{ css_class_output }}
+{{ complex_predicates_output }}
 ```
 
 ### Attribute Value Formatting
@@ -152,18 +163,7 @@ Markuplift can format complex attribute values like CSS styles:
 
 {{ css_multiline_formatter_source }}
 
-# Format HTML with complex CSS styles
-formatter = Formatter(
-    block_when=html_block_elements(),
-    reformat_attribute_when={
-        # Only format styles with 4+ CSS properties
-        html_block_elements().with_attribute("style", lambda v: num_css_properties(v) >= 4): css_multiline_formatter
-    }
-)
-
-# Format HTML file with attribute formatting
-formatted = formatter.format_file('attribute_formatting_example.html')
-print(formatted)
+{{ attribute_formatting_source }}
 ```
 
 **Output:**
@@ -171,16 +171,42 @@ print(formatted)
 {{ attribute_formatting_output }}
 ```
 
+### XML Document Formatting
+
+For XML documents, use `XmlFormatter` which provides XML-strict parsing and escaping:
+
+```python
+{{ xml_document_formatting_source }}
+```
+
+**Input** (`xml_document_example.xml`):
+```xml
+{{ xml_document_input }}
+```
+
+**Output:**
+```xml
+{{ xml_document_output }}
+```
+
+## Choosing the Right Formatter
+
+- **`Html5Formatter`** - For HTML documents. Includes sensible HTML5 defaults for block/inline elements, HTML5-compliant parsing, and HTML-friendly escaping
+- **`XmlFormatter`** - For XML documents. Provides strict XML compliance, XML-compliant escaping, and no assumptions about element types
+- **`Formatter`** - For advanced use cases requiring full control over parsing and escaping strategies
+
 ## Use Cases
 
 Markuplift is perfect for:
 
-- **Web development** - Format HTML templates and components with consistent styling
-- **Data processing** - Clean up XML data feeds and configuration files
-- **Documentation** - Standardize markup in documentation systems
-- **Code generation** - Format dynamically generated XML/HTML with precise control
-- **CI/CD pipelines** - Ensure consistent markup formatting across your codebase
-- **Diffing and version control** - Improve readability of markup changes in version control systems
+- **Web development** - Format HTML templates and components with `Html5Formatter` for consistent styling and HTML5 compliance
+- **API documentation** - Use `XmlFormatter` for XML API specs and configuration files with strict validation
+- **Content management** - Standardize markup in CMS systems with custom element classification rules
+- **Code generation** - Format dynamically generated XML/HTML with precise control using `ElementType` enums
+- **CI/CD pipelines** - Ensure consistent markup formatting across your codebase with CLI integration
+- **Legacy system migration** - Clean up and standardize markup from legacy systems with flexible predicate rules
+- **Static site generation** - Format template files and generated content with specialized formatters
+- **Diffing and version control** - Improve readability of markup changes with consistent formatting
 
 ## License
 
