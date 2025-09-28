@@ -12,7 +12,7 @@ from markuplift.parsing import HtmlParsingStrategy
 from markuplift.doctype import Html5DoctypeStrategy
 from markuplift.predicates import html_block_elements, html_inline_elements, html_whitespace_significant_elements, not_matching, css_block_elements, all_of
 from markuplift.attribute_formatting import Html5AttributeStrategy
-from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
+from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
 
 
 class Html5Formatter:
@@ -26,7 +26,7 @@ class Html5Formatter:
     - Defaults to html_block_elements() and html_inline_elements() for sensible HTML5 formatting
     - Defaults to html_whitespace_significant_elements() for preserve_whitespace_when
     - Defaults to not_matching(html_whitespace_significant_elements()) for normalize_whitespace_when
-    - Defaults to css_block_elements() excluding whitespace-significant elements for strip_whitespace_when
+    - Defaults to html_block_elements() excluding whitespace-significant elements for strip_whitespace_when
 
     Element classification can be overridden by providing custom predicate factories,
     but defaults to standard HTML5 element classifications for immediate usability.
@@ -57,7 +57,7 @@ class Html5Formatter:
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
-        default_type: str | None = None,
+        default_type: ElementType | None = None,
     ):
         """Initialize Html5Formatter with HTML5-optimized strategies.
 
@@ -69,14 +69,14 @@ class Html5Formatter:
             normalize_whitespace_when: Predicate factory for whitespace normalization predicates.
                                      Defaults to not_matching(html_whitespace_significant_elements()) if not provided.
             strip_whitespace_when: Predicate factory for whitespace stripping predicates.
-                                 Defaults to css_block_elements() excluding whitespace-significant elements if not provided.
+                                 Defaults to html_block_elements() excluding whitespace-significant elements if not provided.
             preserve_whitespace_when: Predicate factory for whitespace preservation predicates.
                                     Defaults to html_whitespace_significant_elements() if not provided.
             wrap_attributes_when: Predicate factory for attribute wrapping predicates.
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
-            default_type: Default type for unclassified elements ("block" or "inline").
+            default_type: Default type for unclassified elements (ElementType enum).
 
         Note:
             This class automatically configures HTML5-friendly parsing and escaping strategies.
@@ -95,7 +95,7 @@ class Html5Formatter:
             preserve_whitespace_when = html_whitespace_significant_elements()
         if strip_whitespace_when is None:
             strip_whitespace_when = all_of(
-                css_block_elements(),
+                html_block_elements(),
                 not_matching(html_whitespace_significant_elements())
             )
 

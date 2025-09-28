@@ -15,10 +15,26 @@ Type Aliases:
 
 from typing import Callable, Union, TYPE_CHECKING
 from re import Pattern
+from enum import Enum
 from lxml import etree
 
 if TYPE_CHECKING:
     from markuplift.document_formatter import DocumentFormatter
+
+
+class ElementType(Enum):
+    """Enumeration for element types used in document formatting.
+
+    This enum defines the valid element types that can be used as the default_type
+    parameter in formatters and for element classification during formatting.
+
+    Values:
+        BLOCK: Block-level elements that introduce line breaks
+        INLINE: Inline elements that flow with text content
+    """
+    BLOCK = "block"
+    INLINE = "inline"
+
 
 # Type alias for element predicate functions
 # The function takes an XML element (etree._Element) and returns a boolean.

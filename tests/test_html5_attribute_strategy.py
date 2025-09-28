@@ -28,7 +28,7 @@ def test_html5_boolean_attributes_are_minimized():
         <div>
           <input checked disabled readonly required />
           <video autoplay controls loop muted />
-          <details open> <summary>Details</summary> Content </details>
+          <details open><summary>Details</summary> Content</details>
         </div>
     """) + "\n"
 

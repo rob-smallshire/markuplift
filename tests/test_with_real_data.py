@@ -1,8 +1,8 @@
 import jsbeautifier
 from approvaltests import verify
 
-from markuplift import DocumentFormatter
-from markuplift.annotation import INLINE_TYPE_ANNOTATION
+from markuplift import Html5Formatter, XmlFormatter, ElementType
+from markuplift.predicates import html_block_elements, any_of, all_of, tag_in, attribute_matches, attribute_count_min
 
 
 def test_generated_html(test_data_path):
@@ -10,21 +10,33 @@ def test_generated_html(test_data_path):
     with open(html_file) as f:
         original = f.read()
 
-    def is_block(e):
-        return (
-            (e.tag in {"html", "head", "meta", "link", "body", "div", "article", "section", "header", "p", "ul", "li", "script", "h1", "h2", "h3", "title"})
-            or
-            (e.tag in {"img"} and (e.getparent() is not None) and is_block(e.getparent()))
-        )
+    # Custom predicate factory for img elements that are block when parent is block
+    def img_block_when_parent_block():
+        def create_document_predicate(root):
+            # Get the standard HTML block elements predicate
+            html_block_pred = html_block_elements()(root)
 
-    formatter = DocumentFormatter(
-        block_predicate=is_block,
-        strip_whitespace_predicate=lambda e: e.tag in {"title", "h1", "h2", "h3", "p", "li"},
-        preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
-        wrap_attributes_predicate=lambda e: e.tag in {"link"} and sum(1 for k in e.attrib if not k.startswith("_")) >= 3,
-        text_content_formatters={
-            lambda e: e.tag == "title": lambda text, formatter, level: (text or "").strip(),
-            lambda e: e.tag == "script": beautify_js
+            def element_predicate(element):
+                if element.tag == "img":
+                    parent = element.getparent()
+                    return parent is not None and html_block_pred(parent)
+                return False
+            return element_predicate
+        return create_document_predicate
+
+    # Custom block predicate that extends html_block_elements with img logic
+    custom_block_elements = any_of(
+        html_block_elements(),
+        img_block_when_parent_block()
+    )
+
+    formatter = Html5Formatter(
+        block_when=custom_block_elements,
+        strip_whitespace_when=tag_in("title", "h1", "h2", "h3", "p", "li"),
+        preserve_whitespace_when=tag_in("style", "pre"),
+        wrap_attributes_when=all_of(tag_in("link"), attribute_count_min(3)),
+        reformat_text_when={
+            tag_in("script"): beautify_js
         }
     )
     actual = formatter.format_str(original)
@@ -34,22 +46,23 @@ def test_generated_html(test_data_path):
 
 def test_xml_doc(test_data_path):
     xml_file = test_data_path("messy_xml_chunked_content.xml")
-    with open(xml_file) as f:
-        original = f.read()
 
-    formatter = DocumentFormatter(
-        block_predicate=lambda e: e.tag in {"chunked-content", "titles", "title", "chunks", "chunk", "heading", "paragraphs", "p"},
-        strip_whitespace_predicate=lambda e: e.tag in {"supertitle", "title", "subtitle"},
-        preserve_whitespace_predicate=lambda e: e.tag in {"style", "pre"},
-        wrap_attributes_predicate=lambda e: len(e.attrib) >= 2,
-        default_type=INLINE_TYPE_ANNOTATION,
+    # Define custom XML block elements for this document structure
+    xml_block_elements = tag_in("chunked-content", "titles", "title", "chunks", "chunk", "heading", "paragraphs", "p")
+
+    formatter = XmlFormatter(
+        block_when=xml_block_elements,
+        strip_whitespace_when=tag_in("supertitle", "title", "subtitle"),
+        preserve_whitespace_when=tag_in("style", "pre"),
+        wrap_attributes_when=attribute_count_min(2),
+        default_type=ElementType.INLINE,  # Using ElementType enum
     )
-    actual = formatter.format_str(original)
+    actual = formatter.format_file(xml_file)
     verify(actual)
 
 
 
-def beautify_js(text: str, formatter: DocumentFormatter, physical_indent_level: int) -> str:
+def beautify_js(text: str, formatter, physical_indent_level: int) -> str:
 
     text = text or ""
     if text.strip() == "":

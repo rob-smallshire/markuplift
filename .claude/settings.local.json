@@ -16,7 +16,8 @@
       "Read(//private/tmp/claude/**)",
       "Bash(uv sync:*)",
       "WebFetch(domain:html.spec.whatwg.org)",
-      "WebFetch(domain:www.w3schools.com)"
+      "WebFetch(domain:www.w3schools.com)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

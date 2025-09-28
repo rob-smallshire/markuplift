@@ -13,7 +13,7 @@ from io import BytesIO
 from typing import Optional
 
 # Import type aliases
-from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate
+from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate, ElementType
 # Import standard predicates
 from markuplift.predicates import never_match
 # Import utilities
@@ -80,7 +80,7 @@ class DocumentFormatter:
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
-        default_type: str | None = None,
+        default_type: ElementType | None = None,
     ):
         """Initialize a DocumentFormatter with concrete predicate functions.
 
@@ -97,7 +97,7 @@ class DocumentFormatter:
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
-            default_type: Default type for unclassified elements ("block" or "inline").
+            default_type: Default type for unclassified elements (ElementType enum).
         """
         if block_predicate is None:
             block_predicate = never_match
@@ -137,6 +137,8 @@ class DocumentFormatter:
 
         if indent_size < 0:
             raise ValueError(f"indent_size {indent_size} is less than 0")
+
+        # Note: None is a valid value in BLOCK_TYPES and means "let context decide"
 
         if default_type not in BLOCK_TYPES:
             raise ValueError(f"default_type {default_type} is not one of '{', '.join(BLOCK_TYPES)}'")

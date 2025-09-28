@@ -22,8 +22,8 @@ from enum import Enum
 
 from lxml import etree
 
-# Import ElementPredicate type alias
-from markuplift.types import ElementPredicate
+# Import ElementPredicate type alias and ElementType
+from markuplift.types import ElementPredicate, ElementType
 
 from markuplift.utilities import (
     is_in_mixed_content, parent_is_annotated_with, normalize_ws,
@@ -46,11 +46,9 @@ STRICT_WHITESPACE_ANNOTATION = "strict" # No transformations at all
 # contextually, e.g. based on whether the element is block or inline.
 
 TYPE_ANNOTATION_KEY = "type"
-BLOCK_TYPE_ANNOTATION = "block"
-INLINE_TYPE_ANNOTATION = "inline"
 # If there is no value associated with TYPE_ANNOTATION_KEY , the formatter can take action
 # contextually, e.g. based on whether the element is in mixed content or not.
-BLOCK_TYPES = {None, BLOCK_TYPE_ANNOTATION, INLINE_TYPE_ANNOTATION}
+BLOCK_TYPES = {None, ElementType.BLOCK, ElementType.INLINE}
 
 class Annotations:
 
@@ -81,7 +79,7 @@ def annotate_explicit_block_elements(
     annotations: Annotations,
     block_predicate: ElementPredicate,
 ):
-    annotate_matches(root, annotations, block_predicate, TYPE_ANNOTATION_KEY, BLOCK_TYPE_ANNOTATION, conflict_mode=AnnotationConflictMode.RAISE)
+    annotate_matches(root, annotations, block_predicate, TYPE_ANNOTATION_KEY, ElementType.BLOCK, conflict_mode=AnnotationConflictMode.RAISE)
 
 
 def annotate_explicit_inline_elements(
@@ -89,14 +87,14 @@ def annotate_explicit_inline_elements(
     annotations: Annotations,
     inline_predicate: ElementPredicate,
 ):
-    annotate_matches(root, annotations, inline_predicate, TYPE_ANNOTATION_KEY, INLINE_TYPE_ANNOTATION, conflict_mode=AnnotationConflictMode.RAISE)
+    annotate_matches(root, annotations, inline_predicate, TYPE_ANNOTATION_KEY, ElementType.INLINE, conflict_mode=AnnotationConflictMode.RAISE)
 
 
 def annotate_elements_in_mixed_content_as_inline(
     root: etree._Element,
     annotations: Annotations,
 ):
-    annotate_matches(root, annotations, is_in_mixed_content, TYPE_ANNOTATION_KEY, INLINE_TYPE_ANNOTATION, conflict_mode=AnnotationConflictMode.SKIP)
+    annotate_matches(root, annotations, is_in_mixed_content, TYPE_ANNOTATION_KEY, ElementType.INLINE, conflict_mode=AnnotationConflictMode.SKIP)
 
 
 def annotate_inline_descendants_as_inline(
@@ -107,9 +105,9 @@ def annotate_inline_descendants_as_inline(
     annotate_matches(
         root,
         annotations,
-        partial(parent_is_annotated_with, annotations=annotations, annotation_key=TYPE_ANNOTATION_KEY, annotation_value=INLINE_TYPE_ANNOTATION),
+        partial(parent_is_annotated_with, annotations=annotations, annotation_key=TYPE_ANNOTATION_KEY, annotation_value=ElementType.INLINE),
         TYPE_ANNOTATION_KEY,
-        INLINE_TYPE_ANNOTATION,
+        ElementType.INLINE,
         conflict_mode=AnnotationConflictMode.SKIP,
     )
 
@@ -126,16 +124,16 @@ def annotate_unmixed_block_descendants_as_block(
         root,
         annotations,
         lambda e: (
-            parent_is_annotated_with(e, annotations, TYPE_ANNOTATION_KEY, BLOCK_TYPE_ANNOTATION)
+            parent_is_annotated_with(e, annotations, TYPE_ANNOTATION_KEY, ElementType.BLOCK)
             and
             (not is_in_mixed_content(e))
             and not any(
-                annotations.annotation(sibling, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+                annotations.annotation(sibling, TYPE_ANNOTATION_KEY) == ElementType.INLINE
                 for sibling in siblings(e)
             )
         ),
         TYPE_ANNOTATION_KEY,
-        BLOCK_TYPE_ANNOTATION,
+        ElementType.BLOCK,
         conflict_mode=AnnotationConflictMode.SKIP,
     )
 
@@ -233,7 +231,7 @@ def annotate_explicit_stripped_elements(
 def annotate_untyped_elements_as_default(
     root: etree._Element,
     annotations: Annotations,
-    default_type: str,
+    default_type: ElementType | None,
 ):
     if default_type not in BLOCK_TYPES:
         raise ValueError(f"default_type must be one of {BLOCK_TYPES}")
@@ -271,9 +269,9 @@ def annotate_physical_level(
             parent_level = annotations.annotation(parent, PHYSICAL_LEVEL_ANNOTATION_KEY)
             if parent_level is not None:
                 parent_type = annotations.annotation(parent, TYPE_ANNOTATION_KEY)
-                if parent_type == INLINE_TYPE_ANNOTATION:
+                if parent_type == ElementType.INLINE:
                     physical_level = parent_level
-                elif parent_type == BLOCK_TYPE_ANNOTATION:
+                elif parent_type == ElementType.BLOCK:
                     physical_level = parent_level + 1
                 else:
                     assert parent_type is None
@@ -306,7 +304,7 @@ def annotate_text_transforms(
                 text_transforms.append(normalize_ws)
                 if whitespace == STRIP_WHITESPACE_ANNOTATION:
                     text_transforms.append(str.lstrip)
-            if first_child_type == BLOCK_TYPE_ANNOTATION:
+            if first_child_type == ElementType.BLOCK:
                 child_physical_level = annotations.annotation(
                     first_child, PHYSICAL_LEVEL_ANNOTATION_KEY, 0
                 )
@@ -365,14 +363,14 @@ def annotate_tail_transforms(root, annotations, one_indent):
                 if next_sibling is None:
                     if parent_whitespace == STRIP_WHITESPACE_ANNOTATION:
                         tail_transforms.append(str.rstrip)
-            if elem_type == BLOCK_TYPE_ANNOTATION:
-                if next_sibling_type in {BLOCK_TYPE_ANNOTATION}:
+            if elem_type == ElementType.BLOCK:
+                if next_sibling_type in {ElementType.BLOCK}:
                     text_transform = partial(
                         transform_text_following_block, physical_level=parent_physical_level,
                         one_indent=one_indent
                     )
                     tail_transforms.append(text_transform)
-                elif next_sibling_type == INLINE_TYPE_ANNOTATION:
+                elif next_sibling_type == ElementType.INLINE:
                     text_transform = partial(
                         transform_text_following_block_preceding_inline, physical_level=parent_physical_level,
                     )
@@ -391,7 +389,7 @@ def annotate_tail_transforms(root, annotations, one_indent):
                         tail_transforms.append(lambda s: "")
 
             if next_sibling is not None:
-                if next_sibling_type == BLOCK_TYPE_ANNOTATION:
+                if next_sibling_type == ElementType.BLOCK:
                     sibling_physical_level = annotations.annotation(
                         next_sibling, PHYSICAL_LEVEL_ANNOTATION_KEY, 0
                     )

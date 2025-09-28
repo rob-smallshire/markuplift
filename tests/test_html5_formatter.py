@@ -4,7 +4,7 @@ This ensures that the Html5Formatter works correctly and provides
 HTML5-friendly parsing and escaping behavior.
 """
 
-from markuplift import Html5Formatter, Formatter
+from markuplift import Html5Formatter, Formatter, ElementType
 from markuplift.predicates import html_block_elements, tag_in
 from markuplift.escaping import HtmlEscapingStrategy
 from markuplift.parsing import HtmlParsingStrategy
@@ -173,7 +173,7 @@ class TestHtml5Formatter:
         formatter = Html5Formatter(
             block_when=tag_in('div'),
             inline_when=tag_in('strong', 'p'),  # Make p explicitly inline
-            default_type='inline'  # Default unclassified elements to inline
+            default_type=ElementType.INLINE  # Default unclassified elements to inline
         )
 
         html = '<div><p>Content</p><strong>Inline</strong></div>'

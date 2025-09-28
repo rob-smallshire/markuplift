@@ -11,7 +11,7 @@ from markuplift.escaping import XmlEscapingStrategy
 from markuplift.parsing import XmlParsingStrategy
 from markuplift.doctype import XmlDoctypeStrategy
 from markuplift.attribute_formatting import XmlAttributeStrategy
-from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
+from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
 
 
 class XmlFormatter:
@@ -50,7 +50,7 @@ class XmlFormatter:
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
-        default_type: str | None = None,
+        default_type: ElementType | None = None,
     ):
         """Initialize XmlFormatter with XML-strict strategies.
 
@@ -64,7 +64,7 @@ class XmlFormatter:
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
-            default_type: Default type for unclassified elements ("block" or "inline").
+            default_type: Default type for unclassified elements (ElementType enum).
 
         Note:
             This class automatically configures XML-strict parsing and escaping strategies.

@@ -19,7 +19,7 @@ from markuplift.annotation import (
 )
 
 # Import type aliases
-from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
+from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
 # Import standard predicates
 from markuplift.predicates import never_matches
 # Import escaping strategies
@@ -74,7 +74,7 @@ class Formatter:
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
-        default_type: str | None = None,
+        default_type: ElementType | None = None,
     ):
         """Initialize a Formatter with predicate factory functions and other configuration.
 
@@ -92,7 +92,7 @@ class Formatter:
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
-            default_type: Default type for unclassified elements ("block" or "inline").
+            default_type: Default type for unclassified elements (ElementType enum).
         """
         self._block_predicate_factory = block_when or never_matches
         self._inline_predicate_factory = inline_when or never_matches
@@ -107,7 +107,10 @@ class Formatter:
         self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
         self._attribute_strategy = attribute_strategy or NullAttributeStrategy()
         self._indent_size = indent_size or 2
-        self._default_type = default_type or "block"
+        if default_type is None:
+            self._default_type = ElementType.BLOCK
+        else:
+            self._default_type = default_type
 
         # Validate parameters
         if self._indent_size < 0:
@@ -122,7 +125,7 @@ class Formatter:
         return self._indent_size
 
     @property
-    def default_type(self) -> str:
+    def default_type(self) -> ElementType:
         """The default type for unclassified elements."""
         return self._default_type
 

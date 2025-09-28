@@ -4,6 +4,7 @@ from io import StringIO
 from lxml import etree
 
 from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_explicit_block_elements, AnnotationConflictError, AnnotationConflictMode
+from markuplift.types import ElementType
 from markuplift.utilities import tagname, siblings
 from markuplift.predicates import never_match
 
@@ -19,7 +20,7 @@ def test_root_matches_block_annotation():
     tree = etree.parse(StringIO("<root/>"))
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: e.tag == "root")
-    assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_child_matches_block_annotation():
@@ -32,7 +33,7 @@ def test_child_matches_block_annotation():
     annotate_explicit_block_elements(tree, annotations, lambda e: e.tag == "child")
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
     child = tree.getroot().find("child")
-    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_multiple_children_match_block_annotation():
@@ -47,8 +48,8 @@ def test_multiple_children_match_block_annotation():
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
     child1 = tree.getroot().find("child1")
     child2 = tree.getroot().find("child2")
-    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == "block"
-    assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
+    assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_some_children_match_block_annotation():
@@ -65,9 +66,9 @@ def test_some_children_match_block_annotation():
     child1 = tree.getroot().find("child1")
     child2 = tree.getroot().find("child2")
     child3 = tree.getroot().find("child3")
-    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) is None
-    assert annotations.annotation(child3, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(child3, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_comment_matches_block_annotation():
@@ -81,7 +82,7 @@ def test_comment_matches_block_annotation():
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
     comment = tree.getroot().getchildren()[0]
     assert isinstance(comment, etree._Comment)
-    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_processing_instruction_matches_block_annotation():
@@ -95,7 +96,7 @@ def test_processing_instruction_matches_block_annotation():
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
     pi = tree.getroot().getchildren()[0]
     assert isinstance(pi, etree._ProcessingInstruction)
-    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == "block"
+    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
 
 
 def test_complex_block_annotation_predicate_processing_instruction_as_sibling_of_div_matches():

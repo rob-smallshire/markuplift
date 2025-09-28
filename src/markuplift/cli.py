@@ -15,6 +15,7 @@ from lxml import etree
 
 from markuplift.formatter import Formatter
 from markuplift.predicates import matches_xpath, PredicateError
+from markuplift.types import ElementType
 
 
 
@@ -157,7 +158,7 @@ def format(
             wrap_attributes_when=combine_factories(wrap_attributes),
             reformat_text_when=text_formatter_factories,
             indent_size=indent_size,
-            default_type=default_type,
+            default_type=ElementType.BLOCK if default_type == "block" else ElementType.INLINE,
         )
 
         # Format the content - Formatter handles parsing and optimization internally

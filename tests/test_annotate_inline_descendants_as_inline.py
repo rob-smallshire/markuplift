@@ -1,13 +1,14 @@
 from io import StringIO
 from lxml import etree
 from markuplift.annotation import (
-    TYPE_ANNOTATION_KEY, BLOCK_TYPE_ANNOTATION, INLINE_TYPE_ANNOTATION,
+    TYPE_ANNOTATION_KEY,
     Annotations,
     annotate_explicit_block_elements,
     annotate_explicit_inline_elements,
     annotate_elements_in_mixed_content_as_inline,
     annotate_inline_descendants_as_inline,
 )
+from markuplift.types import ElementType
 
 def parse(xml):
     return etree.parse(StringIO(xml))
@@ -29,9 +30,9 @@ def test_descendants_of_inline_element_are_annotated_inline():
     child = inline.find("child")
     comment = inline.getchildren()[1]
     pi = inline.getchildren()[2]
-    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
 def test_descendants_already_block_remain_block():
     tree = parse("""
@@ -51,10 +52,10 @@ def test_descendants_already_block_remain_block():
     comment = inline.getchildren()[1]
     annotate_explicit_block_elements(tree, annotations, lambda e: e is child or e is comment)
     annotate_inline_descendants_as_inline(tree, annotations)
-    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
-    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
+    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
+    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     pi = inline.getchildren()[2]
-    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
 def test_mixed_content_descendants():
     tree = parse("""
@@ -72,9 +73,9 @@ def test_mixed_content_descendants():
     child = inline.find("child")
     comment = inline.getchildren()[1]
     pi = inline.getchildren()[2]
-    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+    assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
 def test_deeply_nested_inline_with_block_descendant():
     tree = parse("""
@@ -93,12 +94,12 @@ def test_deeply_nested_inline_with_block_descendant():
     block = tree.getroot().find("inline").find("level1").find("level2").find("block")
     annotate_explicit_block_elements(tree, annotations, lambda e: e is block)
     annotate_inline_descendants_as_inline(tree, annotations)
-    assert annotations.annotation(block, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
+    assert annotations.annotation(block, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     # All ancestors should be inline
     level2 = tree.getroot().find("inline").find("level1").find("level2")
     level1 = tree.getroot().find("inline").find("level1")
-    assert annotations.annotation(level2, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(level1, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+    assert annotations.annotation(level2, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(level1, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
 def test_root_marked_inline_only_some_descendants_block():
     tree = parse("""
@@ -117,10 +118,10 @@ def test_root_marked_inline_only_some_descendants_block():
     annotate_inline_descendants_as_inline(tree, annotations)
     child1 = tree.getroot().find("child1")
     pi = tree.getroot().getchildren()[3]
-    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
-    assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
-    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
-    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == INLINE_TYPE_ANNOTATION
+    assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+    assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
+    assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
+    assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
 def test_block_prevents_inline_propagation_to_its_children():
     tree = parse("""
@@ -150,4 +151,4 @@ def test_block_prevents_inline_propagation_to_its_children():
     assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) is None
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) is None
     # Block itself remains block
-    assert annotations.annotation(block, TYPE_ANNOTATION_KEY) == BLOCK_TYPE_ANNOTATION
+    assert annotations.annotation(block, TYPE_ANNOTATION_KEY) == ElementType.BLOCK

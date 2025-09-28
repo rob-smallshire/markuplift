@@ -684,10 +684,14 @@ def has_child_elements() -> ElementPredicateFactory:
 # Domain-specific predicates
 @supports_attributes
 def html_block_elements() -> ElementPredicateFactory:
-    """Match common HTML block elements.
+    """Match HTML block elements including both CSS block elements and structural elements.
+
+    This predicate builds on css_block_elements() and adds HTML document structure
+    elements and semantic elements that should be treated as block-level for formatting,
+    even if they don't have CSS display: block by default.
 
     Returns:
-        An element predicate factory that matches common HTML block elements
+        An element predicate factory that matches HTML block elements
 
     Examples:
         Basic usage:
@@ -697,19 +701,25 @@ def html_block_elements() -> ElementPredicateFactory:
             html_block_elements().with_attribute("class", "container")
             html_block_elements().with_attribute("role", re.compile(r"main|banner"))
     """
-    BLOCK_ELEMENTS = {
-        "address", "article", "aside", "blockquote", "details", "dialog", "dd", "div",
-        "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2",
-        "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "li", "main", "nav", "ol",
-        "p", "pre", "section", "table", "tbody", "tfoot", "thead", "tr", "ul"
-    }
-
-    def create_document_predicate(root: etree._Element) -> ElementPredicate:
-        def element_predicate(element: etree._Element) -> bool:
-            return element.tag in BLOCK_ELEMENTS
-        return element_predicate
-
-    return create_document_predicate
+    return any_of(
+        css_block_elements(),
+        tag_in(
+            # Document structure elements
+            "html", "head", "body", "title",
+            # Metadata elements
+            "meta", "link",
+            # Scripting elements
+            "script",
+            # Table structure elements (missing from CSS block)
+            "tbody", "thead", "tr",
+            # Interactive elements
+            "details", "dialog",
+            # Grouping elements
+            "hgroup",
+            # Preserved content elements
+            "pre"
+        )
+    )
 
 
 @supports_attributes

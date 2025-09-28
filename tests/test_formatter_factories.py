@@ -4,7 +4,7 @@ import pytest
 
 from helpers.predicates import is_block_or_root, is_inline
 from markuplift.formatter import Formatter
-from markuplift.types import ElementPredicateFactory
+from markuplift.types import ElementPredicateFactory, ElementType
 
 
 def test_formatter_with_block_factory():
@@ -291,7 +291,7 @@ def test_formatter_with_custom_defaults():
 
     formatter = Formatter(
         block_when=block_factory,
-        default_type="inline",
+        default_type=ElementType.INLINE,
         indent_size=4
     )
     actual = formatter.format_str(example)

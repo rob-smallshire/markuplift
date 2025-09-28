@@ -31,11 +31,11 @@ from .types import (
     AttributePredicateFactory,
     ElementPredicate,
     ElementPredicateFactory,
+    ElementType,
     NameMatcher,
     ValueMatcher,
 )
-from .annotation import INLINE_TYPE_ANNOTATION as INLINE_TYPE
-from .annotation import BLOCK_TYPE_ANNOTATION as BLOCK_TYPE
+# Legacy constants removed - use ElementType.BLOCK and ElementType.INLINE instead
 from .predicates import (
     all_of,
     any_element,
@@ -85,11 +85,11 @@ __all__ = [
     "AttributeFormattingStrategy",
     "AttributePredicate",
     "AttributePredicateFactory",
-    "BLOCK_TYPE",
     "DocumentFormatter",
     "DoctypeStrategy",
     "ElementPredicate",
     "ElementPredicateFactory",
+    "ElementType",
     "Formatter",
     "has_attribute",
     "has_child_elements",
@@ -106,7 +106,6 @@ __all__ = [
     "Html5AttributeStrategy",
     "Html5DoctypeStrategy",
     "Html5Formatter",
-    "INLINE_TYPE",
     "is_comment",
     "is_element",
     "is_processing_instruction",
