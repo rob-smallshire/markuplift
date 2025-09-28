@@ -25,6 +25,7 @@ from .document_formatter import DocumentFormatter
 from .html5_formatter import Html5Formatter
 from .xml_formatter import XmlFormatter
 from .doctype import DoctypeStrategy, Html5DoctypeStrategy, XmlDoctypeStrategy, NullDoctypeStrategy
+from .attribute_formatting import AttributeFormattingStrategy, Html5AttributeStrategy, XmlAttributeStrategy, NullAttributeStrategy
 from .types import (
     AttributePredicate,
     AttributePredicateFactory,
@@ -81,6 +82,7 @@ __all__ = [
     "attribute_count_min",
     "attribute_equals",
     "attribute_matches",
+    "AttributeFormattingStrategy",
     "AttributePredicate",
     "AttributePredicateFactory",
     "BLOCK_TYPE",
@@ -101,6 +103,7 @@ __all__ = [
     "html_metadata_elements",
     "html_void_elements",
     "html_whitespace_significant_elements",
+    "Html5AttributeStrategy",
     "Html5DoctypeStrategy",
     "Html5Formatter",
     "INLINE_TYPE",
@@ -112,6 +115,7 @@ __all__ = [
     "never_match",
     "never_matches",
     "not_matching",
+    "NullAttributeStrategy",
     "NullDoctypeStrategy",
     "pattern",
     "PredicateError",
@@ -121,6 +125,7 @@ __all__ = [
     "tag_in",
     "tag_name",
     "ValueMatcher",
+    "XmlAttributeStrategy",
     "XmlDoctypeStrategy",
     "XmlFormatter",
 ]

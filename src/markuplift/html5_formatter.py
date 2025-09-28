@@ -11,6 +11,7 @@ from markuplift.escaping import HtmlEscapingStrategy
 from markuplift.parsing import HtmlParsingStrategy
 from markuplift.doctype import Html5DoctypeStrategy
 from markuplift.predicates import html_block_elements, html_inline_elements, html_whitespace_significant_elements, not_matching, css_block_elements, all_of
+from markuplift.attribute_formatting import Html5AttributeStrategy
 from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
 
 
@@ -111,6 +112,7 @@ class Html5Formatter:
             escaping_strategy=HtmlEscapingStrategy(),
             parsing_strategy=HtmlParsingStrategy(),
             doctype_strategy=Html5DoctypeStrategy(),
+            attribute_strategy=Html5AttributeStrategy(),
             indent_size=indent_size,
             default_type=default_type,
         )

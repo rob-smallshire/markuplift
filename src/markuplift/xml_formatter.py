@@ -10,6 +10,7 @@ from markuplift.formatter import Formatter
 from markuplift.escaping import XmlEscapingStrategy
 from markuplift.parsing import XmlParsingStrategy
 from markuplift.doctype import XmlDoctypeStrategy
+from markuplift.attribute_formatting import XmlAttributeStrategy
 from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory
 
 
@@ -82,6 +83,7 @@ class XmlFormatter:
             escaping_strategy=XmlEscapingStrategy(),
             parsing_strategy=XmlParsingStrategy(),
             doctype_strategy=XmlDoctypeStrategy(),
+            attribute_strategy=XmlAttributeStrategy(),
             indent_size=indent_size,
             default_type=default_type,
         )

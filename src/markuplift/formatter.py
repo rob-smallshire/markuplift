@@ -28,6 +28,8 @@ from markuplift.escaping import EscapingStrategy, XmlEscapingStrategy
 from markuplift.parsing import ParsingStrategy, XmlParsingStrategy
 # Import doctype strategies
 from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
+# Import attribute formatting strategies
+from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
 
 class Formatter:
@@ -70,6 +72,7 @@ class Formatter:
         escaping_strategy: EscapingStrategy | None = None,
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
+        attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
@@ -87,6 +90,7 @@ class Formatter:
             escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
             parsing_strategy: Strategy for parsing document content. Defaults to XmlParsingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
+            attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -101,6 +105,7 @@ class Formatter:
         self._escaping_strategy = escaping_strategy or XmlEscapingStrategy()
         self._parsing_strategy = parsing_strategy or XmlParsingStrategy()
         self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
+        self._attribute_strategy = attribute_strategy or NullAttributeStrategy()
         self._indent_size = indent_size or 2
         self._default_type = default_type or "block"
 
@@ -231,6 +236,7 @@ class Formatter:
             attribute_content_formatters=attribute_formatters,
             escaping_strategy=self._escaping_strategy,
             doctype_strategy=self._doctype_strategy,
+            attribute_strategy=self._attribute_strategy,
             indent_size=self._indent_size,
             default_type=self._default_type,
         )

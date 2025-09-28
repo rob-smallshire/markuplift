@@ -21,6 +21,8 @@ from markuplift.predicates import never_match
 from markuplift.escaping import EscapingStrategy, XmlEscapingStrategy
 # Import doctype strategies
 from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
+# Import attribute formatting strategies
+from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
 from les_iterables import flatten
 from lxml import etree
@@ -76,6 +78,7 @@ class DocumentFormatter:
         attribute_content_formatters: dict[AttributePredicate, TextContentFormatter] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
+        attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: str | None = None,
     ):
@@ -92,6 +95,7 @@ class DocumentFormatter:
             attribute_content_formatters: Dictionary mapping attribute predicates to formatter functions.
             escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
+            attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements ("block" or "inline").
         """
@@ -125,6 +129,9 @@ class DocumentFormatter:
         if doctype_strategy is None:
             doctype_strategy = NullDoctypeStrategy()
 
+        if attribute_strategy is None:
+            attribute_strategy = NullAttributeStrategy()
+
         if indent_size is None:
             indent_size = 2
 
@@ -144,6 +151,7 @@ class DocumentFormatter:
         self._attribute_content_formatters = attribute_content_formatters
         self._escaping_strategy = escaping_strategy
         self._doctype_strategy = doctype_strategy
+        self._attribute_strategy = attribute_strategy
         self._indent_char = " "
         self._indent_size = indent_size
         self._one_indent = self._indent_char * self._indent_size
@@ -364,17 +372,18 @@ class DocumentFormatter:
                             k = f"{prefix}:{k_qname.localname}"
                         else:
                             k = k_qname.localname
-                    # Apply attribute formatters
-                    formatted_value = v
+                    # Apply attribute formatters using strategy pattern
                     physical_level = annotations.annotation(node, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
+                    formatted_value, should_minimize = self._attribute_strategy.format_attribute(
+                        node, k, v, self._attribute_content_formatters, self, physical_level
+                    )
 
-                    for predicate, format_func in self._attribute_content_formatters.items():
-                        if predicate(node, k, v):
-                            formatted_value = format_func(v, self, physical_level)
-                            break
-
-                    escaped_value = self._escaping_strategy.quote_attribute(formatted_value)
-                    opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
+                    if should_minimize:
+                        # Strategy determined this attribute should be minimized (e.g., HTML5 boolean attributes)
+                        opening_tag_parts.append(f'{spacer}{k}')
+                    else:
+                        escaped_value = self._escaping_strategy.quote_attribute(formatted_value)
+                        opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
                 if real_attributes and must_wrap_attributes:
                     opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
 
