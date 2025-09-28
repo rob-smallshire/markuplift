@@ -117,7 +117,7 @@ class Formatter:
             raise ValueError(f"indent_size {self._indent_size} is less than 0")
 
         if self._default_type not in BLOCK_TYPES:
-            raise ValueError(f"default_type {self._default_type} is not one of '{', '.join(BLOCK_TYPES)}'")
+            raise ValueError(f"default_type {self._default_type} is not one of '{', '.join(str(t) for t in BLOCK_TYPES)}'")
 
     @property
     def indent_size(self) -> int:
@@ -217,15 +217,15 @@ class Formatter:
 
         # Create concrete text formatters
         text_formatters = {}
-        for factory, formatter_func in self._text_content_formatter_factories.items():
-            predicate = factory(root)
-            text_formatters[predicate] = formatter_func
+        for text_factory, formatter_func in self._text_content_formatter_factories.items():
+            text_predicate = text_factory(root)
+            text_formatters[text_predicate] = formatter_func
 
         # Create concrete attribute formatters
         attribute_formatters = {}
-        for factory, formatter_func in self._attribute_content_formatter_factories.items():
-            predicate = factory(root)
-            attribute_formatters[predicate] = formatter_func
+        for attr_factory, formatter_func in self._attribute_content_formatter_factories.items():
+            attr_predicate = attr_factory(root)
+            attribute_formatters[attr_predicate] = formatter_func
 
         # Create DocumentFormatter with concrete predicates
         return DocumentFormatter(

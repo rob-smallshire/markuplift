@@ -45,6 +45,7 @@ where = ["src"]
 [dependency-groups]
 lint = [
     "ruff>=0.7.0",
+    "mypy>=1.0.0",
 ]
 doc = [
     "added-value>=0.24.0",
@@ -101,3 +102,43 @@ exclude_also = [
   "raise NotImplementedError",
   "@(abc\\.)?abstractmethod",
 ]
+
+[tool.mypy]
+# Basic settings
+python_version = "3.12"
+packages = ["markuplift"]
+
+# Error output
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# Import discovery
+mypy_path = "src"
+namespace_packages = true
+
+# Start with basic checks
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = false  # Too noisy initially
+check_untyped_defs = true
+
+# More lenient settings to start with
+disallow_untyped_defs = false  # Too many errors initially
+disallow_any_generics = false  # Too restrictive initially
+disallow_incomplete_defs = false  # Too many errors initially
+no_implicit_optional = false  # Gradual adoption
+
+# Focus on critical issues first
+strict_optional = true
+warn_unreachable = true
+
+# Per-module options for external libraries
+[[tool.mypy.overrides]]
+module = [
+    "lxml.*",
+    "jsbeautifier.*",
+    "approvaltests.*",
+    "hypothesis.*",
+]
+ignore_missing_imports = true

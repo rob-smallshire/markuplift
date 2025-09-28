@@ -235,14 +235,16 @@ def annotate_untyped_elements_as_default(
 ):
     if default_type not in BLOCK_TYPES:
         raise ValueError(f"default_type must be one of {BLOCK_TYPES}")
-    annotate_matches(
-        root,
-        annotations,
-        lambda e: annotations.annotation(e, TYPE_ANNOTATION_KEY) is None,
-        TYPE_ANNOTATION_KEY,
-        default_type,
-        conflict_mode=AnnotationConflictMode.SKIP,
-    )
+    # Handle None case - if default_type is None, we skip annotation entirely
+    if default_type is not None:
+        annotate_matches(
+            root,
+            annotations,
+            lambda e: annotations.annotation(e, TYPE_ANNOTATION_KEY) is None,
+            TYPE_ANNOTATION_KEY,
+            default_type,
+            conflict_mode=AnnotationConflictMode.SKIP,
+        )
 
 
 def annotate_logical_level(
@@ -435,7 +437,7 @@ def annotate_matches(
     annotations: Annotations,
     predicate: ElementPredicate,
     annotation_key: str,
-    annotation_value: str,
+    annotation_value: Any,
     *,
     conflict_mode: AnnotationConflictMode = AnnotationConflictMode.RAISE,
 ):

@@ -9,15 +9,19 @@ optimized formatting rules based on XPath expressions provided by the user.
 """
 
 import subprocess
+from typing import TYPE_CHECKING
 
 import click
+
+if TYPE_CHECKING:
+    from markuplift.document_formatter import DocumentFormatter
 from lxml import etree
 
 from markuplift.formatter import Formatter
 from markuplift.html5_formatter import Html5Formatter
 from markuplift.xml_formatter import XmlFormatter
 from markuplift.predicates import matches_xpath, PredicateError
-from markuplift.types import ElementType
+from markuplift.types import ElementType, TextContentFormatter, ElementPredicateFactory
 
 
 
@@ -133,14 +137,14 @@ def format(
             return combined_factory
 
         # Create text formatter factories from external programs
-        text_formatter_factories = {}
+        text_formatter_factories: dict[ElementPredicateFactory, TextContentFormatter] = {}
         for xpath_expr, command in text_formatter:
             try:
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
-            def create_formatter(cmd=command):  # Capture command in closure
-                def formatter_func(text, doc_formatter, physical_level):
+            def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
+                def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
                         return text
                     try:
@@ -323,14 +327,14 @@ def format_html(
             return combined_factory
 
         # Create text formatter factories from external programs
-        text_formatter_factories = {}
+        text_formatter_factories: dict[ElementPredicateFactory, TextContentFormatter] = {}
         for xpath_expr, command in text_formatter:
             try:
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
-            def create_formatter(cmd=command):  # Capture command in closure
-                def formatter_func(text, doc_formatter, physical_level):
+            def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
+                def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
                         return text
                     try:
@@ -517,14 +521,14 @@ def format_xml(
             return combined_factory
 
         # Create text formatter factories from external programs
-        text_formatter_factories = {}
+        text_formatter_factories: dict[ElementPredicateFactory, TextContentFormatter] = {}
         for xpath_expr, command in text_formatter:
             try:
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
-            def create_formatter(cmd=command):  # Capture command in closure
-                def formatter_func(text, doc_formatter, physical_level):
+            def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
+                def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
                         return text
                     try:

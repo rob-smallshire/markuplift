@@ -111,7 +111,7 @@ def _create_matcher(
                 raise RuntimeError(f"Error in {matcher_name} matcher function: {e}") from e
         return safe_matcher
     else:
-        allowed = "str, re.Pattern, or callable" + (", or None" if allow_none else "")
+        allowed = "str, re.Pattern, or callable" + (", or None" if allow_none else "")  # type: ignore[unreachable]
         raise TypeError(f"{matcher_name} must be {allowed}, got {type(value).__name__}")
 
 

@@ -13,7 +13,7 @@ Type Aliases:
     ValueMatcher: String, regex pattern, or custom function for matching attribute values
 """
 
-from typing import Callable, Union, TYPE_CHECKING
+from typing import Callable, Union, TYPE_CHECKING, Protocol
 from re import Pattern
 from enum import Enum
 from lxml import etree
@@ -40,9 +40,16 @@ class ElementType(Enum):
 # The function takes an XML element (etree._Element) and returns a boolean.
 ElementPredicate = Callable[[etree._Element], bool]
 
-# Type alias for element predicate factory functions
-# The function takes the document root (etree._Element) and returns an ElementPredicate.
-ElementPredicateFactory = Callable[[etree._Element], ElementPredicate]
+# Protocol for element predicate factory functions
+# Supports both function types and PredicateFactory class instances
+class ElementPredicateFactory(Protocol):
+    """Protocol for objects that can create ElementPredicate functions.
+
+    This protocol allows both function types and PredicateFactory class instances
+    to be used interchangeably, supporting proper structural typing.
+    """
+    def __call__(self, root: etree._Element) -> ElementPredicate: ...
+
 
 # Type alias for text content formatter functions
 # The function takes the text content (str), the DocumentFormatter instance,
@@ -60,6 +67,12 @@ ValueMatcher = Union[str, Pattern[str], Callable[[str], bool]]
 # The function takes an XML element, attribute name, and attribute value, and returns a boolean.
 AttributePredicate = Callable[[etree._Element, str, str], bool]
 
-# Type alias for attribute predicate factory functions
-# The function takes the document root (etree._Element) and returns an AttributePredicate.
-AttributePredicateFactory = Callable[[etree._Element], AttributePredicate]
+# Protocol for attribute predicate factory functions
+# Supports both function types and callable classes that create AttributePredicate functions
+class AttributePredicateFactory(Protocol):
+    """Protocol for objects that can create AttributePredicate functions.
+
+    This protocol allows both function types and callable class instances
+    to be used interchangeably, supporting proper structural typing.
+    """
+    def __call__(self, root: etree._Element) -> AttributePredicate: ...

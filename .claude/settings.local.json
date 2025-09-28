@@ -17,7 +17,8 @@
       "Bash(uv sync:*)",
       "WebFetch(domain:html.spec.whatwg.org)",
       "WebFetch(domain:www.w3schools.com)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

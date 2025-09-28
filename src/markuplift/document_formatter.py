@@ -24,7 +24,6 @@ from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
 # Import attribute formatting strategies
 from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
-from les_iterables import flatten
 from lxml import etree
 from markuplift.annotation import (
     BLOCK_TYPES, Annotations, annotate_explicit_block_elements,
@@ -141,7 +140,7 @@ class DocumentFormatter:
         # Note: None is a valid value in BLOCK_TYPES and means "let context decide"
 
         if default_type not in BLOCK_TYPES:
-            raise ValueError(f"default_type {default_type} is not one of '{', '.join(BLOCK_TYPES)}'")
+            raise ValueError(f"default_type {default_type} is not one of '{', '.join(str(t) for t in BLOCK_TYPES)}'")
 
         self._mark_as_block = block_predicate
         self._mark_as_inline = inline_predicate
@@ -233,31 +232,29 @@ class DocumentFormatter:
             xml_declaration = False
 
         if xml_declaration:
-            parts.append(['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'])
+            parts.append('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n')
 
         resolved_doctype = self._resolve_doctype(tree, doctype, is_full_document=True)
         if resolved_doctype:
-            parts.append([resolved_doctype, "\n"])
+            parts.extend([resolved_doctype, "\n"])
 
         # Handle comments and PIs before root element
         for event, node in etree.iterwalk(tree, events=("comment", "pi", "start")):
             if event == "comment" and isinstance(node, etree._Comment):
-                parts.append(["<!--"])
+                parts.append("<!--")
                 if text := node.text:
                     escaped_text = self._escaping_strategy.escape_comment_text(text)
                     if escaped_text.startswith("-"):
-                        parts.append([" "])
-                    parts.append([escaped_text])
+                        parts.append(" ")
+                    parts.append(escaped_text)
                     if escaped_text.endswith("-"):
-                        parts.append([" "])
-                parts.append(["-->\n"])
+                        parts.append(" ")
+                parts.append("-->\n")
             elif event == "pi" and isinstance(node, etree._ProcessingInstruction):
-                pi_parts = []
-                pi_parts.append(f"<?{node.target}")
+                parts.append(f"<?{node.target}")
                 if node.text:
-                    pi_parts.append(f" {node.text}")
-                pi_parts.append("?>\n")
-                parts.append(pi_parts)
+                    parts.append(f" {node.text}")
+                parts.append("?>\n")
             elif event == "start" and isinstance(node, etree._Element):
                 # Reached root element, stop processing
                 break
@@ -266,7 +263,7 @@ class DocumentFormatter:
         if formatted:
             parts.append(formatted)
 
-        return "".join(flatten(parts))
+        return "".join(parts)
 
     def format_element(self, root: etree._Element, doctype: str | None = None) -> str:
         """Format a single XML element and its descendants.
@@ -286,10 +283,10 @@ class DocumentFormatter:
 
         # Only add DOCTYPE if explicitly provided (no automatic DOCTYPE for subtrees)
         if doctype:
-            parts.append([doctype, "\n"])
+            parts.extend([doctype, "\n"])
 
         self._format_element(annotations, root, parts)
-        return "".join(flatten(parts))
+        return "".join(parts)
 
     def _resolve_doctype(self, tree: etree._ElementTree, explicit_doctype: str | None, is_full_document: bool) -> str | None:
         """Resolve the appropriate DOCTYPE declaration using the DOCTYPE strategy.
@@ -352,8 +349,7 @@ class DocumentFormatter:
         for event, node in etree.iterwalk(element, events=("start", "end", "comment", "pi")):
             if event == "start" and isinstance(node, etree._Element):
                 # Opening tag
-                opening_tag_parts = []
-                opening_tag_parts.append(f"<{node.tag}")
+                parts.append(f"<{node.tag}")
 
                 # Attribute handling
                 must_wrap_attributes = self._must_wrap_attributes(node)
@@ -382,22 +378,21 @@ class DocumentFormatter:
 
                     if should_minimize:
                         # Strategy determined this attribute should be minimized (e.g., HTML5 boolean attributes)
-                        opening_tag_parts.append(f'{spacer}{k}')
+                        parts.append(f'{spacer}{k}')
                     else:
                         escaped_value = self._escaping_strategy.quote_attribute(formatted_value)
-                        opening_tag_parts.append(f'{spacer}{k}={escaped_value}')
+                        parts.append(f'{spacer}{k}={escaped_value}')
                 if real_attributes and must_wrap_attributes:
-                    opening_tag_parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
+                    parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
 
                 is_self_closing = self._is_self_closing(annotations, node)
 
                 if is_self_closing:
                     if not must_wrap_attributes:
-                        opening_tag_parts.append(" ")
-                    opening_tag_parts.append("/")
+                        parts.append(" ")
+                    parts.append("/")
 
-                opening_tag_parts.append(">")
-                parts.append(opening_tag_parts)
+                parts.append(">")
 
                 # Content
                 if not is_self_closing:
@@ -408,8 +403,7 @@ class DocumentFormatter:
             elif event == "end" and isinstance(node, etree._Element):
                 if not self._is_self_closing(annotations, node):
                     # Closing tag
-                    closing_tag_parts = [f"</{node.tag}>"]
-                    parts.append(closing_tag_parts)
+                    parts.append(f"</{node.tag}>")
 
                 # Tail
                 if tail := self._tail_content(annotations, node):
@@ -432,12 +426,10 @@ class DocumentFormatter:
                     parts.append(escaped_tail)
 
             elif event == "pi" and isinstance(node, etree._ProcessingInstruction):
-                pi_parts = []
-                pi_parts.append(f"<?{node.target}")
+                parts.append(f"<?{node.target}")
                 if node.text:
-                    pi_parts.append(f" {node.text}")
-                pi_parts.append("?>")
-                parts.append(pi_parts)
+                    parts.append(f" {node.text}")
+                parts.append("?>")
                 # Tail
                 if tail := self._tail_content(annotations, node):
                     escaped_tail = self._escaping_strategy.escape_text(tail)

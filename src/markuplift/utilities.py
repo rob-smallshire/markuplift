@@ -10,6 +10,7 @@ annotation processes.
 
 import re
 from itertools import groupby
+from typing import Any
 
 from lxml import etree
 
@@ -91,7 +92,7 @@ def is_in_mixed_content(element: etree._Element) -> bool:
     return has_direct_significant_text(parent)
 
 
-def parent_is_annotated_with(element: etree._Element, annotations, annotation_key: str, annotation_value: str) -> bool:
+def parent_is_annotated_with(element: etree._Element, annotations, annotation_key: str, annotation_value: Any) -> bool:
     """Check if the parent of the given element is annotated with the specified key and value.
 
     Args:
