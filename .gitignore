@@ -289,3 +289,6 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm
 
 uv.lock
+
+# Claude Code local settings
+.claude/settings.local.json
