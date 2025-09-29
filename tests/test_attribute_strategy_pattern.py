@@ -1,18 +1,16 @@
 """Tests for the attribute formatting strategy pattern."""
 
 from inspect import cleandoc
-from unittest.mock import Mock
 
-from lxml import etree
 
 from markuplift import Formatter, Html5Formatter, XmlFormatter
 from markuplift.attribute_formatting import (
     AttributeFormattingStrategy,
     Html5AttributeStrategy,
     XmlAttributeStrategy,
-    NullAttributeStrategy
+    NullAttributeStrategy,
 )
-from markuplift.predicates import attribute_equals, attribute_matches
+from markuplift.predicates import attribute_matches
 
 
 class MockAttributeStrategy(AttributeFormattingStrategy):
@@ -60,11 +58,7 @@ def test_null_strategy_only_applies_user_formatters():
         </root>
     """)
 
-    formatter = Formatter(
-        reformat_attribute_when={
-            attribute_matches("class", "test"): uppercase_formatter
-        }
-    )
+    formatter = Formatter(reformat_attribute_when={attribute_matches("class", "test"): uppercase_formatter})
     actual = formatter.format_str(example)
 
     expected = cleandoc("""
@@ -88,11 +82,7 @@ def test_xml_strategy_applies_user_formatters():
         </root>
     """)
 
-    formatter = XmlFormatter(
-        reformat_attribute_when={
-            attribute_matches("class", "test"): prefix_formatter
-        }
-    )
+    formatter = XmlFormatter(reformat_attribute_when={attribute_matches("class", "test"): prefix_formatter})
     actual = formatter.format_str(example)
 
     expected = cleandoc("""
@@ -124,17 +114,20 @@ def test_html5_strategy_applies_boolean_rules_then_user_formatters():
     formatter = Html5Formatter(
         reformat_attribute_when={
             attribute_matches("checked", "any-value"): should_not_be_called,  # Won't be called - different value
-            attribute_matches("class", "form-input"): uppercase_formatter      # Will be called - regular attr
+            attribute_matches("class", "form-input"): uppercase_formatter,  # Will be called - regular attr
         }
     )
     actual = formatter.format_str(example)
 
-    expected = cleandoc("""
+    expected = (
+        cleandoc("""
         <!DOCTYPE html>
         <div>
           <input checked class="FORM-INPUT" disabled />
         </div>
-    """) + "\n"
+    """)
+        + "\n"
+    )
 
     assert actual == expected
 
@@ -147,13 +140,15 @@ def test_strategy_receives_correct_parameters():
             self.calls = []
 
         def format_attribute(self, element, attr_name, attr_value, user_formatters, formatter, level):
-            self.calls.append({
-                'element_tag': element.tag,
-                'attr_name': attr_name,
-                'attr_value': attr_value,
-                'user_formatters_count': len(user_formatters),
-                'level': level
-            })
+            self.calls.append(
+                {
+                    "element_tag": element.tag,
+                    "attr_name": attr_name,
+                    "attr_value": attr_value,
+                    "user_formatters_count": len(user_formatters),
+                    "level": level,
+                }
+            )
             return attr_value, False
 
     strategy = TestStrategy()
@@ -171,11 +166,11 @@ def test_strategy_receives_correct_parameters():
 
     # Check first call
     call1 = strategy.calls[0]
-    assert call1['element_tag'] == 'child'
-    assert call1['attr_name'] in ['attr1', 'attr2']
-    assert call1['attr_value'] in ['value1', 'value2']
-    assert call1['user_formatters_count'] == 0
-    assert call1['level'] == 1
+    assert call1["element_tag"] == "child"
+    assert call1["attr_name"] in ["attr1", "attr2"]
+    assert call1["attr_value"] in ["value1", "value2"]
+    assert call1["user_formatters_count"] == 0
+    assert call1["level"] == 1
 
 
 def test_strategy_with_attribute_wrapping():
@@ -187,12 +182,11 @@ def test_strategy_with_attribute_wrapping():
         </root>
     """)
 
-    formatter = Html5Formatter(
-        wrap_attributes_when=lambda root: lambda element: element.tag == 'input'
-    )
+    formatter = Html5Formatter(wrap_attributes_when=lambda root: lambda element: element.tag == "input")
     actual = formatter.format_str(example)
 
-    expected = cleandoc("""
+    expected = (
+        cleandoc("""
         <!DOCTYPE html>
         <root>
           <input
@@ -202,7 +196,9 @@ def test_strategy_with_attribute_wrapping():
             id="test-input"
           />
         </root>
-    """) + "\n"
+    """)
+        + "\n"
+    )
 
     assert actual == expected
 
@@ -234,9 +230,7 @@ def test_custom_strategy_integration():
 
     formatter = Formatter(
         attribute_strategy=PrefixStrategy(),
-        reformat_attribute_when={
-            attribute_matches("class", "prefix-test"): suffix_formatter
-        }
+        reformat_attribute_when={attribute_matches("class", "prefix-test"): suffix_formatter},
     )
     actual = formatter.format_str(example)
 
@@ -262,11 +256,7 @@ def test_backward_compatibility_with_existing_code():
     """)
 
     # This should work exactly as before
-    formatter = Formatter(
-        reformat_attribute_when={
-            attribute_matches("class", "test"): uppercase_formatter
-        }
-    )
+    formatter = Formatter(reformat_attribute_when={attribute_matches("class", "test"): uppercase_formatter})
     actual = formatter.format_str(example)
 
     expected = cleandoc("""

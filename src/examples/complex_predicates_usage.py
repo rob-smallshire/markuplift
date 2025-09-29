@@ -24,11 +24,11 @@ def format_complex_predicates_example(input_file: Path):
     # Create formatter with parameterized predicate-based rules
     formatter = Html5Formatter(
         # Treat navigation and sidebar elements as block elements
-        block_when=elements_with_attribute_values('role', 'navigation', 'complementary'),
+        block_when=elements_with_attribute_values("role", "navigation", "complementary"),
         # Apply special formatting to currency and numeric table columns
-        wrap_attributes_when=table_cells_in_columns('price', 'currency', 'number'),
+        wrap_attributes_when=table_cells_in_columns("price", "currency", "number"),
         # Standard Html5Formatter defaults for other elements
-        indent_size=2
+        indent_size=2,
     )
 
     # Format the document with semantic-aware predicate rules

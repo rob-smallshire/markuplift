@@ -10,8 +10,11 @@ from markuplift.annotation import (
     STRICT_WHITESPACE_ANNOTATION,
 )
 from markuplift.utilities import tagname
+
+
 def parse(xml):
     return etree.parse(StringIO(xml))
+
 
 def test_descendants_annotated_from_xml_space_preserve():
     tree = parse("""
@@ -32,6 +35,7 @@ def test_descendants_annotated_from_xml_space_preserve():
     assert annotations.annotation(child1, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
     assert annotations.annotation(child2, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
     assert annotations.annotation(grandchild, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+
 
 def test_descendants_annotated_from_explicit_preserve():
     tree = parse("""
@@ -56,6 +60,7 @@ def test_descendants_annotated_from_explicit_preserve():
     assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) is None
     assert annotations.annotation(normal_child, WHITESPACE_ANNOTATION_KEY) is None
 
+
 def test_propagation_stopped_by_xml_space_default():
     tree = parse("""
     <root xml:space="preserve">
@@ -73,6 +78,7 @@ def test_propagation_stopped_by_xml_space_default():
     assert annotations.annotation(default, WHITESPACE_ANNOTATION_KEY) is None
     assert annotations.annotation(child, WHITESPACE_ANNOTATION_KEY) is None
 
+
 def test_mixed_explicit_and_xml_space_preserve():
     tree = parse("""
     <root>
@@ -86,7 +92,7 @@ def test_mixed_explicit_and_xml_space_preserve():
     """)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
-    annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: getattr(e, 'tag', None) == "explicit")
+    annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: getattr(e, "tag", None) == "explicit")
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) == "explicit")
     annotate_whitespace_preserving_descendants_as_whitespace_preserving(tree, annotations)
     explicit = tree.getroot().find("explicit")
@@ -97,6 +103,7 @@ def test_mixed_explicit_and_xml_space_preserve():
     assert annotations.annotation(explicit_child, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(xmlspace, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
     assert annotations.annotation(xmlspace_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+
 
 def test_nested_preserve_and_default():
     tree = parse("""
@@ -119,6 +126,7 @@ def test_nested_preserve_and_default():
     assert annotations.annotation(inner, WHITESPACE_ANNOTATION_KEY) is None
     assert annotations.annotation(deep, WHITESPACE_ANNOTATION_KEY) is None
 
+
 def test_comment_and_pi_descendants():
     tree = parse("""
     <root xml:space="preserve">
@@ -137,6 +145,7 @@ def test_comment_and_pi_descendants():
     assert annotations.annotation(pi, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
     assert annotations.annotation(child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
 
+
 def test_preserve_propagation_with_mixed_initial_annotations():
     tree = parse("""
     <root>
@@ -148,7 +157,7 @@ def test_preserve_propagation_with_mixed_initial_annotations():
     </root>
     """)
     annotations = Annotations()
-    annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: getattr(e, 'tag', None) == "explicit")
+    annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: getattr(e, "tag", None) == "explicit")
     annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) == "explicit")
     annotate_whitespace_preserving_descendants_as_whitespace_preserving(tree, annotations)
     annotate_xml_space(tree, annotations)

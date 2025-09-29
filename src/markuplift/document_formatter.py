@@ -14,26 +14,39 @@ from typing import Optional
 
 # Import type aliases
 from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate, ElementType
+
 # Import standard predicates
 from markuplift.predicates import never_match
+
 # Import utilities
 # Import escaping strategies
 from markuplift.escaping import EscapingStrategy, XmlEscapingStrategy
+
 # Import doctype strategies
 from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
+
 # Import attribute formatting strategies
 from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
 from lxml import etree
 from markuplift.annotation import (
-    BLOCK_TYPES, Annotations, annotate_explicit_block_elements,
-    annotate_explicit_inline_elements, annotate_elements_in_mixed_content_as_inline,
-    annotate_inline_descendants_as_inline, annotate_unmixed_block_descendants_as_block,
+    BLOCK_TYPES,
+    Annotations,
+    annotate_explicit_block_elements,
+    annotate_explicit_inline_elements,
+    annotate_elements_in_mixed_content_as_inline,
+    annotate_inline_descendants_as_inline,
+    annotate_unmixed_block_descendants_as_block,
     annotate_explicit_whitespace_preserving_elements,
     annotate_whitespace_preserving_descendants_as_whitespace_preserving,
-    annotate_explicit_whitespace_normalizing_elements, annotate_explicit_stripped_elements,
-    annotate_xml_space, annotate_untyped_elements_as_default, annotate_logical_level,
-    annotate_physical_level, annotate_text_transforms, annotate_tail_transforms,
+    annotate_explicit_whitespace_normalizing_elements,
+    annotate_explicit_stripped_elements,
+    annotate_xml_space,
+    annotate_untyped_elements_as_default,
+    annotate_logical_level,
+    annotate_physical_level,
+    annotate_text_transforms,
+    annotate_tail_transforms,
     PHYSICAL_LEVEL_ANNOTATION_KEY,
 )
 
@@ -215,7 +228,9 @@ class DocumentFormatter:
         tree = etree.parse(BytesIO(doc))
         return self.format_tree(tree, doctype, xml_declaration)
 
-    def format_tree(self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
+    def format_tree(
+        self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None
+    ) -> str:
         """Format an XML document from an lxml ElementTree.
 
         Args:
@@ -288,7 +303,9 @@ class DocumentFormatter:
         self._format_element(annotations, root, parts)
         return "".join(parts)
 
-    def _resolve_doctype(self, tree: etree._ElementTree, explicit_doctype: str | None, is_full_document: bool) -> str | None:
+    def _resolve_doctype(
+        self, tree: etree._ElementTree, explicit_doctype: str | None, is_full_document: bool
+    ) -> str | None:
         """Resolve the appropriate DOCTYPE declaration using the DOCTYPE strategy.
 
         Args:
@@ -378,10 +395,10 @@ class DocumentFormatter:
 
                     if should_minimize:
                         # Strategy determined this attribute should be minimized (e.g., HTML5 boolean attributes)
-                        parts.append(f'{spacer}{k}')
+                        parts.append(f"{spacer}{k}")
                     else:
                         escaped_value = self._escaping_strategy.quote_attribute(formatted_value)
-                        parts.append(f'{spacer}{k}={escaped_value}')
+                        parts.append(f"{spacer}{k}={escaped_value}")
                 if real_attributes and must_wrap_attributes:
                     parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
 

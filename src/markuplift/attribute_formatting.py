@@ -32,7 +32,7 @@ class AttributeFormattingStrategy(ABC):
         attr_value: str,
         user_formatters: Dict[AttributePredicate, TextContentFormatter],
         formatter: Any,
-        level: int
+        level: int,
     ) -> tuple[str, bool]:
         """Format an attribute value using strategy-specific rules and user customizations.
 
@@ -66,7 +66,7 @@ class NullAttributeStrategy(AttributeFormattingStrategy):
         attr_value: str,
         user_formatters: Dict[AttributePredicate, TextContentFormatter],
         formatter: Any,
-        level: int
+        level: int,
     ) -> tuple[str, bool]:
         """Apply only user-defined formatters, no built-in formatting logic."""
         value = attr_value
@@ -95,7 +95,7 @@ class XmlAttributeStrategy(AttributeFormattingStrategy):
         attr_value: str,
         user_formatters: Dict[AttributePredicate, TextContentFormatter],
         formatter: Any,
-        level: int
+        level: int,
     ) -> tuple[str, bool]:
         """Apply XML formatting rules followed by user customizations."""
         # For XML, we don't have special built-in rules yet
@@ -121,10 +121,28 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
 
     # HTML5 boolean attributes that should be minimized
     BOOLEAN_ATTRIBUTES = {
-        "async", "autofocus", "autoplay", "checked", "controls", "default",
-        "defer", "disabled", "formnovalidate", "hidden", "ismap", "itemscope",
-        "loop", "multiple", "muted", "nomodule", "novalidate", "open",
-        "readonly", "required", "reversed", "selected"
+        "async",
+        "autofocus",
+        "autoplay",
+        "checked",
+        "controls",
+        "default",
+        "defer",
+        "disabled",
+        "formnovalidate",
+        "hidden",
+        "ismap",
+        "itemscope",
+        "loop",
+        "multiple",
+        "muted",
+        "nomodule",
+        "novalidate",
+        "open",
+        "readonly",
+        "required",
+        "reversed",
+        "selected",
     }
 
     def format_attribute(
@@ -134,7 +152,7 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
         attr_value: str,
         user_formatters: Dict[AttributePredicate, TextContentFormatter],
         formatter: Any,
-        level: int
+        level: int,
     ) -> tuple[str, bool]:
         """Apply HTML5 formatting rules followed by user customizations."""
         value = attr_value

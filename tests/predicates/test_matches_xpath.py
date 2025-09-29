@@ -121,12 +121,12 @@ def test_matches_xpath_performance_optimization():
 
 def test_matches_xpath_with_namespaces():
     """Test XPath matching with XML namespaces using Clark notation."""
-    xml = '''
+    xml = """
     <root xmlns:ns="http://example.com/ns">
         <ns:element>namespaced</ns:element>
         <element>not namespaced</element>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Use Clark notation for namespaced elements
@@ -170,6 +170,7 @@ def test_matches_xpath_reusable_factory():
 def test_matches_xpath_rejects_attribute_results():
     """Test that XPath expressions returning attributes are rejected."""
     import re
+
     xml = '<root><div class="test">content</div><span id="example">text</span></root>'
     tree = etree.fromstring(xml)
 
@@ -183,6 +184,7 @@ def test_matches_xpath_rejects_attribute_results():
 def test_matches_xpath_rejects_text_results():
     """Test that XPath expressions returning text nodes are rejected."""
     import re
+
     xml = "<root><div>content</div><span>text</span></root>"
     tree = etree.fromstring(xml)
 
@@ -196,6 +198,7 @@ def test_matches_xpath_rejects_text_results():
 def test_matches_xpath_rejects_numeric_results():
     """Test that XPath expressions returning numbers are rejected."""
     import re
+
     xml = "<root><div>content</div><span>text</span></root>"
     tree = etree.fromstring(xml)
 
@@ -209,6 +212,7 @@ def test_matches_xpath_rejects_numeric_results():
 def test_matches_xpath_rejects_boolean_results():
     """Test that XPath expressions returning booleans are rejected."""
     import re
+
     xml = "<root><div>content</div><span>text</span></root>"
     tree = etree.fromstring(xml)
 

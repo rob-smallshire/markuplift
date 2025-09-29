@@ -71,12 +71,12 @@ def test_tag_equals_case_sensitive():
 
 def test_tag_equals_with_namespaces():
     """Test tag_equals with namespaced elements."""
-    xml = '''
+    xml = """
     <root xmlns:ns="http://example.com/ns">
         <ns:element>namespaced</ns:element>
         <element>not namespaced</element>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Test matching Clark notation

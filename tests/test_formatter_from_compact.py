@@ -1,6 +1,5 @@
 from inspect import cleandoc
 
-from pytest import mark
 
 from helpers.predicates import is_block_or_root, is_inline
 from markuplift import DocumentFormatter
@@ -78,9 +77,7 @@ def test_formatter_mixed_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline</block></root>
     """)
-    formatter = DocumentFormatter(
-        block_predicate=is_block_or_root
-    )
+    formatter = DocumentFormatter(block_predicate=is_block_or_root)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -94,9 +91,7 @@ def test_formatter_mixed_multiple_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block></root>
     """)
-    formatter = DocumentFormatter(
-        block_predicate=is_block_or_root
-    )
+    formatter = DocumentFormatter(block_predicate=is_block_or_root)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -110,9 +105,7 @@ def test_formatter_mixed_multiple_blocks_and_inlines_from_compact():
     example = cleandoc("""
         <root><block>before inline <inline>inline content</inline> after inline <inline>more inline content</inline> end</block><block>second block with <inline>inline content</inline></block></root>
     """)
-    formatter = DocumentFormatter(
-        block_predicate=is_block_or_root
-    )
+    formatter = DocumentFormatter(block_predicate=is_block_or_root)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -146,14 +139,10 @@ def test_inline_root_from_compact():
     example = cleandoc("""
         <inline>some inline content</inline>
     """)
-    formatter = DocumentFormatter(
-        block_predicate=is_block_or_root
-    )
+    formatter = DocumentFormatter(block_predicate=is_block_or_root)
     actual = formatter.format_str(example)
     # No change expected since root is not a block element. The output is identical to the input.
     expected = cleandoc("""
         <inline>some inline content</inline>
     """)
     assert actual == expected
-
-

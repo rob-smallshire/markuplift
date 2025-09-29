@@ -24,7 +24,6 @@ from markuplift.predicates import matches_xpath, PredicateError
 from markuplift.types import ElementType, TextContentFormatter, ElementPredicateFactory
 
 
-
 @click.group()
 @click.version_option()
 def cli():
@@ -131,9 +130,11 @@ def format(
                 factories = [matches_xpath(xpath) for xpath in xpath_list]
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
                 return lambda e: any(pred(e) for pred in predicates)
+
             return combined_factory
 
         # Create text formatter factories from external programs
@@ -143,6 +144,7 @@ def format(
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
                 def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
@@ -163,7 +165,9 @@ def format(
                     except Exception as e:
                         click.echo(f"Warning: External formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             text_formatter_factories[factory] = create_formatter()
 
         # Create attribute formatter factories from external programs
@@ -173,16 +177,22 @@ def format(
                 # For CLI, we combine XPath element selection with attribute name matching
                 # Create a factory that only matches the specified attribute on elements matching the XPath
                 element_factory = matches_xpath(xpath_expr)
+
                 def create_combined_factory(elem_factory=element_factory, attr_name=attribute_name):
                     def combined_factory(root):
                         element_pred = elem_factory(root)
+
                         def attribute_pred(element, attr_name_test, attr_value):
                             return element_pred(element) and attr_name_test == attr_name
+
                         return attribute_pred
+
                     return combined_factory
+
                 attribute_factory = create_combined_factory()
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_attribute_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):
                     if not text.strip():
@@ -191,19 +201,25 @@ def format(
                         cmd_parts = cmd.split()
                         result = subprocess.run(cmd_parts, input=text, text=True, capture_output=True, timeout=30)
                         if result.returncode != 0:
-                            click.echo(f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True)
+                            click.echo(
+                                f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True
+                            )
                             return text
                         return result.stdout
                     except subprocess.TimeoutExpired:
                         click.echo(f"Warning: External attribute formatter '{cmd}' timed out", err=True)
                         return text
                     except FileNotFoundError:
-                        click.echo(f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True)
+                        click.echo(
+                            f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True
+                        )
                         return text
                     except Exception as e:
                         click.echo(f"Warning: External attribute formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             attribute_formatter_factories[attribute_factory] = create_attribute_formatter()
 
         # Create formatter with factory functions - much cleaner!
@@ -321,9 +337,11 @@ def format_html(
                 factories = [matches_xpath(xpath) for xpath in xpath_list]
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
                 return lambda e: any(pred(e) for pred in predicates)
+
             return combined_factory
 
         # Create text formatter factories from external programs
@@ -333,6 +351,7 @@ def format_html(
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
                 def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
@@ -353,7 +372,9 @@ def format_html(
                     except Exception as e:
                         click.echo(f"Warning: External formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             text_formatter_factories[factory] = create_formatter()
 
         # Create attribute formatter factories from external programs
@@ -363,16 +384,22 @@ def format_html(
                 # For CLI, we combine XPath element selection with attribute name matching
                 # Create a factory that only matches the specified attribute on elements matching the XPath
                 element_factory = matches_xpath(xpath_expr)
+
                 def create_combined_factory(elem_factory=element_factory, attr_name=attribute_name):
                     def combined_factory(root):
                         element_pred = elem_factory(root)
+
                         def attribute_pred(element, attr_name_test, attr_value):
                             return element_pred(element) and attr_name_test == attr_name
+
                         return attribute_pred
+
                     return combined_factory
+
                 attribute_factory = create_combined_factory()
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_attribute_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):
                     if not text.strip():
@@ -381,19 +408,25 @@ def format_html(
                         cmd_parts = cmd.split()
                         result = subprocess.run(cmd_parts, input=text, text=True, capture_output=True, timeout=30)
                         if result.returncode != 0:
-                            click.echo(f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True)
+                            click.echo(
+                                f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True
+                            )
                             return text
                         return result.stdout
                     except subprocess.TimeoutExpired:
                         click.echo(f"Warning: External attribute formatter '{cmd}' timed out", err=True)
                         return text
                     except FileNotFoundError:
-                        click.echo(f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True)
+                        click.echo(
+                            f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True
+                        )
                         return text
                     except Exception as e:
                         click.echo(f"Warning: External attribute formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             attribute_formatter_factories[attribute_factory] = create_attribute_formatter()
 
         # Create HTML5 formatter with factory functions
@@ -515,9 +548,11 @@ def format_xml(
                 factories = [matches_xpath(xpath) for xpath in xpath_list]
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def combined_factory(root):
                 predicates = [factory(root) for factory in factories]
                 return lambda e: any(pred(e) for pred in predicates)
+
             return combined_factory
 
         # Create text formatter factories from external programs
@@ -527,6 +562,7 @@ def format_xml(
                 factory = matches_xpath(xpath_expr)
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_formatter(cmd=command) -> TextContentFormatter:  # Capture command in closure
                 def formatter_func(text: str, doc_formatter: "DocumentFormatter", physical_level: int) -> str:
                     if not text.strip():
@@ -547,7 +583,9 @@ def format_xml(
                     except Exception as e:
                         click.echo(f"Warning: External formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             text_formatter_factories[factory] = create_formatter()
 
         # Create attribute formatter factories from external programs
@@ -557,16 +595,22 @@ def format_xml(
                 # For CLI, we combine XPath element selection with attribute name matching
                 # Create a factory that only matches the specified attribute on elements matching the XPath
                 element_factory = matches_xpath(xpath_expr)
+
                 def create_combined_factory(elem_factory=element_factory, attr_name=attribute_name):
                     def combined_factory(root):
                         element_pred = elem_factory(root)
+
                         def attribute_pred(element, attr_name_test, attr_value):
                             return element_pred(element) and attr_name_test == attr_name
+
                         return attribute_pred
+
                     return combined_factory
+
                 attribute_factory = create_combined_factory()
             except PredicateError as e:
                 raise click.ClickException(str(e))
+
             def create_attribute_formatter(cmd=command):  # Capture command in closure
                 def formatter_func(text, doc_formatter, physical_level):
                     if not text.strip():
@@ -575,19 +619,25 @@ def format_xml(
                         cmd_parts = cmd.split()
                         result = subprocess.run(cmd_parts, input=text, text=True, capture_output=True, timeout=30)
                         if result.returncode != 0:
-                            click.echo(f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True)
+                            click.echo(
+                                f"Warning: External attribute formatter '{cmd}' failed: {result.stderr}", err=True
+                            )
                             return text
                         return result.stdout
                     except subprocess.TimeoutExpired:
                         click.echo(f"Warning: External attribute formatter '{cmd}' timed out", err=True)
                         return text
                     except FileNotFoundError:
-                        click.echo(f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True)
+                        click.echo(
+                            f"Warning: External attribute formatter command '{cmd.split()[0]}' not found", err=True
+                        )
                         return text
                     except Exception as e:
                         click.echo(f"Warning: External attribute formatter '{cmd}' error: {e}", err=True)
                         return text
+
                 return formatter_func
+
             attribute_formatter_factories[attribute_factory] = create_attribute_formatter()
 
         # Create XML formatter with factory functions

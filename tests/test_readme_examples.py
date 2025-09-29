@@ -4,9 +4,9 @@ This ensures that all examples in the README are accurate and working.
 """
 
 from approvaltests import verify
-from markuplift import Formatter, Html5Formatter
+from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
-from examples.attribute_formatters import num_css_properties, css_multiline_formatter, format_attribute_formatting_example
+from examples.attribute_formatters import format_attribute_formatting_example
 from examples.python_api_basic import format_documentation_example
 from examples.real_world_article import format_article_example
 from examples.complex_predicates import elements_with_attribute_values, table_cells_in_columns
@@ -38,7 +38,7 @@ class TestReadmeExamples:
             inline_when=html_inline_elements(),
             preserve_whitespace_when=tag_in("pre", "code", "textarea"),
             normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
-            indent_size=2
+            indent_size=2,
         )
 
         # Load input from data file
@@ -51,14 +51,10 @@ class TestReadmeExamples:
 
     def test_block_inline_classification(self):
         """Test that our examples correctly demonstrate block vs inline element handling."""
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            inline_when=html_inline_elements(),
-            indent_size=2
-        )
+        formatter = Formatter(block_when=html_block_elements(), inline_when=html_inline_elements(), indent_size=2)
 
         # Test specific element classification used in our examples
-        test_html = '<ul><li>Text with <em>inline</em> and <strong>more inline</strong> <code>code</code></li></ul>'
+        test_html = "<ul><li>Text with <em>inline</em> and <strong>more inline</strong> <code>code</code></li></ul>"
         formatted = formatter.format_str(test_html)
 
         # ul and li should be block (indented), em/strong/code should be inline (same line)
@@ -70,14 +66,10 @@ class TestReadmeExamples:
 
     def test_mixed_content_in_lists(self):
         """Test the specific case mentioned: li with both text and sublist."""
-        formatter = Formatter(
-            block_when=html_block_elements(),
-            inline_when=html_inline_elements(),
-            indent_size=2
-        )
+        formatter = Formatter(block_when=html_block_elements(), inline_when=html_inline_elements(), indent_size=2)
 
         # This tests the exact scenario the user mentioned
-        test_html = '<ol><li>Item with text <ul><li>Subitem</li></ul></li></ol>'
+        test_html = "<ol><li>Item with text <ul><li>Subitem</li></ul></li></ol>"
         formatted = formatter.format_str(test_html)
 
         expected = """<ol>
@@ -107,8 +99,8 @@ class TestReadmeExamples:
     def test_complex_predicate_functionality(self):
         """Test that parameterized predicates work correctly with document structure."""
         # Test that the parameterized predicates can be created without errors
-        attr_predicate_factory = elements_with_attribute_values('role', 'navigation', 'complementary')
-        table_predicate_factory = table_cells_in_columns('price', 'currency')
+        attr_predicate_factory = elements_with_attribute_values("role", "navigation", "complementary")
+        table_predicate_factory = table_cells_in_columns("price", "currency")
 
         # These should be callable and return functions
         assert callable(attr_predicate_factory)

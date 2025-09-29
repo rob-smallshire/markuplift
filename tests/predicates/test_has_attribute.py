@@ -103,12 +103,12 @@ def test_has_attribute_case_sensitive():
 
 def test_has_attribute_with_namespaces():
     """Test has_attribute with namespaced attributes."""
-    xml = '''
+    xml = """
     <root xmlns:ns="http://example.com/ns">
         <div ns:custom="value">namespaced attribute</div>
         <span custom="value">regular attribute</span>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Test both Clark notation and regular attribute names

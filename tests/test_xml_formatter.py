@@ -37,20 +37,20 @@ class TestXmlFormatter:
         result = formatter.format_str(xml)
 
         # Should contain &#10; entities, not literal newlines
-        assert '&#10;' in result
-        assert '\n  color: green;' not in result
+        assert "&#10;" in result
+        assert "\n  color: green;" not in result
 
     def test_xml_formatter_strict_parsing(self):
         """Test that XmlFormatter requires well-formed XML."""
         formatter = XmlFormatter()
 
         # Well-formed XML should work
-        xml = '<root><child>content</child></root>'
+        xml = "<root><child>content</child></root>"
         result = formatter.format_str(xml)
-        assert '<root>' in result
+        assert "<root>" in result
 
         # Malformed XML should raise an exception
-        malformed_xml = '<root><child>content</root>'  # Missing closing tag
+        malformed_xml = "<root><child>content</root>"  # Missing closing tag
         with pytest.raises(Exception):  # Will be XMLSyntaxError from lxml
             formatter.format_str(malformed_xml)
 
@@ -58,32 +58,33 @@ class TestXmlFormatter:
         """Test that XmlFormatter doesn't add DOCTYPE declarations."""
         formatter = XmlFormatter()
 
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = formatter.format_str(xml)
 
         # XML parser should not add DOCTYPE
-        assert 'DOCTYPE' not in result
+        assert "DOCTYPE" not in result
 
     def test_xml_formatter_delegation(self):
         """Test that XmlFormatter properly delegates all methods."""
         formatter = XmlFormatter(block_when=tag_in("div"))
 
         # Test all public methods exist and work
-        xml = '<div>test</div>'
+        xml = "<div>test</div>"
 
         # format_str
         str_result = formatter.format_str(xml)
-        assert '<div>' in str_result
+        assert "<div>" in str_result
 
         # format_bytes
         bytes_result = formatter.format_bytes(xml.encode())
-        assert '<div>' in bytes_result
+        assert "<div>" in bytes_result
 
         # format_tree (need to create a tree first)
         from lxml import etree
+
         tree = etree.parse(BytesIO(xml.encode()))
         tree_result = formatter.format_tree(tree)
-        assert '<div>' in tree_result
+        assert "<div>" in tree_result
 
     def test_xml_formatter_vs_regular_formatter(self):
         """Test that XmlFormatter behaves identically to regular Formatter."""
@@ -106,8 +107,8 @@ class TestXmlFormatter:
 
         # Both should produce identical results (XML escaping by default)
         assert xml_result == regular_result
-        assert '&#10;' in xml_result
-        assert '\n  color: green;' not in xml_result
+        assert "&#10;" in xml_result
+        assert "\n  color: green;" not in xml_result
 
     def test_xml_formatter_backward_compatibility(self):
         """Test that existing Formatter behavior is preserved."""
@@ -128,9 +129,9 @@ class TestXmlFormatter:
 
         # Test various malformed XML cases
         test_cases = [
-            '<root><unclosed>',  # Unclosed tag
-            '<root><child></root>',  # Mismatched tags
-            '<root>text & more</root>',  # Unescaped ampersand
+            "<root><unclosed>",  # Unclosed tag
+            "<root><child></root>",  # Mismatched tags
+            "<root>text & more</root>",  # Unescaped ampersand
             '<root><child attr="unclosed>content</child></root>',  # Unclosed attribute
         ]
 
@@ -142,11 +143,11 @@ class TestXmlFormatter:
         """Test that XmlFormatter handles XML declarations properly."""
         formatter = XmlFormatter()
 
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
 
         # Test without XML declaration
         result_no_decl = formatter.format_str(xml)
-        assert '<?xml' not in result_no_decl
+        assert "<?xml" not in result_no_decl
 
         # Test with XML declaration
         result_with_decl = formatter.format_str(xml, xml_declaration=True)
@@ -154,17 +155,17 @@ class TestXmlFormatter:
 
         # Test with explicit False
         result_explicit_false = formatter.format_str(xml, xml_declaration=False)
-        assert '<?xml' not in result_explicit_false
+        assert "<?xml" not in result_explicit_false
 
     def test_xml_formatter_namespace_handling(self):
         """Test that XmlFormatter handles XML namespaces properly."""
         formatter = XmlFormatter()
 
-        xml_with_ns = '''<root xmlns:ns="http://example.com">
+        xml_with_ns = """<root xmlns:ns="http://example.com">
             <ns:child>content</ns:child>
-        </root>'''
+        </root>"""
 
         result = formatter.format_str(xml_with_ns)
         # lxml expands namespaces, so we look for the expanded form
-        assert 'http://example.com' in result
-        assert 'child>content' in result
+        assert "http://example.com" in result
+        assert "child>content" in result

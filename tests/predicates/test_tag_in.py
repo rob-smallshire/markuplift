@@ -128,14 +128,14 @@ def test_tag_in_case_sensitive():
 
 def test_tag_in_with_namespaces():
     """Test tag_in with namespaced elements."""
-    xml = '''
+    xml = """
     <root xmlns:ns="http://example.com/ns">
         <ns:div>namespaced div</ns:div>
         <div>regular div</div>
         <ns:span>namespaced span</ns:span>
         <p>paragraph</p>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Test matching both regular and namespaced elements

@@ -118,12 +118,12 @@ def print_tree_with_annotations(element, annotations, indent=0, title=None):
         print(banner)
         print(f"{title}:")
         print("-" * len(title))
-    ind = '  ' * indent
-    attribs = ' '.join(f'{k}="{v}"' for k, v in element.attrib.items())
+    ind = "  " * indent
+    attribs = " ".join(f'{k}="{v}"' for k, v in element.attrib.items())
     ann = annotations._annotations.get(element, {})
     ann_str = f" [annotations: {ann}]" if ann else ""
     print(f"{ind}<{element.tag}{' ' + attribs if attribs else ''}>{ann_str}")
-    text = (element.text or '').strip()
+    text = (element.text or "").strip()
     if text:
         print(f"{ind}  text: {text}")
     for child in element:
@@ -134,7 +134,7 @@ def print_tree_with_annotations(element, annotations, indent=0, title=None):
 
 
 def split_whitespace(s):
-    return [(' ' if k else ''.join(g)) for k, g in groupby(s, str.isspace)]
+    return [(" " if k else "".join(g)) for k, g in groupby(s, str.isspace)]
 
 
 def normalize_ws(s: str) -> str:
@@ -152,9 +152,9 @@ def normalize_ws(s: str) -> str:
 
 def has_xml_declaration_bytes(xml: bytes) -> bool:
     # Remove optional UTF-8 BOM and leading whitespace bytes
-    xml = xml.lstrip(b'\xef\xbb\xbf\r\n\t ')
+    xml = xml.lstrip(b"\xef\xbb\xbf\r\n\t ")
     # Match only the XML declaration at the very start (as bytes)
-    return bool(re.match(br'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))
+    return bool(re.match(rb'^<\?xml\s+version\s*=\s*["\']1\.[0-9]["\'].*\?>', xml, re.IGNORECASE))
 
 
 def html_friendly_quoteattr(value: str) -> str:
@@ -178,8 +178,8 @@ def html_friendly_quoteattr(value: str) -> str:
         '"Say &quot;hello&quot;"'
     """
     # Escape ampersands first to avoid double-escaping
-    escaped = value.replace('&', '&amp;')
+    escaped = value.replace("&", "&amp;")
     # Escape quotes
-    escaped = escaped.replace('"', '&quot;')
+    escaped = escaped.replace('"', "&quot;")
     # Return wrapped in quotes - literal newlines are preserved
     return f'"{escaped}"'

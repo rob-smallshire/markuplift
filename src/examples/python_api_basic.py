@@ -25,7 +25,7 @@ def format_documentation_example(input_file: Path):
     # - Inline elements: <em>, <strong>, <code>, <a>, etc. flow within text
     formatter = Html5Formatter(
         preserve_whitespace_when=tag_in("pre", "code"),  # Keep original spacing inside these
-        indent_size=2
+        indent_size=2,
     )
 
     # Load and format HTML from file
@@ -36,6 +36,7 @@ def format_documentation_example(input_file: Path):
 if __name__ == "__main__":
     # This allows the example to be run directly
     from pathlib import Path
+
     examples_dir = Path(__file__).parent.parent.parent / "tests" / "data" / "readme_examples"
     input_file = examples_dir / "documentation_example.html"
     print(format_documentation_example(str(input_file)))

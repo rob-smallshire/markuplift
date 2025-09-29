@@ -2,9 +2,8 @@ from inspect import cleandoc
 from lxml import etree
 import pytest
 
-from helpers.predicates import is_block_or_root, is_inline
 from markuplift.formatter import Formatter
-from markuplift.types import ElementPredicateFactory, ElementType
+from markuplift.types import ElementType
 
 
 def test_formatter_with_block_factory():
@@ -34,10 +33,7 @@ def test_formatter_with_inline_factory():
     def inline_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "span"
 
-    formatter = Formatter(
-        block_when=block_factory,
-        inline_when=inline_factory
-    )
+    formatter = Formatter(block_when=block_factory, inline_when=inline_factory)
     actual = formatter.format_str(example)
     expected = "<root><span>content</span></root>"
     assert actual == expected
@@ -58,10 +54,7 @@ def test_formatter_with_normalize_whitespace_factory():
     def normalize_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "p"
 
-    formatter = Formatter(
-        block_when=block_factory,
-        normalize_whitespace_when=normalize_factory
-    )
+    formatter = Formatter(block_when=block_factory, normalize_whitespace_when=normalize_factory)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -85,10 +78,7 @@ def test_formatter_with_preserve_whitespace_factory():
     def preserve_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "pre"
 
-    formatter = Formatter(
-        block_when=block_factory,
-        preserve_whitespace_when=preserve_factory
-    )
+    formatter = Formatter(block_when=block_factory, preserve_whitespace_when=preserve_factory)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -112,10 +102,7 @@ def test_formatter_with_strip_whitespace_factory():
     def strip_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "div"
 
-    formatter = Formatter(
-        block_when=block_factory,
-        strip_whitespace_when=strip_factory
-    )
+    formatter = Formatter(block_when=block_factory, strip_whitespace_when=strip_factory)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -135,10 +122,7 @@ def test_formatter_with_wrap_attributes_factory():
     def wrap_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "div"
 
-    formatter = Formatter(
-        block_when=block_factory,
-        wrap_attributes_when=wrap_factory
-    )
+    formatter = Formatter(block_when=block_factory, wrap_attributes_when=wrap_factory)
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -166,10 +150,7 @@ def test_formatter_with_text_formatters():
         # Simple mock formatter that adds spaces around braces
         return text.replace("{", " { ").replace("}", " } ")
 
-    formatter = Formatter(
-        block_when=block_factory,
-        reformat_text_when={code_factory: simple_js_formatter}
-    )
+    formatter = Formatter(block_when=block_factory, reformat_text_when={code_factory: simple_js_formatter})
     actual = formatter.format_str(example)
     expected = cleandoc("""
         <root>
@@ -206,7 +187,7 @@ def test_formatter_with_multiple_factories():
         block_when=block_factory,
         inline_when=inline_factory,
         normalize_whitespace_when=normalize_factory,
-        wrap_attributes_when=wrap_factory
+        wrap_attributes_when=wrap_factory,
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""
@@ -251,7 +232,7 @@ def test_formatter_with_none_factories():
         preserve_whitespace_when=None,
         strip_whitespace_when=None,
         wrap_attributes_when=None,
-        reformat_text_when=None
+        reformat_text_when=None,
     )
     actual = formatter.format_str(example)
 
@@ -289,11 +270,7 @@ def test_formatter_with_custom_defaults():
     def block_factory(root: etree._Element) -> callable:
         return lambda e: e.tag == "root"  # Only root is block
 
-    formatter = Formatter(
-        block_when=block_factory,
-        default_type=ElementType.INLINE,
-        indent_size=4
-    )
+    formatter = Formatter(block_when=block_factory, default_type=ElementType.INLINE, indent_size=4)
     actual = formatter.format_str(example)
 
     # Unknown element should be treated as block with 4-space indentation
@@ -307,6 +284,7 @@ def test_formatter_with_custom_defaults():
 
 def test_formatter_reuse_across_different_documents():
     """Test that a single Formatter instance can efficiently handle multiple different documents."""
+
     def block_factory(root: etree._Element) -> callable:
         # Factory that adapts to different document structures
         return lambda e: e.tag in ("html", "body", "div", "p", "root", "container", "item")
@@ -369,18 +347,18 @@ def test_formatter_factory_called_once_per_document_multi_use():
 
 def test_formatter_with_xpath_like_factory():
     """Test Formatter with factory that simulates XPath-based predicate creation."""
+
     def xpath_like_factory(root: etree._Element) -> callable:
         # Simulate XPath evaluation: find all elements with specific attributes
         elements_with_class = set()
         for elem in root.iter():
-            if 'class' in elem.attrib:
+            if "class" in elem.attrib:
                 elements_with_class.add(elem)
 
         return lambda e: e in elements_with_class
 
     formatter = Formatter(
-        block_when=lambda root: lambda e: e.tag in ("root", "div", "p"),
-        wrap_attributes_when=xpath_like_factory
+        block_when=lambda root: lambda e: e.tag in ("root", "div", "p"), wrap_attributes_when=xpath_like_factory
     )
 
     example = '<root><div class="styled">content</div><p>no class</p></root>'
@@ -398,13 +376,11 @@ def test_formatter_with_xpath_like_factory():
 
 def test_formatter_factory_exception_handling():
     """Test Formatter behavior when factory raises an exception."""
+
     def failing_factory(root: etree._Element) -> callable:
         raise ValueError("Factory failed")
 
-    formatter = Formatter(
-        block_when=lambda root: lambda e: e.tag == "root",
-        normalize_whitespace_when=failing_factory
-    )
+    formatter = Formatter(block_when=lambda root: lambda e: e.tag == "root", normalize_whitespace_when=failing_factory)
 
     example = "<root><p>text</p></root>"
 
@@ -415,6 +391,7 @@ def test_formatter_factory_exception_handling():
 
 def test_formatter_with_document_specific_predicates():
     """Test that factory predicates can make document-specific decisions."""
+
     def document_aware_factory(root: etree._Element) -> callable:
         # Different behavior based on document type
         if root.tag == "html":
@@ -453,6 +430,7 @@ def test_formatter_with_document_specific_predicates():
 
 def test_formatter_complex_text_formatter_factories():
     """Test Formatter with text formatters using factory-based predicate keys."""
+
     def code_factory(root: etree._Element) -> callable:
         # Find code elements with specific type attributes
         code_elements = set()
@@ -472,10 +450,7 @@ def test_formatter_complex_text_formatter_factories():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "code", "style"),
-        reformat_text_when={
-            code_factory: js_formatter,
-            css_factory: css_formatter
-        }
+        reformat_text_when={code_factory: js_formatter, css_factory: css_formatter},
     )
 
     example = cleandoc("""
@@ -496,6 +471,7 @@ def test_formatter_complex_text_formatter_factories():
 
 def test_formatter_with_namespace_aware_factory():
     """Test Formatter with factory that handles namespaced elements."""
+
     def namespace_factory(root: etree._Element) -> callable:
         # Find elements in specific namespaces
         ns_elements = set()
@@ -506,7 +482,7 @@ def test_formatter_with_namespace_aware_factory():
 
     formatter = Formatter(
         block_when=lambda root: lambda e: e.tag in ("root", "{http://example.com/ns}block"),
-        wrap_attributes_when=namespace_factory
+        wrap_attributes_when=namespace_factory,
     )
 
     example = '<root xmlns:ns="http://example.com/ns"><ns:block ns:attr="value">content</ns:block></root>'
@@ -514,25 +490,20 @@ def test_formatter_with_namespace_aware_factory():
 
     # Should wrap attributes for namespaced elements
     assert 'attr="value"' in result  # Namespace prefix stripped by lxml
-    assert result.count('\n') > 1  # Should have line breaks from attribute wrapping
+    assert result.count("\n") > 1  # Should have line breaks from attribute wrapping
 
 
 def test_formatter_empty_and_none_text_formatters():
     """Test Formatter behavior with empty and None text formatter dictionaries."""
+
     def block_factory(root: etree._Element) -> callable:
         return lambda e: e.tag in ("root", "code")
 
     # Test with empty dict
-    formatter1 = Formatter(
-        block_when=block_factory,
-        reformat_text_when={}
-    )
+    formatter1 = Formatter(block_when=block_factory, reformat_text_when={})
 
     # Test with None
-    formatter2 = Formatter(
-        block_when=block_factory,
-        reformat_text_when=None
-    )
+    formatter2 = Formatter(block_when=block_factory, reformat_text_when=None)
 
     example = "<root><code>unchanged text</code></root>"
     expected = cleandoc("""
@@ -559,8 +530,7 @@ def test_formatter_factory_predicate_consistency():
         return predicate
 
     formatter = Formatter(
-        block_when=lambda root: lambda e: e.tag in ("root", "div"),
-        wrap_attributes_when=logging_factory
+        block_when=lambda root: lambda e: e.tag in ("root", "div"), wrap_attributes_when=logging_factory
     )
 
     example = '<root><div important="true" class="test">content</div><div>other</div></root>'
@@ -568,7 +538,7 @@ def test_formatter_factory_predicate_consistency():
 
     # Verify the important div got attribute wrapping
     assert 'class="test"' in result
-    assert result.count('\n') > 2  # Should have attribute wrapping
+    assert result.count("\n") > 2  # Should have attribute wrapping
 
     # Verify predicate was called for elements during formatting
     assert "div" in evaluation_log

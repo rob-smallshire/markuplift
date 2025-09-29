@@ -26,7 +26,9 @@ from lxml import etree
 from markuplift.types import ElementPredicate, ElementType
 
 from markuplift.utilities import (
-    is_in_mixed_content, parent_is_annotated_with, normalize_ws,
+    is_in_mixed_content,
+    parent_is_annotated_with,
+    normalize_ws,
     siblings,
 )
 
@@ -41,7 +43,7 @@ WHITESPACE_ANNOTATION_KEY = "whitespace"
 PRESERVE_WHITESPACE_ANNOTATION = "preserve"
 NORMALIZE_WHITESPACE_ANNOTATION = "normalize"
 STRIP_WHITESPACE_ANNOTATION = "strip"  # Strip implies normalize
-STRICT_WHITESPACE_ANNOTATION = "strict" # No transformations at all
+STRICT_WHITESPACE_ANNOTATION = "strict"  # No transformations at all
 # If there is no value associated with WHITESPACE_ANNOTATION_KEY , the formatter can take action
 # contextually, e.g. based on whether the element is block or inline.
 
@@ -50,8 +52,8 @@ TYPE_ANNOTATION_KEY = "type"
 # contextually, e.g. based on whether the element is in mixed content or not.
 BLOCK_TYPES = {None, ElementType.BLOCK, ElementType.INLINE}
 
-class Annotations:
 
+class Annotations:
     def __init__(self):
         self._annotations: dict[etree._Element, dict[str, str]] = {}
 
@@ -60,7 +62,7 @@ class Annotations:
             self._annotations[element] = {}
         self._annotations[element][attribute_name] = attribute_value
 
-    def annotation(self, element: etree._Element, attribute_name: str, default: Any = None) ->Any:
+    def annotation(self, element: etree._Element, attribute_name: str, default: Any = None) -> Any:
         return self._annotations.get(element, {}).get(attribute_name, default)
 
 
@@ -79,7 +81,14 @@ def annotate_explicit_block_elements(
     annotations: Annotations,
     block_predicate: ElementPredicate,
 ):
-    annotate_matches(root, annotations, block_predicate, TYPE_ANNOTATION_KEY, ElementType.BLOCK, conflict_mode=AnnotationConflictMode.RAISE)
+    annotate_matches(
+        root,
+        annotations,
+        block_predicate,
+        TYPE_ANNOTATION_KEY,
+        ElementType.BLOCK,
+        conflict_mode=AnnotationConflictMode.RAISE,
+    )
 
 
 def annotate_explicit_inline_elements(
@@ -87,14 +96,28 @@ def annotate_explicit_inline_elements(
     annotations: Annotations,
     inline_predicate: ElementPredicate,
 ):
-    annotate_matches(root, annotations, inline_predicate, TYPE_ANNOTATION_KEY, ElementType.INLINE, conflict_mode=AnnotationConflictMode.RAISE)
+    annotate_matches(
+        root,
+        annotations,
+        inline_predicate,
+        TYPE_ANNOTATION_KEY,
+        ElementType.INLINE,
+        conflict_mode=AnnotationConflictMode.RAISE,
+    )
 
 
 def annotate_elements_in_mixed_content_as_inline(
     root: etree._Element,
     annotations: Annotations,
 ):
-    annotate_matches(root, annotations, is_in_mixed_content, TYPE_ANNOTATION_KEY, ElementType.INLINE, conflict_mode=AnnotationConflictMode.SKIP)
+    annotate_matches(
+        root,
+        annotations,
+        is_in_mixed_content,
+        TYPE_ANNOTATION_KEY,
+        ElementType.INLINE,
+        conflict_mode=AnnotationConflictMode.SKIP,
+    )
 
 
 def annotate_inline_descendants_as_inline(
@@ -105,7 +128,12 @@ def annotate_inline_descendants_as_inline(
     annotate_matches(
         root,
         annotations,
-        partial(parent_is_annotated_with, annotations=annotations, annotation_key=TYPE_ANNOTATION_KEY, annotation_value=ElementType.INLINE),
+        partial(
+            parent_is_annotated_with,
+            annotations=annotations,
+            annotation_key=TYPE_ANNOTATION_KEY,
+            annotation_value=ElementType.INLINE,
+        ),
         TYPE_ANNOTATION_KEY,
         ElementType.INLINE,
         conflict_mode=AnnotationConflictMode.SKIP,
@@ -125,11 +153,9 @@ def annotate_unmixed_block_descendants_as_block(
         annotations,
         lambda e: (
             parent_is_annotated_with(e, annotations, TYPE_ANNOTATION_KEY, ElementType.BLOCK)
-            and
-            (not is_in_mixed_content(e))
+            and (not is_in_mixed_content(e))
             and not any(
-                annotations.annotation(sibling, TYPE_ANNOTATION_KEY) == ElementType.INLINE
-                for sibling in siblings(e)
+                annotations.annotation(sibling, TYPE_ANNOTATION_KEY) == ElementType.INLINE for sibling in siblings(e)
             )
         ),
         TYPE_ANNOTATION_KEY,
@@ -155,11 +181,9 @@ def annotate_xml_space(
         annotations,
         lambda e: (
             e.get("{http://www.w3.org/XML/1998/namespace}space") == XML_SPACE_PRESERVE
-            or
-            (
+            or (
                 parent_is_annotated_with(e, annotations, WHITESPACE_ANNOTATION_KEY, STRICT_WHITESPACE_ANNOTATION)
-                and
-                e.get("{http://www.w3.org/XML/1998/namespace}space") != XML_SPACE_DEFAULT
+                and e.get("{http://www.w3.org/XML/1998/namespace}space") != XML_SPACE_DEFAULT
             )
         ),
         WHITESPACE_ANNOTATION_KEY,
@@ -179,7 +203,7 @@ def annotate_explicit_whitespace_preserving_elements(
         predicate,
         WHITESPACE_ANNOTATION_KEY,
         PRESERVE_WHITESPACE_ANNOTATION,
-        conflict_mode=AnnotationConflictMode.OVERWRITE
+        conflict_mode=AnnotationConflictMode.OVERWRITE,
     )
 
 
@@ -191,7 +215,12 @@ def annotate_whitespace_preserving_descendants_as_whitespace_preserving(
     annotate_matches(
         root,
         annotations,
-        partial(parent_is_annotated_with, annotations=annotations, annotation_key=WHITESPACE_ANNOTATION_KEY, annotation_value=PRESERVE_WHITESPACE_ANNOTATION),
+        partial(
+            parent_is_annotated_with,
+            annotations=annotations,
+            annotation_key=WHITESPACE_ANNOTATION_KEY,
+            annotation_value=PRESERVE_WHITESPACE_ANNOTATION,
+        ),
         WHITESPACE_ANNOTATION_KEY,
         PRESERVE_WHITESPACE_ANNOTATION,
         conflict_mode=AnnotationConflictMode.SKIP,
@@ -209,7 +238,7 @@ def annotate_explicit_whitespace_normalizing_elements(
         predicate,
         WHITESPACE_ANNOTATION_KEY,
         NORMALIZE_WHITESPACE_ANNOTATION,
-        conflict_mode=AnnotationConflictMode.OVERWRITE
+        conflict_mode=AnnotationConflictMode.OVERWRITE,
     )
 
 
@@ -224,7 +253,7 @@ def annotate_explicit_stripped_elements(
         predicate,
         WHITESPACE_ANNOTATION_KEY,
         STRIP_WHITESPACE_ANNOTATION,
-        conflict_mode=AnnotationConflictMode.OVERWRITE
+        conflict_mode=AnnotationConflictMode.OVERWRITE,
     )
 
 
@@ -296,9 +325,7 @@ def annotate_text_transforms(
         whitespace = annotations.annotation(elem, WHITESPACE_ANNOTATION_KEY)
         first_child = next(iter(elem), None)
         first_child_type = (
-            annotations.annotation(first_child, TYPE_ANNOTATION_KEY)
-            if (first_child is not None) else
-            None
+            annotations.annotation(first_child, TYPE_ANNOTATION_KEY) if (first_child is not None) else None
         )
 
         if whitespace not in {PRESERVE_WHITESPACE_ANNOTATION, STRICT_WHITESPACE_ANNOTATION}:
@@ -307,12 +334,9 @@ def annotate_text_transforms(
                 if whitespace == STRIP_WHITESPACE_ANNOTATION:
                     text_transforms.append(str.lstrip)
             if first_child_type == ElementType.BLOCK:
-                child_physical_level = annotations.annotation(
-                    first_child, PHYSICAL_LEVEL_ANNOTATION_KEY, 0
-                )
+                child_physical_level = annotations.annotation(first_child, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
                 text_transform = partial(
-                    transform_text_preceding_block, physical_level=child_physical_level,
-                    one_indent=one_indent
+                    transform_text_preceding_block, physical_level=child_physical_level, one_indent=one_indent
                 )
                 text_transforms.append(text_transform)
 
@@ -335,23 +359,15 @@ def annotate_tail_transforms(root, annotations, one_indent):
         # Tail text exists within the parent element, so we consider the parent's whitespace annotation
         # when determining how to transform the tail text.
         parent = elem.getparent()
-        parent_whitespace = (
-            annotations.annotation(parent, WHITESPACE_ANNOTATION_KEY)
-            if (parent is not None) else
-            None
-        )
+        parent_whitespace = annotations.annotation(parent, WHITESPACE_ANNOTATION_KEY) if (parent is not None) else None
 
         parent_physical_level = (
-            annotations.annotation(parent, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
-            if (parent is not None) else
-            0
+            annotations.annotation(parent, PHYSICAL_LEVEL_ANNOTATION_KEY, 0) if (parent is not None) else 0
         )
 
         next_sibling = elem.getnext()
         next_sibling_type = (
-            annotations.annotation(next_sibling, TYPE_ANNOTATION_KEY)
-            if (next_sibling is not None) else
-            None
+            annotations.annotation(next_sibling, TYPE_ANNOTATION_KEY) if (next_sibling is not None) else None
         )
 
         # We also don't need to consider the element's own whitespace annotation, since that only
@@ -368,20 +384,19 @@ def annotate_tail_transforms(root, annotations, one_indent):
             if elem_type == ElementType.BLOCK:
                 if next_sibling_type in {ElementType.BLOCK}:
                     text_transform = partial(
-                        transform_text_following_block, physical_level=parent_physical_level,
-                        one_indent=one_indent
+                        transform_text_following_block, physical_level=parent_physical_level, one_indent=one_indent
                     )
                     tail_transforms.append(text_transform)
                 elif next_sibling_type == ElementType.INLINE:
                     text_transform = partial(
-                        transform_text_following_block_preceding_inline, physical_level=parent_physical_level,
+                        transform_text_following_block_preceding_inline,
+                        physical_level=parent_physical_level,
                     )
                     tail_transforms.append(text_transform)  # Just add a newline before the text
                 else:
                     if parent is not None:
                         text_transform = partial(
-                            transform_text_following_block, physical_level=parent_physical_level,
-                            one_indent=one_indent
+                            transform_text_following_block, physical_level=parent_physical_level, one_indent=one_indent
                         )
                         tail_transforms.append(text_transform)
                     else:
@@ -392,17 +407,13 @@ def annotate_tail_transforms(root, annotations, one_indent):
 
             if next_sibling is not None:
                 if next_sibling_type == ElementType.BLOCK:
-                    sibling_physical_level = annotations.annotation(
-                        next_sibling, PHYSICAL_LEVEL_ANNOTATION_KEY, 0
-                    )
+                    sibling_physical_level = annotations.annotation(next_sibling, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
                     text_transform = partial(
-                        transform_text_preceding_block, physical_level=sibling_physical_level,
-                        one_indent=one_indent
+                        transform_text_preceding_block, physical_level=sibling_physical_level, one_indent=one_indent
                     )
                     tail_transforms.append(text_transform)
 
         annotations.annotate(elem, "tail_transforms", tail_transforms)
-
 
 
 def transform_text_preceding_block(text: str, physical_level: int, one_indent: str) -> str:
@@ -464,4 +475,3 @@ def annotate_matches(
                 elif conflict_mode == AnnotationConflictMode.OVERWRITE:
                     pass  # Overwrite annotation
             annotations.annotate(elem, annotation_key, annotation_value)
-

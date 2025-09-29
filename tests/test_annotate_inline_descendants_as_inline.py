@@ -10,8 +10,10 @@ from markuplift.annotation import (
 )
 from markuplift.types import ElementType
 
+
 def parse(xml):
     return etree.parse(StringIO(xml))
+
 
 def test_descendants_of_inline_element_are_annotated_inline():
     tree = parse("""
@@ -33,6 +35,7 @@ def test_descendants_of_inline_element_are_annotated_inline():
     assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+
 
 def test_descendants_already_block_remain_block():
     tree = parse("""
@@ -57,6 +60,7 @@ def test_descendants_already_block_remain_block():
     pi = inline.getchildren()[2]
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_mixed_content_descendants():
     tree = parse("""
     <root>
@@ -76,6 +80,7 @@ def test_mixed_content_descendants():
     assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+
 
 def test_deeply_nested_inline_with_block_descendant():
     tree = parse("""
@@ -101,6 +106,7 @@ def test_deeply_nested_inline_with_block_descendant():
     assert annotations.annotation(level2, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(level1, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_root_marked_inline_only_some_descendants_block():
     tree = parse("""
     <root>
@@ -122,6 +128,7 @@ def test_root_marked_inline_only_some_descendants_block():
     assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     assert annotations.annotation(comment, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+
 
 def test_block_prevents_inline_propagation_to_its_children():
     tree = parse("""

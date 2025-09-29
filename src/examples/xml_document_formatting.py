@@ -26,7 +26,7 @@ def format_xml_document_example(input_file: Path):
         inline_when=tag_in("emphasis", "code", "link"),
         preserve_whitespace_when=tag_in("code-block", "verbatim"),
         default_type=ElementType.BLOCK,  # Use enum for type safety
-        indent_size=2
+        indent_size=2,
     )
 
     # Format the XML document

@@ -1,9 +1,6 @@
 from lxml import etree
 
-from markuplift.predicates import (
-    tag_equals, tag_in, has_attribute, attribute_equals,
-    any_of, all_of, not_matching
-)
+from markuplift.predicates import tag_equals, tag_in, has_attribute, attribute_equals, any_of, all_of, not_matching
 
 
 def test_any_of_simple_combination():
@@ -28,14 +25,14 @@ def test_any_of_simple_combination():
 
 def test_any_of_with_attribute_predicates():
     """Test any_of combining attribute-based predicates."""
-    xml = '''
+    xml = """
     <root>
         <div class="test">has class</div>
         <div id="main">has id</div>
         <div class="other" id="secondary">has both</div>
         <div>has neither</div>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match elements with class OR id
@@ -68,13 +65,13 @@ def test_any_of_no_predicates():
 
 def test_all_of_simple_combination():
     """Test all_of combining simple predicates."""
-    xml = '''
+    xml = """
     <root>
         <div class="test">div with class</div>
         <div>div without class</div>
         <span class="test">span with class</span>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match div elements that also have class attribute
@@ -92,14 +89,14 @@ def test_all_of_simple_combination():
 
 def test_all_of_attribute_predicates():
     """Test all_of combining multiple attribute predicates."""
-    xml = '''
+    xml = """
     <root>
         <div class="test" id="main">has both</div>
         <div class="test">has class only</div>
         <div id="other">has id only</div>
         <div>has neither</div>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match elements with BOTH class AND id
@@ -116,21 +113,18 @@ def test_all_of_attribute_predicates():
 
 def test_all_of_specific_values():
     """Test all_of with specific attribute value predicates."""
-    xml = '''
+    xml = """
     <root>
         <div class="test" data-type="button">match</div>
         <div class="test" data-type="link">no match</div>
         <div class="other" data-type="button">no match</div>
         <div class="test">no match</div>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match elements with class="test" AND data-type="button"
-    factory = all_of(
-        attribute_equals("class", "test"),
-        attribute_equals("data-type", "button")
-    )
+    factory = all_of(attribute_equals("class", "test"), attribute_equals("data-type", "button"))
     predicate = factory(tree)
 
     divs = tree.findall("div")
@@ -177,13 +171,13 @@ def test_not_matching_simple_negation():
 
 def test_not_matching_attribute_negation():
     """Test not_matching with attribute predicate negation."""
-    xml = '''
+    xml = """
     <root>
         <div class="test">has class</div>
         <div>no class</div>
         <span class="other">has class</span>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match elements that do NOT have a class attribute
@@ -203,7 +197,7 @@ def test_not_matching_attribute_negation():
 
 def test_nested_combinators():
     """Test complex nested combinator predicates."""
-    xml = '''
+    xml = """
     <root>
         <div class="highlight" data-type="important">match1</div>
         <div class="normal" data-type="important">no match</div>
@@ -211,14 +205,14 @@ def test_nested_combinators():
         <div class="highlight">no match</div>
         <p class="highlight" data-type="important">match2</p>
     </root>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Match (div OR p) AND (has class="highlight") AND (has data-type="important")
     factory = all_of(
         any_of(tag_equals("div"), tag_equals("p")),
         attribute_equals("class", "highlight"),
-        attribute_equals("data-type", "important")
+        attribute_equals("data-type", "important"),
     )
     predicate = factory(tree)
 
@@ -253,7 +247,7 @@ def test_double_negation():
 
 def test_complex_real_world_scenario():
     """Test a complex real-world combinator scenario."""
-    xml = '''
+    xml = """
     <html>
         <head>
             <title>Page Title</title>
@@ -270,7 +264,7 @@ def test_complex_real_world_scenario():
             </div>
         </body>
     </html>
-    '''
+    """
     tree = etree.fromstring(xml)
 
     # Find content elements: (div OR p) AND (has class) AND NOT (in head section)
@@ -278,7 +272,7 @@ def test_complex_real_world_scenario():
     content_factory = all_of(
         any_of(tag_equals("div"), tag_equals("p")),
         has_attribute("class"),
-        not_matching(tag_in("title", "link", "script"))  # Exclude head elements
+        not_matching(tag_in("title", "link", "script")),  # Exclude head elements
     )
 
     predicate = content_factory(tree)

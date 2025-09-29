@@ -1,6 +1,5 @@
 from inspect import cleandoc
 
-from pytest import mark
 
 from helpers.predicates import is_inline, is_block_or_root
 from markuplift import DocumentFormatter
@@ -197,7 +196,7 @@ def test_comments_preserved_with_whitespace_normalization():
     formatter = DocumentFormatter(
         block_predicate=is_block_or_root,
         inline_predicate=is_inline,
-        normalize_whitespace_predicate=lambda e: tagname(e) == "block"
+        normalize_whitespace_predicate=lambda e: tagname(e) == "block",
     )
     actual = formatter.format_str(example)
     expected = cleandoc("""

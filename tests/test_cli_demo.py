@@ -4,8 +4,8 @@ This test generates CLI demo output using the actual MarkupLift CLI
 and captures the output using ApprovalTests infrastructure, allowing
 us to include verified CLI examples in the README.md.
 """
+
 import subprocess
-import tempfile
 from pathlib import Path
 
 from approvaltests import verify
@@ -55,7 +55,7 @@ class TestCLIDemo:
             ["uv", "run", "markuplift", "format", str(messy_config)],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
         add_output(result.stdout.strip())
         add_output("")
@@ -76,7 +76,7 @@ class TestCLIDemo:
             ["uv", "run", "markuplift", "format-html", str(messy_article), "--block", "//div | //section | //article"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
         add_output(result.stdout.strip())
         add_output("")
@@ -92,7 +92,7 @@ class TestCLIDemo:
             input=messy_config.read_text(),
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
         add_output("✅ Saved to formatted_config.xml:")
         add_output(result.stdout.strip())
@@ -103,4 +103,4 @@ class TestCLIDemo:
         add_output("✅ Demo complete!")
 
         # Use ApprovalTests to verify and capture the output
-        verify('\n'.join(output_lines))
+        verify("\n".join(output_lines))

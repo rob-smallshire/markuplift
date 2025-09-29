@@ -22,6 +22,7 @@ def test_data_path():
             with open(html_file) as f:
                 content = f.read()
     """
+
     def _get_test_data_path(filename: str) -> Path:
         """Get the full path to a test data file.
 

@@ -20,14 +20,19 @@ from markuplift.annotation import (
 
 # Import type aliases
 from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
+
 # Import standard predicates
 from markuplift.predicates import never_matches
+
 # Import escaping strategies
 from markuplift.escaping import EscapingStrategy, XmlEscapingStrategy
+
 # Import parsing strategies
 from markuplift.parsing import ParsingStrategy, XmlParsingStrategy
+
 # Import doctype strategies
 from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
+
 # Import attribute formatting strategies
 from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
@@ -117,7 +122,9 @@ class Formatter:
             raise ValueError(f"indent_size {self._indent_size} is less than 0")
 
         if self._default_type not in BLOCK_TYPES:
-            raise ValueError(f"default_type {self._default_type} is not one of '{', '.join(str(t) for t in BLOCK_TYPES)}'")
+            raise ValueError(
+                f"default_type {self._default_type} is not one of '{', '.join(str(t) for t in BLOCK_TYPES)}'"
+            )
 
     @property
     def indent_size(self) -> int:
@@ -128,6 +135,66 @@ class Formatter:
     def default_type(self) -> ElementType:
         """The default type for unclassified elements."""
         return self._default_type
+
+    @property
+    def block_when(self) -> ElementPredicateFactory:
+        """The predicate factory for block elements."""
+        return self._block_predicate_factory
+
+    @property
+    def inline_when(self) -> ElementPredicateFactory:
+        """The predicate factory for inline elements."""
+        return self._inline_predicate_factory
+
+    @property
+    def normalize_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace normalization."""
+        return self._normalize_predicate_factory
+
+    @property
+    def strip_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace stripping."""
+        return self._strip_predicate_factory
+
+    @property
+    def preserve_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace preservation."""
+        return self._preserve_predicate_factory
+
+    @property
+    def wrap_attributes_when(self) -> ElementPredicateFactory:
+        """The predicate factory for attribute wrapping."""
+        return self._wrap_attributes_factory
+
+    @property
+    def reformat_text_when(self) -> dict[ElementPredicateFactory, TextContentFormatter]:
+        """The dictionary mapping predicate factories to text content formatters."""
+        return self._text_content_formatter_factories
+
+    @property
+    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, TextContentFormatter]:
+        """The dictionary mapping attribute predicate factories to formatters."""
+        return self._attribute_content_formatter_factories
+
+    @property
+    def escaping_strategy(self) -> EscapingStrategy:
+        """The strategy for escaping text and attribute values."""
+        return self._escaping_strategy
+
+    @property
+    def parsing_strategy(self) -> ParsingStrategy:
+        """The strategy for parsing document content."""
+        return self._parsing_strategy
+
+    @property
+    def doctype_strategy(self) -> DoctypeStrategy:
+        """The strategy for handling DOCTYPE declarations."""
+        return self._doctype_strategy
+
+    @property
+    def attribute_strategy(self) -> AttributeFormattingStrategy:
+        """The strategy for formatting attributes."""
+        return self._attribute_strategy
 
     def format_file(self, file_path: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         """Format an XML document from a file path.
@@ -171,7 +238,9 @@ class Formatter:
         tree = self._parsing_strategy.parse_bytes(doc)
         return self.format_tree(tree, doctype, xml_declaration)
 
-    def format_tree(self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
+    def format_tree(
+        self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None
+    ) -> str:
         """Format an XML document from an lxml ElementTree.
 
         Args:
@@ -197,6 +266,91 @@ class Formatter:
         """
         doc_formatter = self._create_document_formatter(root)
         return doc_formatter.format_element(root, doctype)
+
+    def derive(
+        self,
+        *,
+        block_when: ElementPredicateFactory | None = None,
+        inline_when: ElementPredicateFactory | None = None,
+        normalize_whitespace_when: ElementPredicateFactory | None = None,
+        strip_whitespace_when: ElementPredicateFactory | None = None,
+        preserve_whitespace_when: ElementPredicateFactory | None = None,
+        wrap_attributes_when: ElementPredicateFactory | None = None,
+        reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        escaping_strategy: EscapingStrategy | None = None,
+        parsing_strategy: ParsingStrategy | None = None,
+        doctype_strategy: DoctypeStrategy | None = None,
+        attribute_strategy: AttributeFormattingStrategy | None = None,
+        indent_size: Optional[int] = None,
+        default_type: ElementType | None = None,
+    ) -> "Formatter":
+        """Create a new Formatter derived from this one with selective modifications.
+
+        This factory method creates a new Formatter instance that inherits all settings
+        from the current formatter except for those explicitly provided as arguments.
+        This allows easy customization without having to respecify all parameters.
+
+        Args:
+            block_when: Predicate factory for block elements (uses current if None).
+            inline_when: Predicate factory for inline elements (uses current if None).
+            normalize_whitespace_when: Predicate factory for whitespace normalization (uses current if None).
+            strip_whitespace_when: Predicate factory for whitespace stripping (uses current if None).
+            preserve_whitespace_when: Predicate factory for whitespace preservation (uses current if None).
+            wrap_attributes_when: Predicate factory for attribute wrapping (uses current if None).
+            reformat_text_when: Dictionary mapping predicate factories to formatters (uses current if None).
+            reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
+            escaping_strategy: Strategy for escaping text and attribute values (uses current if None).
+            parsing_strategy: Strategy for parsing document content (uses current if None).
+            doctype_strategy: Strategy for handling DOCTYPE declarations (uses current if None).
+            attribute_strategy: Strategy for formatting attributes (uses current if None).
+            indent_size: Number of spaces per indentation level (uses current if None).
+            default_type: Default type for unclassified elements (uses current if None).
+
+        Returns:
+            A new Formatter instance with the specified modifications.
+
+        Example:
+            >>> from markuplift import Formatter
+            >>> from markuplift.predicates import tag_in
+            >>>
+            >>> # Create a base formatter
+            >>> base = Formatter(block_when=tag_in("div", "p"))
+            >>>
+            >>> # Derive a new formatter with additional block elements
+            >>> extended = base.derive(block_when=tag_in("div", "p", "section", "article"))
+            >>>
+            >>> # Create another variant with different indentation
+            >>> compact = base.derive(indent_size=0)
+        """
+        return type(self)(
+            block_when=block_when if block_when is not None else self._block_predicate_factory,
+            inline_when=inline_when if inline_when is not None else self._inline_predicate_factory,
+            normalize_whitespace_when=normalize_whitespace_when
+            if normalize_whitespace_when is not None
+            else self._normalize_predicate_factory,
+            strip_whitespace_when=strip_whitespace_when
+            if strip_whitespace_when is not None
+            else self._strip_predicate_factory,
+            preserve_whitespace_when=preserve_whitespace_when
+            if preserve_whitespace_when is not None
+            else self._preserve_predicate_factory,
+            wrap_attributes_when=wrap_attributes_when
+            if wrap_attributes_when is not None
+            else self._wrap_attributes_factory,
+            reformat_text_when=reformat_text_when
+            if reformat_text_when is not None
+            else self._text_content_formatter_factories,
+            reformat_attribute_when=reformat_attribute_when
+            if reformat_attribute_when is not None
+            else self._attribute_content_formatter_factories,
+            escaping_strategy=escaping_strategy if escaping_strategy is not None else self._escaping_strategy,
+            parsing_strategy=parsing_strategy if parsing_strategy is not None else self._parsing_strategy,
+            doctype_strategy=doctype_strategy if doctype_strategy is not None else self._doctype_strategy,
+            attribute_strategy=attribute_strategy if attribute_strategy is not None else self._attribute_strategy,
+            indent_size=indent_size if indent_size is not None else self._indent_size,
+            default_type=default_type if default_type is not None else self._default_type,
+        )
 
     def _create_document_formatter(self, root: etree._Element) -> DocumentFormatter:
         """Create a DocumentFormatter with concrete predicates for the given root.

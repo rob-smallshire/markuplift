@@ -3,6 +3,7 @@ from typename import typename
 
 from markuplift.utilities import siblings
 
+
 # Helper to get node types for assertion clarity
 def node_type(node):
     if isinstance(node, etree._Comment):

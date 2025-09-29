@@ -32,6 +32,7 @@ class ElementType(Enum):
         BLOCK: Block-level elements that introduce line breaks
         INLINE: Inline elements that flow with text content
     """
+
     BLOCK = "block"
     INLINE = "inline"
 
@@ -39,6 +40,7 @@ class ElementType(Enum):
 # Type alias for element predicate functions
 # The function takes an XML element (etree._Element) and returns a boolean.
 ElementPredicate = Callable[[etree._Element], bool]
+
 
 # Protocol for element predicate factory functions
 # Supports both function types and PredicateFactory class instances
@@ -48,6 +50,7 @@ class ElementPredicateFactory(Protocol):
     This protocol allows both function types and PredicateFactory class instances
     to be used interchangeably, supporting proper structural typing.
     """
+
     def __call__(self, root: etree._Element) -> ElementPredicate: ...
 
 
@@ -67,6 +70,7 @@ ValueMatcher = Union[str, Pattern[str], Callable[[str], bool]]
 # The function takes an XML element, attribute name, and attribute value, and returns a boolean.
 AttributePredicate = Callable[[etree._Element, str, str], bool]
 
+
 # Protocol for attribute predicate factory functions
 # Supports both function types and callable classes that create AttributePredicate functions
 class AttributePredicateFactory(Protocol):
@@ -75,4 +79,5 @@ class AttributePredicateFactory(Protocol):
     This protocol allows both function types and callable class instances
     to be used interchangeably, supporting proper structural typing.
     """
+
     def __call__(self, root: etree._Element) -> AttributePredicate: ...

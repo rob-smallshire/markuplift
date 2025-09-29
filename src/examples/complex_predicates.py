@@ -32,12 +32,13 @@ def elements_with_attribute_values(attribute_name: str, *values: str) -> Element
         ...     wrap_attributes_when=elements_with_attribute_values('type', 'email', 'password', 'url')
         ... )
     """
+
     def create_document_predicate(root) -> ElementPredicate:
         # Pre-scan document to find all matching elements
         matching_elements = set()
 
         for element in root.iter():
-            attr_value = element.get(attribute_name, '')
+            attr_value = element.get(attribute_name, "")
             if attr_value:
                 # Check if any of the target values appear in the attribute
                 attr_words = attr_value.lower().split()
@@ -76,39 +77,40 @@ def table_cells_in_columns(*column_types: str) -> ElementPredicateFactory:
         ...     preserve_whitespace_when=table_cells_in_columns('date', 'time', 'timestamp')
         ... )
     """
+
     def create_document_predicate(root) -> ElementPredicate:
         matching_elements = set()
 
         # Find all tables and analyze their column structure
-        for table in root.iter('table'):
+        for table in root.iter("table"):
             column_classes = []
 
             # Method 1: Check <col> elements for column classes
-            colgroup = table.find('colgroup')
+            colgroup = table.find("colgroup")
             if colgroup is not None:
-                for col in colgroup.findall('col'):
-                    col_class = col.get('class', '')
+                for col in colgroup.findall("col"):
+                    col_class = col.get("class", "")
                     column_classes.append(col_class.lower().split())
 
             # Method 2: Check header row for column classes
             if not column_classes:
-                thead = table.find('thead')
+                thead = table.find("thead")
                 if thead is not None:
-                    header_row = thead.find('tr')
+                    header_row = thead.find("tr")
                     if header_row is not None:
-                        for th in header_row.findall('th'):
-                            th_class = th.get('class', '')
+                        for th in header_row.findall("th"):
+                            th_class = th.get("class", "")
                             column_classes.append(th_class.lower().split())
 
             # If we found column structure, match cells in target columns
             if column_classes:
-                for row in table.iter('tr'):
-                    cells = row.findall('td') + row.findall('th')
+                for row in table.iter("tr"):
+                    cells = row.findall("td") + row.findall("th")
                     for col_index, cell in enumerate(cells):
                         if col_index < len(column_classes):
                             cell_classes = column_classes[col_index]
                             # Also check the cell's own class attribute
-                            cell_own_classes = cell.get('class', '').lower().split()
+                            cell_own_classes = cell.get("class", "").lower().split()
                             all_classes = cell_classes + cell_own_classes
 
                             # Check if any column type matches
@@ -129,9 +131,9 @@ if __name__ == "__main__":
 
     # Create formatter with parameterized predicates
     formatter = Html5Formatter(
-        preserve_whitespace_when=code_with_language('python', 'yaml'),
-        normalize_whitespace_when=elements_in_containers_with_class('sidebar', 'highlight'),
-        indent_size=2
+        preserve_whitespace_when=code_with_language("python", "yaml"),
+        normalize_whitespace_when=elements_in_containers_with_class("sidebar", "highlight"),
+        indent_size=2,
     )
 
     print("Parameterized predicate examples created successfully!")

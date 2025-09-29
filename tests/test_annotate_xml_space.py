@@ -1,7 +1,8 @@
-import pytest
 from lxml import etree
 from markuplift.annotation import (
-    annotate_xml_space, Annotations, WHITESPACE_ANNOTATION_KEY,
+    annotate_xml_space,
+    Annotations,
+    WHITESPACE_ANNOTATION_KEY,
     STRICT_WHITESPACE_ANNOTATION,
 )
 
@@ -11,7 +12,7 @@ def get_annotated_nodes(tree, annotations, key, value):
 
 
 def test_propagation_from_root():
-    xml = '''<root xml:space="preserve"><a><b/></a><c/></root>'''
+    xml = """<root xml:space="preserve"><a><b/></a><c/></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
@@ -20,7 +21,7 @@ def test_propagation_from_root():
 
 
 def test_override_by_descendant():
-    xml = '''<root xml:space="preserve"><a xml:space="default"><b/></a><c/></root>'''
+    xml = """<root xml:space="preserve"><a xml:space="default"><b/></a><c/></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
@@ -33,7 +34,7 @@ def test_override_by_descendant():
 
 
 def test_mixed_propagation():
-    xml = '''<root><a xml:space="preserve"><b/></a><c xml:space="default"><d/></c></root>'''
+    xml = """<root><a xml:space="preserve"><b/></a><c xml:space="default"><d/></c></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
@@ -45,7 +46,7 @@ def test_mixed_propagation():
 
 
 def test_no_xml_space():
-    xml = '''<root><a><b/></a><c/></root>'''
+    xml = """<root><a><b/></a><c/></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
@@ -54,7 +55,7 @@ def test_no_xml_space():
 
 
 def test_multiple_nested_overrides():
-    xml = '''<root xml:space="preserve"><a xml:space="default"><b xml:space="preserve"/></a><c/></root>'''
+    xml = """<root xml:space="preserve"><a xml:space="default"><b xml:space="preserve"/></a><c/></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
@@ -66,7 +67,7 @@ def test_multiple_nested_overrides():
 
 
 def test_non_element_nodes():
-    xml = '''<root xml:space="preserve"><a><!-- comment --></a><?pi test?><b/></root>'''
+    xml = """<root xml:space="preserve"><a><!-- comment --></a><?pi test?><b/></root>"""
     tree = etree.fromstring(xml)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)

@@ -5,10 +5,13 @@ from inspect import cleandoc
 
 from markuplift import Formatter
 from markuplift.predicates import (
-    has_attribute, tag_in, html_block_elements, html_inline_elements, has_significant_content,
-    supports_attributes, PredicateFactory
+    has_attribute,
+    tag_in,
+    html_block_elements,
+    html_inline_elements,
+    has_significant_content,
+    PredicateFactory,
 )
-from markuplift.types import ElementPredicateFactory
 
 
 def test_decorator_returns_predicate_factory():
@@ -40,14 +43,14 @@ def test_backward_compatibility_as_callable():
     p_element = root.find(".//p")
 
     assert has_class_predicate(div_element) is True  # div has class attribute
-    assert has_class_predicate(p_element) is False   # p has no class attribute
+    assert has_class_predicate(p_element) is False  # p has no class attribute
 
-    assert div_p_predicate(div_element) is True      # div matches tag_in
-    assert div_p_predicate(p_element) is True       # p matches tag_in
-    assert div_p_predicate(root) is False           # root doesn't match
+    assert div_p_predicate(div_element) is True  # div matches tag_in
+    assert div_p_predicate(p_element) is True  # p matches tag_in
+    assert div_p_predicate(root) is False  # root doesn't match
 
-    assert block_predicate(div_element) is True     # div is block element
-    assert block_predicate(p_element) is True       # p is block element
+    assert block_predicate(div_element) is True  # div is block element
+    assert block_predicate(p_element) is True  # p is block element
 
 
 def test_chaining_functionality():
@@ -85,7 +88,7 @@ def test_chaining_in_formatter_usage():
         reformat_attribute_when={
             # Use chained predicate: match p tags that have style attribute
             tag_in("p").with_attribute("style"): style_formatter
-        }
+        },
     )
 
     result = formatter.format_str(xml)
@@ -111,7 +114,7 @@ def test_chaining_with_regex_patterns():
         reformat_attribute_when={
             # Chain: div elements with data-config attributes containing JSON-like content
             tag_in("div").with_attribute("data-config", re.compile(r".*\{.*\}.*")): config_formatter
-        }
+        },
     )
 
     result = formatter.format_str(xml)
@@ -162,8 +165,8 @@ def test_multiple_chaining_levels():
             # Complex chain: div with role="main" that also has style attribute
             tag_in("div").with_attribute("role", "main"): lambda v, f, l: v,  # This won't match style
             # More specific: any element with both role and style
-            html_block_elements().with_attribute("style"): format_main_content
-        }
+            html_block_elements().with_attribute("style"): format_main_content,
+        },
     )
 
     result = formatter.format_str(xml)
@@ -173,7 +176,6 @@ def test_multiple_chaining_levels():
 def test_non_decorated_functions_still_work():
     """Test that non-decorated functions still return ElementPredicateFactory and work normally."""
     from markuplift.predicates import attribute_equals, is_element
-    from markuplift.types import ElementPredicateFactory
     from lxml import etree
 
     # Test non-decorated functions still return ElementPredicateFactory
@@ -234,23 +236,31 @@ def test_chaining_type_safety():
 def test_all_chaining_functions_use_decorator_consistently():
     """Test that all functions supporting chaining use the @supports_attributes decorator consistently."""
     from markuplift.predicates import (
-        matches_xpath, tag_equals, tag_name, has_class, any_element,
-        has_attribute, tag_in, html_block_elements, html_inline_elements, has_significant_content,
-        PredicateFactory
+        matches_xpath,
+        tag_equals,
+        tag_name,
+        has_class,
+        any_element,
+        has_attribute,
+        tag_in,
+        html_block_elements,
+        html_inline_elements,
+        has_significant_content,
+        PredicateFactory,
     )
 
     # All functions that support chaining should return PredicateFactory
     chaining_functions = [
-        matches_xpath('//div'),
-        tag_equals('div'),
-        tag_name('div'),
-        has_class('test'),
+        matches_xpath("//div"),
+        tag_equals("div"),
+        tag_name("div"),
+        has_class("test"),
         any_element(),
-        has_attribute('class'),
-        tag_in('div', 'p'),
+        has_attribute("class"),
+        tag_in("div", "p"),
         html_block_elements(),
         html_inline_elements(),
-        has_significant_content()
+        has_significant_content(),
     ]
 
     for func_result in chaining_functions:

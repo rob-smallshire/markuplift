@@ -5,10 +5,7 @@ import pytest
 from inspect import cleandoc
 
 from markuplift import Formatter
-from markuplift.predicates import (
-    attribute_matches, has_class, html_block_elements,
-    tag_in, any_element, has_attribute
-)
+from markuplift.predicates import attribute_matches, html_block_elements, tag_in, any_element
 
 
 def test_function_matcher_with_attribute_matches():
@@ -17,16 +14,14 @@ def test_function_matcher_with_attribute_matches():
 
     def complex_style_checker(value):
         """Check if style has 4+ CSS properties."""
-        return value.count(';') >= 3
+        return value.count(";") >= 3
 
     def uppercase_formatter(value, formatter, level):
         return value.upper()
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag == 'div',
-        reformat_attribute_when={
-            attribute_matches("style", complex_style_checker): uppercase_formatter
-        }
+        block_when=lambda root: lambda el: el.tag == "div",
+        reformat_attribute_when={attribute_matches("style", complex_style_checker): uppercase_formatter},
     )
 
     result = formatter.format_str(xml)
@@ -49,18 +44,18 @@ def test_function_matcher_with_chaining():
 
     def complex_style(value):
         """Check if style has multiple properties."""
-        return value.count(';') >= 2
+        return value.count(";") >= 2
 
     def add_prefix(value, formatter, level):
         return f"formatted-{value}"
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag in ['div', 'p'],
+        block_when=lambda root: lambda el: el.tag in ["div", "p"],
         reformat_attribute_when={
             # Chain element predicate with function matcher
             tag_in("p").with_attribute("class", has_multiple_classes): add_prefix,
-            tag_in("p").with_attribute("style", complex_style): add_prefix
-        }
+            tag_in("p").with_attribute("style", complex_style): add_prefix,
+        },
     )
 
     result = formatter.format_str(xml)
@@ -86,7 +81,9 @@ def test_function_matcher_error_handling():
     from lxml import etree
 
     # Test non-boolean return (wrapped in RuntimeError)
-    with pytest.raises(RuntimeError, match="Error in attribute_value matcher function: Matcher function must return bool"):
+    with pytest.raises(
+        RuntimeError, match="Error in attribute_value matcher function: Matcher function must return bool"
+    ):
         attribute_predicate_factory = attribute_matches("class", bad_matcher_non_bool)
         root = etree.Element("root")
         attribute_predicate = attribute_predicate_factory(root)  # Get the attribute predicate
@@ -119,17 +116,15 @@ def test_function_matcher_with_lambda():
         return f"[MATCHED]{value}"
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag == 'div',
+        block_when=lambda root: lambda el: el.tag == "div",
         reformat_attribute_when={
             # Match classes containing "required"
             any_element().with_attribute("class", lambda v: "required" in v): add_marker,
-
             # Match maxlength > 75
             any_element().with_attribute("maxlength", lambda v: int(v) > 75): add_marker,
-
             # Match attribute names starting with "max"
-            any_element().with_attribute(lambda n: n.startswith("max"), lambda v: True): add_marker
-        }
+            any_element().with_attribute(lambda n: n.startswith("max"), lambda v: True): add_marker,
+        },
     )
 
     result = formatter.format_str(xml)
@@ -153,22 +148,24 @@ def test_function_matcher_css_semicolon_counting():
 
     def css_multiline_formatter(value, formatter, level):
         """Format CSS as multiline."""
-        properties = [prop.strip() for prop in value.split(';') if prop.strip()]
+        properties = [prop.strip() for prop in value.split(";") if prop.strip()]
         base_indent = formatter.one_indent * level
         property_indent = formatter.one_indent * (level + 1)
         formatted_props = [f"{property_indent}{prop}" for prop in properties]
-        return '\n' + ';\n'.join(formatted_props) + '\n' + base_indent
+        return "\n" + ";\n".join(formatted_props) + "\n" + base_indent
 
     def has_many_css_properties(value, min_props=4):
         """Check if CSS has many properties."""
-        return value.count(';') >= min_props - 1
+        return value.count(";") >= min_props - 1
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag in ['div', 'p'],
+        block_when=lambda root: lambda el: el.tag in ["div", "p"],
         reformat_attribute_when={
             # Only format complex styles (4+ properties)
-            html_block_elements().with_attribute("style", lambda v: has_many_css_properties(v, 4)): css_multiline_formatter
-        }
+            html_block_elements().with_attribute(
+                "style", lambda v: has_many_css_properties(v, 4)
+            ): css_multiline_formatter
+        },
     )
 
     result = formatter.format_str(xml)
@@ -178,7 +175,7 @@ def test_function_matcher_css_semicolon_counting():
     assert 'style="color: blue; background: white;"' in result
 
     # Complex style should be multiline (contains encoded newlines)
-    assert '&#10;' in result  # Contains encoded newlines (XML-strict)
+    assert "&#10;" in result  # Contains encoded newlines (XML-strict)
 
 
 def test_mixed_matcher_types():
@@ -195,17 +192,15 @@ def test_mixed_matcher_types():
         return f"*{value}*"
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag == 'div',
+        block_when=lambda root: lambda el: el.tag == "div",
         reformat_attribute_when={
             # String matcher
             attribute_matches("href", "https://example.com"): mark_formatted,
-
             # Regex matcher
             attribute_matches("data-config", re.compile(r".*theme.*")): mark_formatted,
-
             # Function matcher
-            attribute_matches("class", lambda v: v.startswith("btn")): mark_formatted
-        }
+            attribute_matches("class", lambda v: v.startswith("btn")): mark_formatted,
+        },
     )
 
     result = formatter.format_str(xml)
@@ -239,12 +234,12 @@ def test_function_matcher_edge_cases():
         return f"[{value}]" if value else "[EMPTY]"
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag == 'div',
+        block_when=lambda root: lambda el: el.tag == "div",
         reformat_attribute_when={
             attribute_matches("class", empty_string_checker): mark_matched,
             attribute_matches("style", always_true): mark_matched,
             attribute_matches("data-empty", always_false): mark_matched,  # This won't match
-        }
+        },
     )
 
     result = formatter.format_str(xml)
@@ -287,14 +282,13 @@ def test_backward_compatibility():
         return f"[{value}]"
 
     formatter = Formatter(
-        block_when=lambda root: lambda el: el.tag == 'div',
+        block_when=lambda root: lambda el: el.tag == "div",
         reformat_attribute_when={
             # String matching (existing functionality)
             attribute_matches("class", "btn-primary"): mark_matched,
-
             # Regex matching (existing functionality)
             attribute_matches("href", re.compile(r"^https://")): mark_matched,
-        }
+        },
     )
 
     result = formatter.format_str(xml)

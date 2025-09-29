@@ -47,9 +47,12 @@ from typing import Union, Optional, Callable
 
 # Import type aliases
 from markuplift.types import (
-    ElementPredicate, ElementPredicateFactory,
-    AttributePredicate, AttributePredicateFactory,
-    NameMatcher, ValueMatcher
+    ElementPredicate,
+    ElementPredicateFactory,
+    AttributePredicate,
+    AttributePredicateFactory,
+    NameMatcher,
+    ValueMatcher,
 )
 
 
@@ -59,13 +62,12 @@ class PredicateError(Exception):
     This exception is raised when there are issues with predicate factory
     parameters or configuration, such as invalid XPath expressions.
     """
+
     pass
 
 
 def _create_matcher(
-    value: Union[str, Pattern[str], Callable[[str], bool], None],
-    matcher_name: str,
-    allow_none: bool = False
+    value: Union[str, Pattern[str], Callable[[str], bool], None], matcher_name: str, allow_none: bool = False
 ) -> Callable[[str], bool]:
     """Create optimized matcher function for string/pattern/function matching.
 
@@ -109,6 +111,7 @@ def _create_matcher(
                 return result
             except Exception as e:
                 raise RuntimeError(f"Error in {matcher_name} matcher function: {e}") from e
+
         return safe_matcher
     else:
         allowed = "str, re.Pattern, or callable" + (", or None" if allow_none else "")  # type: ignore[unreachable]
@@ -162,11 +165,7 @@ class PredicateFactory:
         """
         return self._factory_func(root)
 
-    def with_attribute(
-        self,
-        name: NameMatcher,
-        value: Optional[ValueMatcher] = None
-    ) -> AttributePredicateFactory:
+    def with_attribute(self, name: NameMatcher, value: Optional[ValueMatcher] = None) -> AttributePredicateFactory:
         """Chain to create attribute predicate for specific attribute.
 
         Args:
@@ -209,11 +208,10 @@ class PredicateFactory:
 
             def predicate(element: etree._Element, attr_name: str, attr_value: str) -> bool:
                 # Must match element predicate first and then use pre-compiled matchers
-                return (element_predicate(element) and
-                        name_matcher(attr_name) and
-                        value_matcher(attr_value))
+                return element_predicate(element) and name_matcher(attr_name) and value_matcher(attr_value)
 
             return predicate
+
         return attribute_factory
 
 
@@ -326,8 +324,9 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
 
             # Validate that list results contain only elements
             if xpath_results and not all(isinstance(item, etree._Element) for item in xpath_results):
-                non_element_types = {type(item).__name__ for item in xpath_results
-                                   if not isinstance(item, etree._Element)}
+                non_element_types = {
+                    type(item).__name__ for item in xpath_results if not isinstance(item, etree._Element)
+                }
                 raise PredicateError(
                     f"XPath '{xpath_expr}' returned non-element results: {non_element_types}. "
                     f"Only element-returning XPath expressions are supported."
@@ -360,9 +359,11 @@ def tag_equals(tag: str) -> ElementPredicateFactory:
         PredicateError: If the tag name is invalid
     """
     _validate_tag_name(tag)
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag == tag
+
         return element_predicate
 
     return create_document_predicate
@@ -404,10 +405,12 @@ def has_class(class_name: str) -> ElementPredicateFactory:
         has_class("widget")
         has_class("btn-primary").with_attribute("onclick")
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             classes = element.get("class", "").split()
             return class_name in classes
+
         return element_predicate
 
     return create_document_predicate
@@ -446,6 +449,7 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag in tag_set
+
         return element_predicate
 
     return create_document_predicate
@@ -478,6 +482,7 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return attr in element.attrib
+
         return element_predicate
 
     return create_document_predicate
@@ -497,9 +502,11 @@ def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
         PredicateError: If the attribute name is invalid
     """
     _validate_attribute_name(attr)
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.get(attr) == value
+
         return element_predicate
 
     return create_document_predicate
@@ -519,9 +526,11 @@ def attribute_count_min(min_count: int) -> ElementPredicateFactory:
     """
     if min_count < 0:
         raise PredicateError(f"Minimum count must be non-negative, got {min_count}")
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return len(element.attrib) >= min_count
+
         return element_predicate
 
     return create_document_predicate
@@ -541,9 +550,11 @@ def attribute_count_max(max_count: int) -> ElementPredicateFactory:
     """
     if max_count < 0:
         raise PredicateError(f"Maximum count must be non-negative, got {max_count}")
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return len(element.attrib) <= max_count
+
         return element_predicate
 
     return create_document_predicate
@@ -573,6 +584,7 @@ def attribute_count_between(min_count: int, max_count: int) -> ElementPredicateF
         def element_predicate(element: etree._Element) -> bool:
             attr_count = len(element.attrib)
             return min_count <= attr_count <= max_count
+
         return element_predicate
 
     return create_document_predicate
@@ -584,9 +596,11 @@ def is_comment() -> ElementPredicateFactory:
     Returns:
         An element predicate factory that matches comment nodes
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return isinstance(element, etree._Comment)
+
         return element_predicate
 
     return create_document_predicate
@@ -606,6 +620,7 @@ def is_processing_instruction(target: str = None) -> ElementPredicateFactory:
     """
     if target == "":
         raise PredicateError("Processing instruction target cannot be empty (use None for any target)")
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             if not isinstance(element, etree._ProcessingInstruction):
@@ -613,6 +628,7 @@ def is_processing_instruction(target: str = None) -> ElementPredicateFactory:
             if target is None:
                 return True
             return element.target == target
+
         return element_predicate
 
     return create_document_predicate
@@ -624,9 +640,13 @@ def is_element() -> ElementPredicateFactory:
     Returns:
         An element predicate factory that matches regular elements
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            return isinstance(element, etree._Element) and not isinstance(element, (etree._Comment, etree._ProcessingInstruction))
+            return isinstance(element, etree._Element) and not isinstance(
+                element, (etree._Comment, etree._ProcessingInstruction)
+            )
+
         return element_predicate
 
     return create_document_predicate
@@ -645,6 +665,7 @@ def has_significant_content() -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return has_direct_significant_text(element)
+
         return element_predicate
 
     return create_document_predicate
@@ -661,6 +682,7 @@ def has_no_significant_content() -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return not has_direct_significant_text(element)
+
         return element_predicate
 
     return create_document_predicate
@@ -677,6 +699,7 @@ def has_mixed_content() -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return is_in_mixed_content(element)
+
         return element_predicate
 
     return create_document_predicate
@@ -688,9 +711,11 @@ def has_child_elements() -> ElementPredicateFactory:
     Returns:
         An element predicate factory that matches elements with child elements
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return len(element) > 0
+
         return element_predicate
 
     return create_document_predicate
@@ -720,20 +745,27 @@ def html_block_elements() -> ElementPredicateFactory:
         css_block_elements(),
         tag_in(
             # Document structure elements
-            "html", "head", "body", "title",
+            "html",
+            "head",
+            "body",
+            "title",
             # Metadata elements
-            "meta", "link",
+            "meta",
+            "link",
             # Scripting elements
             "script",
             # Table structure elements (missing from CSS block)
-            "tbody", "thead", "tr",
+            "tbody",
+            "thead",
+            "tr",
             # Interactive elements
-            "details", "dialog",
+            "details",
+            "dialog",
             # Grouping elements
             "hgroup",
             # Preserved content elements
-            "pre"
-        )
+            "pre",
+        ),
     )
 
 
@@ -745,14 +777,39 @@ def html_inline_elements() -> ElementPredicateFactory:
         An element predicate factory that matches common HTML inline elements
     """
     INLINE_ELEMENTS = {
-        "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data", "dfn", "em",
-        "i", "kbd", "mark", "q", "ruby", "s", "samp", "small", "span", "strong", "sub",
-        "sup", "time", "u", "var", "wbr"
+        "a",
+        "abbr",
+        "b",
+        "bdi",
+        "bdo",
+        "br",
+        "cite",
+        "code",
+        "data",
+        "dfn",
+        "em",
+        "i",
+        "kbd",
+        "mark",
+        "q",
+        "ruby",
+        "s",
+        "samp",
+        "small",
+        "span",
+        "strong",
+        "sub",
+        "sup",
+        "time",
+        "u",
+        "var",
+        "wbr",
     }
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag in INLINE_ELEMENTS
+
         return element_predicate
 
     return create_document_predicate
@@ -765,13 +822,26 @@ def html_void_elements() -> ElementPredicateFactory:
         An element predicate factory that matches HTML void elements
     """
     VOID_ELEMENTS = {
-        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
-        "param", "source", "track", "wbr"
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
     }
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag in VOID_ELEMENTS
+
         return element_predicate
 
     return create_document_predicate
@@ -788,6 +858,7 @@ def html_whitespace_significant_elements() -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag in WHITESPACE_SIGNIFICANT
+
         return element_predicate
 
     return create_document_predicate
@@ -804,6 +875,7 @@ def html_metadata_elements() -> ElementPredicateFactory:
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
             return element.tag in METADATA_ELEMENTS
+
         return element_predicate
 
     return create_document_predicate
@@ -829,12 +901,39 @@ def css_block_elements() -> ElementPredicateFactory:
             css_block_elements().with_attribute("id", re.compile(r"main|content"))
     """
     return tag_in(
-        "address", "article", "aside", "blockquote", "canvas",
-        "dd", "div", "dl", "dt",
-        "fieldset", "figcaption", "figure", "footer", "form",
-        "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
-        "li", "main", "nav", "noscript",
-        "ol", "p", "section", "table", "tfoot", "ul", "video"
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "canvas",
+        "dd",
+        "div",
+        "dl",
+        "dt",
+        "fieldset",
+        "figcaption",
+        "figure",
+        "footer",
+        "form",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hr",
+        "li",
+        "main",
+        "nav",
+        "noscript",
+        "ol",
+        "p",
+        "section",
+        "table",
+        "tfoot",
+        "ul",
+        "video",
     )
 
 
@@ -855,11 +954,13 @@ def any_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
         # Match elements with class OR id attributes
         factory = any_of(has_attribute("class"), has_attribute("id"))
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         predicates = [factory(root) for factory in predicate_factories]
 
         def element_predicate(element: etree._Element) -> bool:
             return any(pred(element) for pred in predicates)
+
         return element_predicate
 
     return create_document_predicate
@@ -884,11 +985,13 @@ def all_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
             attribute_equals("data-type", "primary")
         )
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         predicates = [factory(root) for factory in predicate_factories]
 
         def element_predicate(element: etree._Element) -> bool:
             return all(pred(element) for pred in predicates)
+
         return element_predicate
 
     return create_document_predicate
@@ -913,11 +1016,13 @@ def not_matching(predicate_factory: ElementPredicateFactory) -> ElementPredicate
         # Complex: Match elements that are NOT (div AND have class)
         factory = not_matching(all_of(tag_equals("div"), has_attribute("class")))
     """
+
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         predicate = predicate_factory(root)
 
         def element_predicate(element: etree._Element) -> bool:
             return not predicate(element)
+
         return element_predicate
 
     return create_document_predicate
@@ -953,10 +1058,7 @@ def never_matches(root: etree._Element) -> ElementPredicate:
 
 
 # Direct attribute functions for "any element" scenarios
-def attribute_matches(
-    name: NameMatcher,
-    value: Optional[ValueMatcher] = None
-) -> AttributePredicateFactory:
+def attribute_matches(name: NameMatcher, value: Optional[ValueMatcher] = None) -> AttributePredicateFactory:
     """Match attributes on any element by name and optionally by value.
 
     This function creates AttributePredicateFactory instances that match
@@ -1003,6 +1105,7 @@ def attribute_matches(
             return name_matcher(attr_name) and value_matcher(attr_value)
 
         return predicate
+
     return factory
 
 

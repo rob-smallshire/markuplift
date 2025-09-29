@@ -10,7 +10,13 @@ from markuplift.formatter import Formatter
 from markuplift.escaping import HtmlEscapingStrategy
 from markuplift.parsing import HtmlParsingStrategy
 from markuplift.doctype import Html5DoctypeStrategy
-from markuplift.predicates import html_block_elements, html_inline_elements, html_whitespace_significant_elements, not_matching, css_block_elements, all_of
+from markuplift.predicates import (
+    html_block_elements,
+    html_inline_elements,
+    html_whitespace_significant_elements,
+    not_matching,
+    all_of,
+)
 from markuplift.attribute_formatting import Html5AttributeStrategy
 from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
 
@@ -94,10 +100,7 @@ class Html5Formatter:
         if preserve_whitespace_when is None:
             preserve_whitespace_when = html_whitespace_significant_elements()
         if strip_whitespace_when is None:
-            strip_whitespace_when = all_of(
-                html_block_elements(),
-                not_matching(html_whitespace_significant_elements())
-            )
+            strip_whitespace_when = all_of(html_block_elements(), not_matching(html_whitespace_significant_elements()))
 
         # Pre-configure HTML5-friendly strategies
         self._formatter = Formatter(
@@ -115,6 +118,134 @@ class Html5Formatter:
             attribute_strategy=Html5AttributeStrategy(),
             indent_size=indent_size,
             default_type=default_type,
+        )
+
+    @property
+    def block_when(self) -> ElementPredicateFactory:
+        """The predicate factory for block elements."""
+        return self._formatter.block_when
+
+    @property
+    def inline_when(self) -> ElementPredicateFactory:
+        """The predicate factory for inline elements."""
+        return self._formatter.inline_when
+
+    @property
+    def normalize_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace normalization."""
+        return self._formatter.normalize_whitespace_when
+
+    @property
+    def strip_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace stripping."""
+        return self._formatter.strip_whitespace_when
+
+    @property
+    def preserve_whitespace_when(self) -> ElementPredicateFactory:
+        """The predicate factory for whitespace preservation."""
+        return self._formatter.preserve_whitespace_when
+
+    @property
+    def wrap_attributes_when(self) -> ElementPredicateFactory:
+        """The predicate factory for attribute wrapping."""
+        return self._formatter.wrap_attributes_when
+
+    @property
+    def reformat_text_when(self) -> dict[ElementPredicateFactory, TextContentFormatter]:
+        """The dictionary mapping predicate factories to text content formatters."""
+        return self._formatter.reformat_text_when
+
+    @property
+    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, TextContentFormatter]:
+        """The dictionary mapping attribute predicate factories to formatters."""
+        return self._formatter.reformat_attribute_when
+
+    @property
+    def indent_size(self) -> int:
+        """The number of spaces used for each indentation level."""
+        return self._formatter.indent_size
+
+    @property
+    def default_type(self) -> ElementType:
+        """The default type for unclassified elements."""
+        return self._formatter.default_type
+
+    def derive(
+        self,
+        *,
+        block_when: ElementPredicateFactory | None = None,
+        inline_when: ElementPredicateFactory | None = None,
+        normalize_whitespace_when: ElementPredicateFactory | None = None,
+        strip_whitespace_when: ElementPredicateFactory | None = None,
+        preserve_whitespace_when: ElementPredicateFactory | None = None,
+        wrap_attributes_when: ElementPredicateFactory | None = None,
+        reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        indent_size: Optional[int] = None,
+        default_type: ElementType | None = None,
+    ) -> "Html5Formatter":
+        """Create a new Html5Formatter derived from this one with selective modifications.
+
+        This factory method creates a new Html5Formatter instance that inherits all settings
+        from the current formatter except for those explicitly provided as arguments.
+        This maintains the HTML5-specific strategies (parsing, escaping, doctype, attributes)
+        while allowing customization of element classification and formatting rules.
+
+        Args:
+            block_when: Predicate factory for block elements (uses current if None).
+            inline_when: Predicate factory for inline elements (uses current if None).
+            normalize_whitespace_when: Predicate factory for whitespace normalization (uses current if None).
+            strip_whitespace_when: Predicate factory for whitespace stripping (uses current if None).
+            preserve_whitespace_when: Predicate factory for whitespace preservation (uses current if None).
+            wrap_attributes_when: Predicate factory for attribute wrapping (uses current if None).
+            reformat_text_when: Dictionary mapping predicate factories to formatters (uses current if None).
+            reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
+            indent_size: Number of spaces per indentation level (uses current if None).
+            default_type: Default type for unclassified elements (uses current if None).
+
+        Returns:
+            A new Html5Formatter instance with the specified modifications.
+
+        Note:
+            The HTML5-specific strategies (parsing, escaping, doctype, attributes) are
+            preserved and cannot be overridden through this method, ensuring HTML5
+            compliance is maintained.
+
+        Example:
+            >>> from markuplift import Html5Formatter
+            >>> from markuplift.predicates import tag_in, all_of
+            >>>
+            >>> # Create a base HTML5 formatter with defaults
+            >>> base = Html5Formatter()
+            >>>
+            >>> # Derive a formatter with custom block elements while keeping HTML5 defaults
+            >>> custom = base.derive(
+            ...     block_when=all_of(base.block_when, tag_in("custom-block"))
+            ... )
+        """
+        return Html5Formatter(
+            block_when=block_when if block_when is not None else self._formatter.block_when,
+            inline_when=inline_when if inline_when is not None else self._formatter.inline_when,
+            normalize_whitespace_when=normalize_whitespace_when
+            if normalize_whitespace_when is not None
+            else self._formatter.normalize_whitespace_when,
+            strip_whitespace_when=strip_whitespace_when
+            if strip_whitespace_when is not None
+            else self._formatter.strip_whitespace_when,
+            preserve_whitespace_when=preserve_whitespace_when
+            if preserve_whitespace_when is not None
+            else self._formatter.preserve_whitespace_when,
+            wrap_attributes_when=wrap_attributes_when
+            if wrap_attributes_when is not None
+            else self._formatter.wrap_attributes_when,
+            reformat_text_when=reformat_text_when
+            if reformat_text_when is not None
+            else self._formatter.reformat_text_when,
+            reformat_attribute_when=reformat_attribute_when
+            if reformat_attribute_when is not None
+            else self._formatter.reformat_attribute_when,
+            indent_size=indent_size if indent_size is not None else self._formatter.indent_size,
+            default_type=default_type if default_type is not None else self._formatter.default_type,
         )
 
     def format_file(self, file_path: str, doctype: str | None = None) -> str:

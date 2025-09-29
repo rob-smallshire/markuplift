@@ -24,7 +24,7 @@ def format_article_example(input_file: Path):
     formatter = Html5Formatter(
         preserve_whitespace_when=tag_in("pre", "code"),
         normalize_whitespace_when=any_of(tag_in("p", "li", "h1", "h2", "h3"), html_inline_elements()),
-        indent_size=2
+        indent_size=2,
     )
 
     # Format real-world messy HTML directly from file

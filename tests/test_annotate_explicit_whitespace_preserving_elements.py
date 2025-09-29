@@ -5,13 +5,16 @@ from markuplift.annotation import (
     WHITESPACE_ANNOTATION_KEY,
     Annotations,
     annotate_explicit_whitespace_preserving_elements,
-    annotate_xml_space, annotate_whitespace_preserving_descendants_as_whitespace_preserving,
+    annotate_xml_space,
+    annotate_whitespace_preserving_descendants_as_whitespace_preserving,
     STRICT_WHITESPACE_ANNOTATION,
 )
 from markuplift.utilities import tagname
 
+
 def parse(xml):
     return etree.parse(StringIO(xml))
+
 
 def test_explicit_preserve_on_element():
     tree = parse("""
@@ -28,6 +31,7 @@ def test_explicit_preserve_on_element():
     assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
     assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) is None
 
+
 def test_explicit_preserve_on_multiple_elements():
     tree = parse("""
     <root>
@@ -37,10 +41,19 @@ def test_explicit_preserve_on_multiple_elements():
     </root>
     """)
     annotations = Annotations()
-    annotate_explicit_whitespace_preserving_elements(tree, annotations, lambda e: tagname(e) in {"preserve1", "preserve2"})
-    assert annotations.annotation(tree.getroot().find("preserve1"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
-    assert annotations.annotation(tree.getroot().find("preserve2"), WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
+    annotate_explicit_whitespace_preserving_elements(
+        tree, annotations, lambda e: tagname(e) in {"preserve1", "preserve2"}
+    )
+    assert (
+        annotations.annotation(tree.getroot().find("preserve1"), WHITESPACE_ANNOTATION_KEY)
+        == PRESERVE_WHITESPACE_ANNOTATION
+    )
+    assert (
+        annotations.annotation(tree.getroot().find("preserve2"), WHITESPACE_ANNOTATION_KEY)
+        == PRESERVE_WHITESPACE_ANNOTATION
+    )
     assert annotations.annotation(tree.getroot().find("normal"), WHITESPACE_ANNOTATION_KEY) is None
+
 
 def test_explicit_preserve_on_comment_and_pi():
     tree = parse("""
@@ -51,9 +64,12 @@ def test_explicit_preserve_on_comment_and_pi():
     </root>
     """)
     annotations = Annotations()
+
     def predicate(e):
         from lxml import etree
+
         return isinstance(e, (etree._Comment, etree._ProcessingInstruction))
+
     annotate_explicit_whitespace_preserving_elements(tree, annotations, predicate)
     comment = tree.getroot().getchildren()[0]
     pi = tree.getroot().getchildren()[1]
@@ -108,8 +124,12 @@ def test_xml_space_preserve_takes_precedence():
     # xml:space="preserve" must take precedence
     assert annotations.annotation(preserve, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
     assert annotations.annotation(preserve_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
-    assert annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION  # predicate matched
-    assert annotations.annotation(normal_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION  # xml:space wins
+    assert (
+        annotations.annotation(normal, WHITESPACE_ANNOTATION_KEY) == PRESERVE_WHITESPACE_ANNOTATION
+    )  # predicate matched
+    assert (
+        annotations.annotation(normal_child, WHITESPACE_ANNOTATION_KEY) == STRICT_WHITESPACE_ANNOTATION
+    )  # xml:space wins
 
 
 def test_explicit_and_xml_space_preserve_combined():

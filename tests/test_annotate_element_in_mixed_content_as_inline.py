@@ -3,8 +3,10 @@ from lxml import etree
 from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_elements_in_mixed_content_as_inline
 from markuplift.types import ElementType
 
+
 def parse(xml):
     return etree.parse(StringIO(xml))
+
 
 def test_no_mixed_content():
     tree = parse("""
@@ -20,6 +22,7 @@ def test_no_mixed_content():
     for elem in tree.getroot():
         assert annotations.annotation(elem, TYPE_ANNOTATION_KEY) is None
 
+
 def test_mixed_content_with_text():
     tree = parse("""
     <root>
@@ -31,6 +34,7 @@ def test_mixed_content_with_text():
     for elem in tree.getroot():
         assert annotations.annotation(elem, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_mixed_content_with_whitespace_only():
     tree = parse("""
     <root>
@@ -41,6 +45,7 @@ def test_mixed_content_with_whitespace_only():
     annotate_elements_in_mixed_content_as_inline(tree, annotations)
     for elem in tree.getroot():
         assert annotations.annotation(elem, TYPE_ANNOTATION_KEY) is None
+
 
 def test_mixed_content_with_some_block_annotated():
     tree = parse("""
@@ -58,6 +63,7 @@ def test_mixed_content_with_some_block_annotated():
         if elem is not block:
             assert annotations.annotation(elem, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_mixed_content_with_comment_and_pi_annotated_block():
     tree = parse("""
     <root>
@@ -66,8 +72,8 @@ def test_mixed_content_with_comment_and_pi_annotated_block():
     """)
     annotations = Annotations()
     comment = tree.getroot()[0]  # comment node
-    pi = tree.getroot()[1]       # PI node
-    block = tree.getroot()[2]    # block node
+    pi = tree.getroot()[1]  # PI node
+    block = tree.getroot()[2]  # block node
     annotations.annotate(comment, TYPE_ANNOTATION_KEY, ElementType.BLOCK)
     annotations.annotate(pi, TYPE_ANNOTATION_KEY, ElementType.BLOCK)
     annotate_elements_in_mixed_content_as_inline(tree, annotations)
@@ -75,6 +81,7 @@ def test_mixed_content_with_comment_and_pi_annotated_block():
     assert annotations.annotation(pi, TYPE_ANNOTATION_KEY) == ElementType.BLOCK
     assert annotations.annotation(block, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(tree.getroot()[3], TYPE_ANNOTATION_KEY) == ElementType.INLINE
+
 
 def test_elements_interleaved_with_non_significant_text():
     tree = parse("""

@@ -3,7 +3,7 @@ from io import StringIO
 
 from lxml import etree
 
-from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_explicit_block_elements, AnnotationConflictError, AnnotationConflictMode
+from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_explicit_block_elements
 from markuplift.types import ElementType
 from markuplift.utilities import tagname, siblings
 from markuplift.predicates import never_match
@@ -24,11 +24,15 @@ def test_root_matches_block_annotation():
 
 
 def test_child_matches_block_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <child/>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: e.tag == "child")
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -37,12 +41,16 @@ def test_child_matches_block_annotation():
 
 
 def test_multiple_children_match_block_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <child1/>
             <child2/>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: e.tag in {"child1", "child2"})
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -53,13 +61,17 @@ def test_multiple_children_match_block_annotation():
 
 
 def test_some_children_match_block_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <child1/>
             <child2/>
             <child3/>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: e.tag in {"child1", "child3"})
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -72,11 +84,15 @@ def test_some_children_match_block_annotation():
 
 
 def test_comment_matches_block_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <!-- A comment -->
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: isinstance(e, etree._Comment))
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -86,11 +102,15 @@ def test_comment_matches_block_annotation():
 
 
 def test_processing_instruction_matches_block_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <?pi data?>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(tree, annotations, lambda e: isinstance(e, etree._ProcessingInstruction))
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -100,15 +120,19 @@ def test_processing_instruction_matches_block_annotation():
 
 
 def test_complex_block_annotation_predicate_processing_instruction_as_sibling_of_div_matches():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
     <root>
         <?pi data?>
         <div/>
     </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_block_elements(
         tree,
         annotations,
-        lambda e: isinstance(e, etree._ProcessingInstruction) and "div" in {tagname(sib) for sib in siblings(e)}
+        lambda e: isinstance(e, etree._ProcessingInstruction) and "div" in {tagname(sib) for sib in siblings(e)},
     )

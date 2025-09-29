@@ -25,7 +25,12 @@ from .document_formatter import DocumentFormatter
 from .html5_formatter import Html5Formatter
 from .xml_formatter import XmlFormatter
 from .doctype import DoctypeStrategy, Html5DoctypeStrategy, XmlDoctypeStrategy, NullDoctypeStrategy
-from .attribute_formatting import AttributeFormattingStrategy, Html5AttributeStrategy, XmlAttributeStrategy, NullAttributeStrategy
+from .attribute_formatting import (
+    AttributeFormattingStrategy,
+    Html5AttributeStrategy,
+    XmlAttributeStrategy,
+    NullAttributeStrategy,
+)
 from .types import (
     AttributePredicate,
     AttributePredicateFactory,
@@ -35,6 +40,7 @@ from .types import (
     NameMatcher,
     ValueMatcher,
 )
+
 # Legacy constants removed - use ElementType.BLOCK and ElementType.INLINE instead
 from .predicates import (
     all_of,

@@ -2,7 +2,7 @@ import jsbeautifier
 from approvaltests import verify
 
 from markuplift import Html5Formatter, XmlFormatter, ElementType
-from markuplift.predicates import html_block_elements, any_of, all_of, tag_in, attribute_matches, attribute_count_min
+from markuplift.predicates import html_block_elements, any_of, all_of, tag_in, attribute_count_min
 
 
 def test_generated_html(test_data_path):
@@ -21,27 +21,23 @@ def test_generated_html(test_data_path):
                     parent = element.getparent()
                     return parent is not None and html_block_pred(parent)
                 return False
+
             return element_predicate
+
         return create_document_predicate
 
     # Custom block predicate that extends html_block_elements with img logic
-    custom_block_elements = any_of(
-        html_block_elements(),
-        img_block_when_parent_block()
-    )
+    custom_block_elements = any_of(html_block_elements(), img_block_when_parent_block())
 
     formatter = Html5Formatter(
         block_when=custom_block_elements,
         strip_whitespace_when=tag_in("title", "h1", "h2", "h3", "p", "li"),
         preserve_whitespace_when=tag_in("style", "pre"),
         wrap_attributes_when=all_of(tag_in("link"), attribute_count_min(3)),
-        reformat_text_when={
-            tag_in("script"): beautify_js
-        }
+        reformat_text_when={tag_in("script"): beautify_js},
     )
     actual = formatter.format_str(original)
     verify(actual)
-
 
 
 def test_xml_doc(test_data_path):
@@ -61,9 +57,7 @@ def test_xml_doc(test_data_path):
     verify(actual)
 
 
-
 def beautify_js(text: str, formatter, physical_indent_level: int) -> str:
-
     text = text or ""
     if text.strip() == "":
         return ""

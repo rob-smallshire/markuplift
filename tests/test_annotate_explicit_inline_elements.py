@@ -3,9 +3,15 @@ from io import StringIO
 
 from lxml import etree
 
-from markuplift.annotation import TYPE_ANNOTATION_KEY, Annotations, annotate_explicit_inline_elements, AnnotationConflictError, AnnotationConflictMode
+from markuplift.annotation import (
+    TYPE_ANNOTATION_KEY,
+    Annotations,
+    annotate_explicit_inline_elements,
+    AnnotationConflictError,
+)
 from markuplift.types import ElementType
 from markuplift.predicates import never_match
+
 
 def test_no_matches_no_annotation():
     tree = etree.parse(StringIO("<root/>"))
@@ -13,31 +19,42 @@ def test_no_matches_no_annotation():
     annotate_explicit_inline_elements(tree, annotations, never_match)
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
 
+
 def test_root_matches_inline_annotation():
     tree = etree.parse(StringIO("<root/>"))
     annotations = Annotations()
     annotate_explicit_inline_elements(tree, annotations, lambda e: e.tag == "root")
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_child_matches_inline_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <child/>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_inline_elements(tree, annotations, lambda e: e.tag == "child")
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
     child = tree.getroot().find("child")
     assert annotations.annotation(child, TYPE_ANNOTATION_KEY) == ElementType.INLINE
 
+
 def test_multiple_children_match_inline_annotation():
-    tree = etree.parse(StringIO(cleandoc("""
+    tree = etree.parse(
+        StringIO(
+            cleandoc("""
         <root>
             <child1/>
             <child2/>
         </root>
-    """)))
+    """)
+        )
+    )
     annotations = Annotations()
     annotate_explicit_inline_elements(tree, annotations, lambda e: e.tag in {"child1", "child2"})
     assert annotations.annotation(tree.getroot(), TYPE_ANNOTATION_KEY) is None
@@ -45,6 +62,7 @@ def test_multiple_children_match_inline_annotation():
     child2 = tree.getroot().find("child2")
     assert annotations.annotation(child1, TYPE_ANNOTATION_KEY) == ElementType.INLINE
     assert annotations.annotation(child2, TYPE_ANNOTATION_KEY) == ElementType.INLINE
+
 
 def test_annotation_conflict():
     tree = etree.parse(StringIO("<root/>"))
@@ -58,4 +76,3 @@ def test_annotation_conflict():
         assert "previously marked as ElementType.BLOCK" in str(e)
     else:
         assert False, "AnnotationConflictError not raised"
-

@@ -20,7 +20,7 @@ def num_css_properties(style_value: str) -> int:
         >>> num_css_properties("color: red;")
         1
     """
-    return len([prop.strip() for prop in style_value.split(';') if prop.strip()])
+    return len([prop.strip() for prop in style_value.split(";") if prop.strip()])
 
 
 def css_multiline_formatter(value, formatter, level):
@@ -41,11 +41,11 @@ def css_multiline_formatter(value, formatter, level):
         Input:  "color: green; background: black; margin: 10px; padding: 5px"
         Output: "\\n    color: green;\\n    background: black;\\n    margin: 10px;\\n    padding: 5px\\n  "
     """
-    properties = [prop.strip() for prop in value.split(';') if prop.strip()]
+    properties = [prop.strip() for prop in value.split(";") if prop.strip()]
     base_indent = formatter.one_indent * level
     property_indent = formatter.one_indent * (level + 1)
     formatted_props = [f"{property_indent}{prop}" for prop in properties]
-    return '\n' + ';\n'.join(formatted_props) + '\n' + base_indent
+    return "\n" + ";\n".join(formatted_props) + "\n" + base_indent
 
 
 def format_attribute_formatting_example(input_file):
@@ -61,7 +61,6 @@ def format_attribute_formatting_example(input_file):
     Returns:
         str: The formatted HTML output
     """
-    from pathlib import Path
     from markuplift import Html5Formatter
     from markuplift.predicates import html_block_elements
 

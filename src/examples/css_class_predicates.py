@@ -31,7 +31,7 @@ def has_css_class(class_name: str) -> ElementPredicateFactory:
     # Level 1: Configuration and validation
     if not class_name or not class_name.strip():
         raise PredicateError("CSS class name cannot be empty")
-    if ' ' in class_name:
+    if " " in class_name:
         raise PredicateError("CSS class name cannot contain spaces")
 
     clean_class = class_name.strip()
@@ -40,12 +40,14 @@ def has_css_class(class_name: str) -> ElementPredicateFactory:
         # Level 2: Document-specific preparation - find all matching elements once
         matching_elements = set()
         for element in root.iter():
-            class_attr = element.get('class', '')
+            class_attr = element.get("class", "")
             if class_attr and clean_class in class_attr.split():
                 matching_elements.add(element)
 
         def element_predicate(element) -> bool:
             # Level 3: Fast membership test
             return element in matching_elements
+
         return element_predicate
+
     return create_document_predicate

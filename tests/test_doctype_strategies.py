@@ -7,8 +7,13 @@ for different document formats.
 
 from lxml import etree
 from markuplift import (
-    Formatter, Html5Formatter, XmlFormatter,
-    DoctypeStrategy, Html5DoctypeStrategy, XmlDoctypeStrategy, NullDoctypeStrategy
+    Formatter,
+    Html5Formatter,
+    XmlFormatter,
+    DoctypeStrategy,
+    Html5DoctypeStrategy,
+    XmlDoctypeStrategy,
+    NullDoctypeStrategy,
 )
 
 
@@ -54,14 +59,14 @@ class TestFormatterDoctypeIntegration:
         formatter = Formatter()
 
         # Should not automatically add DOCTYPE to complete documents
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = formatter.format_str(xml)
-        assert 'DOCTYPE' not in result
+        assert "DOCTYPE" not in result
 
         # Should preserve existing DOCTYPE
-        xml_with_doctype = '<!DOCTYPE root>\n<root>content</root>'
+        xml_with_doctype = "<!DOCTYPE root>\n<root>content</root>"
         result = formatter.format_str(xml_with_doctype)
-        assert '<!DOCTYPE root>' in result
+        assert "<!DOCTYPE root>" in result
 
     def test_html5_formatter_uses_html5_strategy_by_default(self):
         """Test that Html5Formatter uses Html5DoctypeStrategy by default."""
@@ -69,22 +74,22 @@ class TestFormatterDoctypeIntegration:
 
         # HTML parser adds DOCTYPE automatically, but our strategy ensures HTML5 DOCTYPE
         # when formatting complete documents
-        html = '<div>content</div>'
+        html = "<div>content</div>"
         result = formatter.format_str(html)
 
         # lxml HTML parser automatically adds HTML 4.0 DOCTYPE, but our strategy
         # should ensure HTML5 DOCTYPE for complete documents
         # NOTE: This test may need adjustment based on actual lxml behavior vs strategy behavior
-        assert 'DOCTYPE' in result
+        assert "DOCTYPE" in result
 
     def test_xml_formatter_preserves_existing_doctype(self):
         """Test that XmlFormatter preserves existing DOCTYPEs."""
         formatter = XmlFormatter()
 
         # Should not add DOCTYPE to documents without one
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = formatter.format_str(xml)
-        assert 'DOCTYPE' not in result
+        assert "DOCTYPE" not in result
 
         # Should preserve existing DOCTYPE
         xml_with_doctype = '<!DOCTYPE root SYSTEM "test.dtd">\n<root>content</root>'
@@ -96,7 +101,7 @@ class TestFormatterDoctypeIntegration:
         html_formatter = Html5Formatter()
         xml_formatter = XmlFormatter()
 
-        test_xml = '<root>content</root>'
+        test_xml = "<root>content</root>"
         custom_doctype = '<!DOCTYPE root SYSTEM "custom.dtd">'
 
         # Explicit DOCTYPE should override HTML5 strategy
@@ -126,6 +131,7 @@ class TestFormatterDoctypeIntegration:
 
     def test_custom_doctype_strategy_injection(self):
         """Test that custom DOCTYPE strategies can be injected."""
+
         class CustomDoctypeStrategy(DoctypeStrategy):
             def get_default_doctype(self):
                 return "<!DOCTYPE custom>"
@@ -136,11 +142,11 @@ class TestFormatterDoctypeIntegration:
         # Create formatter with custom strategy
         formatter = Formatter(doctype_strategy=CustomDoctypeStrategy())
 
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = formatter.format_str(xml)
 
         # Should use custom DOCTYPE
-        assert '<!DOCTYPE custom>' in result
+        assert "<!DOCTYPE custom>" in result
 
 
 class TestDoctypeResolutionLogic:
@@ -167,26 +173,26 @@ class TestDoctypeResolutionLogic:
         formatter = Html5Formatter()
 
         # Document without DOCTYPE should get HTML5 DOCTYPE
-        html = '<div>content</div>'
+        html = "<div>content</div>"
         result = formatter.format_str(html)
 
         # Document with different DOCTYPE should get HTML5 DOCTYPE
         # (because Html5DoctypeStrategy.should_ensure_doctype() returns True)
-        html_with_xml_doctype = '<!DOCTYPE root>\n<div>content</div>'
+        html_with_xml_doctype = "<!DOCTYPE root>\n<div>content</div>"
         result2 = formatter.format_str(html_with_xml_doctype)
 
         # Both should have DOCTYPE (lxml adds it, strategy might modify it)
-        assert 'DOCTYPE' in result
-        assert 'DOCTYPE' in result2
+        assert "DOCTYPE" in result
+        assert "DOCTYPE" in result2
 
     def test_xml_preserves_doctype_behavior(self):
         """Test XML strategy preserves DOCTYPE behavior."""
         formatter = XmlFormatter()
 
         # Document without DOCTYPE should remain without DOCTYPE
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = formatter.format_str(xml)
-        assert 'DOCTYPE' not in result
+        assert "DOCTYPE" not in result
 
         # Document with DOCTYPE should preserve it
         xml_with_doctype = '<!DOCTYPE root SYSTEM "test.dtd">\n<root>content</root>'
@@ -203,21 +209,21 @@ class TestBackwardCompatibility:
 
         # Should behave exactly as before (uses NullDoctypeStrategy)
         test_cases = [
-            '<root>content</root>',
-            '<!DOCTYPE root>\n<root>content</root>',
-            '<!DOCTYPE html>\n<html><body>test</body></html>',
+            "<root>content</root>",
+            "<!DOCTYPE root>\n<root>content</root>",
+            "<!DOCTYPE html>\n<html><body>test</body></html>",
         ]
 
         for xml in test_cases:
             result = formatter.format_str(xml)
             # Should format successfully and preserve/omit DOCTYPE as before
-            assert '<root>' in result or '<html>' in result
+            assert "<root>" in result or "<html>" in result
 
     def test_existing_doctype_parameter_still_works(self):
         """Test that existing doctype parameter behavior is preserved."""
         formatter = Formatter()
 
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         custom_doctype = '<!DOCTYPE root PUBLIC "test">'
 
         result = formatter.format_str(xml, doctype=custom_doctype)
@@ -225,7 +231,7 @@ class TestBackwardCompatibility:
 
         # Test with None (should suppress DOCTYPE)
         result_none = formatter.format_str(xml, doctype=None)
-        assert 'DOCTYPE' not in result_none
+        assert "DOCTYPE" not in result_none
 
     def test_document_formatter_compatibility(self):
         """Test that DocumentFormatter still works with DOCTYPE strategies."""
@@ -238,12 +244,12 @@ class TestBackwardCompatibility:
             inline_predicate=never_match,
         )
 
-        xml = '<root>content</root>'
+        xml = "<root>content</root>"
         result = doc_formatter.format_str(xml)
 
         # Should work without DOCTYPE (uses NullDoctypeStrategy by default)
-        assert 'DOCTYPE' not in result
-        assert '<root>content</root>' in result
+        assert "DOCTYPE" not in result
+        assert "<root>content</root>" in result
 
     def test_tree_formatting_compatibility(self):
         """Test that tree formatting works with DOCTYPE strategies."""
@@ -256,4 +262,4 @@ class TestBackwardCompatibility:
 
         # Should format successfully
         result = formatter.format_tree(tree)
-        assert '<div>content</div>' in result
+        assert "<div>content</div>" in result

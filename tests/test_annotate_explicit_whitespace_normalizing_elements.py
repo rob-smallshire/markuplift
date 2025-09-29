@@ -7,10 +7,12 @@ from markuplift.annotation import (
     Annotations,
     annotate_xml_space,
     annotate_explicit_whitespace_preserving_elements,
-    annotate_explicit_whitespace_normalizing_elements, STRICT_WHITESPACE_ANNOTATION,
+    annotate_explicit_whitespace_normalizing_elements,
+    STRICT_WHITESPACE_ANNOTATION,
     annotate_whitespace_preserving_descendants_as_whitespace_preserving,
 )
 from markuplift.utilities import tagname
+
 
 def parse(xml):
     return etree.parse(StringIO(xml))
@@ -40,9 +42,17 @@ def test_normalize_on_multiple_elements():
     </root>
     """)
     annotations = Annotations()
-    annotate_explicit_whitespace_normalizing_elements(tree, annotations, lambda e: tagname(e) in {"normalize1", "normalize2"})
-    assert annotations.annotation(tree.getroot().find("normalize1"), WHITESPACE_ANNOTATION_KEY) == NORMALIZE_WHITESPACE_ANNOTATION
-    assert annotations.annotation(tree.getroot().find("normalize2"), WHITESPACE_ANNOTATION_KEY) == NORMALIZE_WHITESPACE_ANNOTATION
+    annotate_explicit_whitespace_normalizing_elements(
+        tree, annotations, lambda e: tagname(e) in {"normalize1", "normalize2"}
+    )
+    assert (
+        annotations.annotation(tree.getroot().find("normalize1"), WHITESPACE_ANNOTATION_KEY)
+        == NORMALIZE_WHITESPACE_ANNOTATION
+    )
+    assert (
+        annotations.annotation(tree.getroot().find("normalize2"), WHITESPACE_ANNOTATION_KEY)
+        == NORMALIZE_WHITESPACE_ANNOTATION
+    )
     assert annotations.annotation(tree.getroot().find("preserve"), WHITESPACE_ANNOTATION_KEY) is None
 
 
@@ -55,9 +65,12 @@ def test_normalize_on_comment_and_pi():
     </root>
     """)
     annotations = Annotations()
+
     def predicate(e):
         from lxml import etree
+
         return isinstance(e, (etree._Comment, etree._ProcessingInstruction))
+
     annotate_explicit_whitespace_normalizing_elements(tree, annotations, predicate)
     comment = tree.getroot().getchildren()[0]
     pi = tree.getroot().getchildren()[1]
@@ -154,9 +167,12 @@ def test_normalize_on_comment_and_pi_with_preserve():
     """)
     annotations = Annotations()
     annotate_xml_space(tree, annotations)
+
     def predicate(e):
         from lxml import etree
+
         return isinstance(e, (etree._Comment, etree._ProcessingInstruction)) or tagname(e) == "normalize"
+
     annotate_explicit_whitespace_normalizing_elements(tree, annotations, predicate)
     root = tree.getroot()
     comment = root.getchildren()[0]
