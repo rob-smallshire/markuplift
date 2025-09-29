@@ -17,7 +17,15 @@ class ParsingStrategy(ABC):
 
     Defines the interface for parsing documents in a format-appropriate way
     (HTML5 vs XML).
+
+    Args:
+        preserve_cdata: If True, preserve CDATA sections in the parsed document.
+                       If False, CDATA sections are converted to regular text.
+                       Defaults to True for structure preservation.
     """
+
+    def __init__(self, preserve_cdata: bool = True):
+        self.preserve_cdata = preserve_cdata
 
     @abstractmethod
     def parse_string(self, content: str) -> etree._ElementTree:
@@ -64,10 +72,16 @@ class HtmlParsingStrategy(ParsingStrategy):
     - More lenient parsing of malformed HTML
     - Automatic insertion of missing HTML structure elements
     - HTML5-specific parsing rules
+    - Configurable CDATA preservation
 
     This strategy is ideal for processing HTML documents that may not be
     strictly well-formed XML.
     """
+
+    def __init__(self, preserve_cdata: bool = True):
+        super().__init__(preserve_cdata)
+        # HTML parser doesn't support strip_cdata parameter directly,
+        # but we can still track the preference for post-processing if needed
 
     def parse_string(self, content: str) -> etree._ElementTree:
         """Parse HTML string using lxml's HTML parser.
@@ -120,10 +134,16 @@ class XmlParsingStrategy(ParsingStrategy):
     - Proper handling of XML declarations and processing instructions
     - Namespace awareness
     - DTD validation capabilities
+    - Configurable CDATA preservation
 
     This strategy is ideal for processing well-formed XML documents that
     require strict compliance with XML standards.
     """
+
+    def __init__(self, preserve_cdata: bool = True):
+        super().__init__(preserve_cdata)
+        # Create parser with appropriate CDATA handling
+        self._parser = etree.XMLParser(strip_cdata=not preserve_cdata)
 
     def parse_string(self, content: str) -> etree._ElementTree:
         """Parse XML string using lxml's XML parser.
@@ -142,7 +162,7 @@ class XmlParsingStrategy(ParsingStrategy):
             >>> tree = strategy.parse_string('<root><child>content</child></root>')
             >>> # Requires well-formed XML with proper closing tags
         """
-        element = etree.fromstring(content)
+        element = etree.fromstring(content, parser=self._parser)
         return etree.ElementTree(element)
 
     def parse_file(self, path: str) -> etree._ElementTree:
@@ -157,7 +177,7 @@ class XmlParsingStrategy(ParsingStrategy):
         Raises:
             XMLSyntaxError: If the file contains malformed XML
         """
-        return etree.parse(path)
+        return etree.parse(path, parser=self._parser)
 
     def parse_bytes(self, content: bytes) -> etree._ElementTree:
         """Parse XML bytes using lxml's XML parser.
@@ -171,5 +191,5 @@ class XmlParsingStrategy(ParsingStrategy):
         Raises:
             XMLSyntaxError: If the content is not well-formed XML
         """
-        element = etree.fromstring(content)
+        element = etree.fromstring(content, parser=self._parser)
         return etree.ElementTree(element)

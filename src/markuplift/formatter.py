@@ -80,6 +80,7 @@ class Formatter:
         attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
+        preserve_cdata: bool = True,
     ):
         """Initialize a Formatter with predicate factory functions and other configuration.
 
@@ -98,6 +99,7 @@ class Formatter:
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
+            preserve_cdata: Whether to preserve CDATA sections from input. Defaults to True.
         """
         self._block_predicate_factory = block_when or never_matches
         self._inline_predicate_factory = inline_when or never_matches
@@ -108,7 +110,7 @@ class Formatter:
         self._text_content_formatter_factories = reformat_text_when or {}
         self._attribute_content_formatter_factories = reformat_attribute_when or {}
         self._escaping_strategy = escaping_strategy or XmlEscapingStrategy()
-        self._parsing_strategy = parsing_strategy or XmlParsingStrategy()
+        self._parsing_strategy = parsing_strategy or XmlParsingStrategy(preserve_cdata=preserve_cdata)
         self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
         self._attribute_strategy = attribute_strategy or NullAttributeStrategy()
         self._indent_size = indent_size or 2
@@ -195,6 +197,11 @@ class Formatter:
     def attribute_strategy(self) -> AttributeFormattingStrategy:
         """The strategy for formatting attributes."""
         return self._attribute_strategy
+
+    @property
+    def preserve_cdata(self) -> bool:
+        """Whether CDATA sections are preserved from input."""
+        return self._parsing_strategy.preserve_cdata
 
     def format_file(self, file_path: str, doctype: str | None = None, xml_declaration: Optional[bool] = None) -> str:
         """Format an XML document from a file path.
@@ -284,6 +291,7 @@ class Formatter:
         attribute_strategy: AttributeFormattingStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
+        preserve_cdata: bool | None = None,
     ) -> "Formatter":
         """Create a new Formatter derived from this one with selective modifications.
 
@@ -350,6 +358,7 @@ class Formatter:
             attribute_strategy=attribute_strategy if attribute_strategy is not None else self._attribute_strategy,
             indent_size=indent_size if indent_size is not None else self._indent_size,
             default_type=default_type if default_type is not None else self._default_type,
+            preserve_cdata=preserve_cdata if preserve_cdata is not None else self.preserve_cdata,
         )
 
     def _create_document_formatter(self, root: etree._Element) -> DocumentFormatter:

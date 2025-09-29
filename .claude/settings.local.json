@@ -21,7 +21,8 @@
       "Bash(find:*)",
       "Bash(gh issue view:*)",
       "Bash(git checkout:*)",
-      "Bash(pytest:*)"
+      "Bash(pytest:*)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []

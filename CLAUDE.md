@@ -137,4 +137,4 @@ The project uses `pyproject.toml` for configuration:
 - Refer to FORMATTING_RULES.md before making any code or test changes.
 - Update the README.md file only by modify the template @scripts/README.md.j2 and the examples embedded within by running @scripts/generate_readme.py with `uv run python scripts/generate_readme.py`
 - Run mypy with default project settings after making changes
-- Run ruff after making changes
+- Run ruff for linting only after making changes - not formatting

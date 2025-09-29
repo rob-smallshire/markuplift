@@ -6,6 +6,7 @@ to improve readability, maintainability, and code quality.
 Type Aliases:
     ElementPredicate: A function that tests an XML element and returns bool
     ElementPredicateFactory: A function that creates ElementPredicate instances
+    TextContent: Union of string and CDATA for element text content
     TextContentFormatter: A function that formats element text content
     AttributePredicate: A function that tests an element's attribute and returns bool
     AttributePredicateFactory: A function that creates AttributePredicate instances
@@ -17,6 +18,7 @@ from typing import Callable, Union, TYPE_CHECKING, Protocol
 from re import Pattern
 from enum import Enum
 from lxml import etree
+from lxml.etree import CDATA
 
 if TYPE_CHECKING:
     from markuplift.document_formatter import DocumentFormatter
@@ -54,10 +56,13 @@ class ElementPredicateFactory(Protocol):
     def __call__(self, root: etree._Element) -> ElementPredicate: ...
 
 
+# Type alias for text content that can be either string or CDATA
+TextContent = Union[str, CDATA]
+
 # Type alias for text content formatter functions
-# The function takes the text content (str), the DocumentFormatter instance,
-# and the current indentation level (int), and returns the formatted text (str).
-TextContentFormatter = Callable[[str, "DocumentFormatter", int], str]
+# The function takes the text content (TextContent), the DocumentFormatter instance,
+# and the current indentation level (int), and returns the formatted text (TextContent).
+TextContentFormatter = Callable[[TextContent, "DocumentFormatter", int], TextContent]
 
 # Type aliases for attribute matching
 # NameMatcher can be exact string match, regex pattern, or custom function for attribute names

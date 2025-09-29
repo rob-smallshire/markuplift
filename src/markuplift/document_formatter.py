@@ -11,9 +11,11 @@ processing, indentation, and text content formatting using TextContentFormatter 
 
 from io import BytesIO
 from typing import Optional
+from functools import singledispatchmethod
+from lxml.etree import CDATA
 
 # Import type aliases
-from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate, ElementType
+from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate, ElementType, TextContent
 
 # Import standard predicates
 from markuplift.predicates import never_match
@@ -414,7 +416,7 @@ class DocumentFormatter:
                 # Content
                 if not is_self_closing:
                     if text := self._text_content(annotations, node):
-                        escaped_text = self._escaping_strategy.escape_text(text)
+                        escaped_text = self._escape_text_content(text)
                         parts.append(escaped_text)
 
             elif event == "end" and isinstance(node, etree._Element):
@@ -424,13 +426,13 @@ class DocumentFormatter:
 
                 # Tail
                 if tail := self._tail_content(annotations, node):
-                    escaped_tail = self._escaping_strategy.escape_text(tail)
+                    escaped_tail = self._escape_text_content(tail)
                     parts.append(escaped_tail)
 
             elif event == "comment" and isinstance(node, etree._Comment):
                 parts.append("<!--")
                 if text := self._text_content(annotations, node):
-                    escaped_text = self._escaping_strategy.escape_comment_text(text)
+                    escaped_text = self._escape_comment_text_content(text)
                     if escaped_text.startswith("-"):
                         parts.append(" ")
                     parts.append(escaped_text)
@@ -439,7 +441,7 @@ class DocumentFormatter:
                 parts.append("-->")
                 # Tail
                 if tail := self._tail_content(annotations, node):
-                    escaped_tail = self._escaping_strategy.escape_text(tail)
+                    escaped_tail = self._escape_text_content(tail)
                     parts.append(escaped_tail)
 
             elif event == "pi" and isinstance(node, etree._ProcessingInstruction):
@@ -449,7 +451,7 @@ class DocumentFormatter:
                 parts.append("?>")
                 # Tail
                 if tail := self._tail_content(annotations, node):
-                    escaped_tail = self._escaping_strategy.escape_text(tail)
+                    escaped_tail = self._escape_text_content(tail)
                     parts.append(escaped_tail)
 
             else:
@@ -459,7 +461,8 @@ class DocumentFormatter:
         text = self._text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
 
-    def _text_content(self, annotations, element) -> str:
+    def _text_content(self, annotations, element) -> TextContent:
+        # Get the original text content, which may be a CDATA object
         text = element.text or ""
 
         text_transforms = annotations.annotation(element, "text_transforms", [])
@@ -474,10 +477,126 @@ class DocumentFormatter:
                 break
         return text
 
-    def _tail_content(self, annotations, element) -> str:
+    def _tail_content(self, annotations, element) -> TextContent:
         tail = element.tail or ""
 
         tail_transforms = annotations.annotation(element, "tail_transforms", [])
         for transform in tail_transforms:
             tail = transform(tail)
         return tail
+
+    @singledispatchmethod
+    def _escape_text_content(self, content) -> str:
+        """Escape text content appropriately based on type.
+
+        Args:
+            content: Text content to escape
+
+        Returns:
+            Escaped string content appropriate for XML output
+
+        Raises:
+            NotImplementedError: If no handler is registered for the content type
+        """
+        raise NotImplementedError(f"No text content handler for type {type(content)}")
+
+    @_escape_text_content.register
+    def _(self, content: str) -> str:
+        """Handle regular string content with normal escaping."""
+        return self._escaping_strategy.escape_text(content)
+
+    @_escape_text_content.register
+    def _(self, content: CDATA) -> str:
+        """Handle CDATA content with safe CDATA serialization."""
+        # Extract content via temporary element
+        from lxml.etree import Element
+        temp_element = Element("temp")
+        temp_element.text = content
+        actual_content = temp_element.text
+
+        # Use separate method for safe CDATA rendering
+        return self._render_safe_cdata(actual_content)
+
+    def _render_safe_cdata(self, content: str) -> str:
+        """Safely render content as CDATA, handling ]]> sequences.
+
+        The XML specification prohibits the string ']]>' inside CDATA sections.
+        When this sequence appears, we split at each occurrence: everything up to
+        and including ']]' goes in a CDATA section, then we escape just the '>'.
+
+        Args:
+            content: The string content to wrap in CDATA
+
+        Returns:
+            Safe CDATA representation that is valid XML
+
+        Examples:
+            >>> formatter._render_safe_cdata("simple content")
+            '<![CDATA[simple content]]>'
+
+            >>> formatter._render_safe_cdata("before]]>after")
+            '<![CDATA[before]]]]>&gt;<![CDATA[after]]>'
+
+            >>> formatter._render_safe_cdata("]]>")
+            ']]&gt;'
+        """
+        # Handle empty content
+        if not content:
+            return "<![CDATA[]]>"
+
+        # If no problematic sequences, simple case
+        if "]]>" not in content:
+            return f"<![CDATA[{content}]]>"
+
+        # Handle content that starts with ]]>
+        if content.startswith("]]>"):
+            if len(content) == 3:  # Just "]]>"
+                return "]]&gt;"
+            # Process remainder
+            remainder = content[3:]
+            return "]]&gt;" + self._render_safe_cdata(remainder)
+
+        # Split on ]]> and rebuild safely
+        result = ""
+        remaining = content
+
+        while "]]>" in remaining:
+            # Find the first ]]> occurrence
+            pos = remaining.find("]]>")
+
+            if pos == 0:
+                # Starts with ]]>, just escape it
+                result += "]]&gt;"
+                remaining = remaining[3:]
+            else:
+                # Everything up to and including ]] goes in CDATA
+                before_and_brackets = remaining[:pos + 2]  # includes the ]]
+                result += f"<![CDATA[{before_and_brackets}]]>"
+
+                # Escape the >
+                result += "&gt;"
+
+                # Continue with the rest
+                remaining = remaining[pos + 3:]
+
+        # Add any remaining content in CDATA
+        if remaining:
+            result += f"<![CDATA[{remaining}]]>"
+
+        return result
+
+    def _escape_comment_text_content(self, content: TextContent) -> str:
+        """Escape comment text content appropriately, handling CDATA objects.
+
+        Args:
+            content: Comment text content that may be a string or CDATA object
+
+        Returns:
+            Escaped string content appropriate for comments
+        """
+        if isinstance(content, CDATA):
+            # CDATA objects don't need escaping for comments
+            return str(content)
+        else:
+            # Regular strings need comment-specific escaping
+            return self._escaping_strategy.escape_comment_text(content)

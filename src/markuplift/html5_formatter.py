@@ -64,6 +64,7 @@ class Html5Formatter:
         reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
+        preserve_cdata: bool = True,
     ):
         """Initialize Html5Formatter with HTML5-optimized strategies.
 
@@ -83,6 +84,7 @@ class Html5Formatter:
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
+            preserve_cdata: Whether to preserve CDATA sections from input. Defaults to True.
 
         Note:
             This class automatically configures HTML5-friendly parsing and escaping strategies.
@@ -113,11 +115,12 @@ class Html5Formatter:
             reformat_text_when=reformat_text_when,
             reformat_attribute_when=reformat_attribute_when,
             escaping_strategy=HtmlEscapingStrategy(),
-            parsing_strategy=HtmlParsingStrategy(),
+            parsing_strategy=HtmlParsingStrategy(preserve_cdata=preserve_cdata),
             doctype_strategy=Html5DoctypeStrategy(),
             attribute_strategy=Html5AttributeStrategy(),
             indent_size=indent_size,
             default_type=default_type,
+            preserve_cdata=preserve_cdata,
         )
 
     @property
@@ -170,6 +173,11 @@ class Html5Formatter:
         """The default type for unclassified elements."""
         return self._formatter.default_type
 
+    @property
+    def preserve_cdata(self) -> bool:
+        """Whether CDATA sections are preserved from input."""
+        return self._formatter.preserve_cdata
+
     def derive(
         self,
         *,
@@ -183,6 +191,7 @@ class Html5Formatter:
         reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
+        preserve_cdata: bool | None = None,
     ) -> "Html5Formatter":
         """Create a new Html5Formatter derived from this one with selective modifications.
 
@@ -202,6 +211,7 @@ class Html5Formatter:
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
             indent_size: Number of spaces per indentation level (uses current if None).
             default_type: Default type for unclassified elements (uses current if None).
+            preserve_cdata: Whether to preserve CDATA sections from input (uses current if None).
 
         Returns:
             A new Html5Formatter instance with the specified modifications.
@@ -246,6 +256,7 @@ class Html5Formatter:
             else self._formatter.reformat_attribute_when,
             indent_size=indent_size if indent_size is not None else self._formatter.indent_size,
             default_type=default_type if default_type is not None else self._formatter.default_type,
+            preserve_cdata=preserve_cdata if preserve_cdata is not None else self.preserve_cdata,
         )
 
     def format_file(self, file_path: str, doctype: str | None = None) -> str:
