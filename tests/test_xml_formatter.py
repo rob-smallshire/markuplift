@@ -4,8 +4,11 @@ This ensures that the XmlFormatter works correctly and provides
 XML-strict parsing and escaping behavior.
 """
 
-import pytest
+from inspect import cleandoc
 from io import BytesIO
+
+import pytest
+
 from markuplift import XmlFormatter, Formatter
 from markuplift.predicates import tag_in
 from markuplift.escaping import XmlEscapingStrategy
@@ -161,9 +164,11 @@ class TestXmlFormatter:
         """Test that XmlFormatter handles XML namespaces properly."""
         formatter = XmlFormatter()
 
-        xml_with_ns = """<root xmlns:ns="http://example.com">
-            <ns:child>content</ns:child>
-        </root>"""
+        xml_with_ns = cleandoc("""
+            <root xmlns:ns="http://example.com">
+                <ns:child>content</ns:child>
+            </root>
+        """)
 
         result = formatter.format_str(xml_with_ns)
         # lxml expands namespaces, so we look for the expanded form

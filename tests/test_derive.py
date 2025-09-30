@@ -1,5 +1,7 @@
 """Tests for the derive() method on Formatter and its subclasses."""
 
+from inspect import cleandoc
+
 from markuplift import (
     Formatter,
     Html5Formatter,
@@ -241,14 +243,16 @@ class TestXmlFormatterDerive:
             inline_when=any_of(base.inline_when, tag_in("bold", "code")),
         )
 
-        xml = """<root>
-            <section>sec</section>
-            <chapter>chap</chapter>
-            <paragraph>para</paragraph>
-            <emphasis>emph</emphasis>
-            <bold>bold</bold>
-            <code>code</code>
-        </root>"""
+        xml = cleandoc("""
+            <root>
+                <section>sec</section>
+                <chapter>chap</chapter>
+                <paragraph>para</paragraph>
+                <emphasis>emph</emphasis>
+                <bold>bold</bold>
+                <code>code</code>
+            </root>
+        """)
 
         result = derived.format_str(xml)
 

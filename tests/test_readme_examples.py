@@ -3,6 +3,8 @@
 This ensures that all examples in the README are accurate and working.
 """
 
+from inspect import cleandoc
+
 from approvaltests import verify
 from markuplift import Formatter
 from markuplift.predicates import html_block_elements, html_inline_elements, tag_in, any_of
@@ -58,9 +60,11 @@ class TestReadmeExamples:
         formatted = formatter.format_str(test_html)
 
         # ul and li should be block (indented), em/strong/code should be inline (same line)
-        expected = """<ul>
-  <li>Text with <em>inline</em> and <strong>more inline</strong> <code>code</code></li>
-</ul>"""
+        expected = cleandoc("""
+            <ul>
+              <li>Text with <em>inline</em> and <strong>more inline</strong> <code>code</code></li>
+            </ul>
+        """)
 
         assert formatted.strip() == expected.strip()
 
@@ -72,13 +76,15 @@ class TestReadmeExamples:
         test_html = "<ol><li>Item with text <ul><li>Subitem</li></ul></li></ol>"
         formatted = formatter.format_str(test_html)
 
-        expected = """<ol>
-  <li>Item with text
-    <ul>
-      <li>Subitem</li>
-    </ul>
-  </li>
-</ol>"""
+        expected = cleandoc("""
+            <ol>
+              <li>Item with text
+                <ul>
+                  <li>Subitem</li>
+                </ul>
+              </li>
+            </ol>
+        """)
 
         assert formatted.strip() == expected.strip()
 

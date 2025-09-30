@@ -7,8 +7,10 @@ This module tests the comprehensive CDATA support including:
 - singledispatch pattern for type-specific handling
 """
 
-import pytest
 from functools import singledispatch
+from inspect import cleandoc
+
+import pytest
 from lxml.etree import CDATA
 
 from markuplift.xml_formatter import XmlFormatter
@@ -27,15 +29,17 @@ class TestCDATAPreservation:
         CDATA from input is currently converted to escaped text. This test
         documents the current behavior rather than the ideal behavior.
         """
-        input_xml = """<root>
-    <script><![CDATA[
-        function test() {
-            if (x < 5 && y > 10) {
-                return true;
-            }
-        }
-    ]]></script>
-</root>"""
+        input_xml = cleandoc("""
+            <root>
+                <script><![CDATA[
+                    function test() {
+                        if (x < 5 && y > 10) {
+                            return true;
+                        }
+                    }
+                ]]></script>
+            </root>
+        """)
 
         formatter = XmlFormatter()
         result = formatter.format_str(input_xml)
@@ -51,13 +55,15 @@ class TestCDATAPreservation:
         produce the same result due to DocumentFormatter's architecture.
         This test ensures the parameter is accepted.
         """
-        input_xml = """<root>
-    <script><![CDATA[
-        if (x < 5 && y > 10) {
-            return true;
-        }
-    ]]></script>
-</root>"""
+        input_xml = cleandoc("""
+            <root>
+                <script><![CDATA[
+                    if (x < 5 && y > 10) {
+                        return true;
+                    }
+                ]]></script>
+            </root>
+        """)
 
         formatter = XmlFormatter(preserve_cdata=False)
         result = formatter.format_str(input_xml)
@@ -67,13 +73,15 @@ class TestCDATAPreservation:
 
     def test_html5_formatter_preserves_cdata_by_default(self):
         """Test that Html5Formatter processes CDATA input correctly."""
-        input_html = """<div>
-    <script><![CDATA[
-        if (x < 5 && y > 10) {
-            alert("test");
-        }
-    ]]></script>
-</div>"""
+        input_html = cleandoc("""
+            <div>
+                <script><![CDATA[
+                    if (x < 5 && y > 10) {
+                        alert("test");
+                    }
+                ]]></script>
+            </div>
+        """)
 
         formatter = Html5Formatter()
         result = formatter.format_str(input_html)
@@ -215,11 +223,13 @@ class TestCDATAEdgeCases:
 
     def test_mixed_content_with_cdata(self):
         """Test handling of elements with both text and CDATA."""
-        input_xml = """<div>
-    Text before
-    <script><![CDATA[alert("test");]]></script>
-    Text after
-</div>"""
+        input_xml = cleandoc("""
+            <div>
+                Text before
+                <script><![CDATA[alert("test");]]></script>
+                Text after
+            </div>
+        """)
 
         formatter = XmlFormatter()
         result = formatter.format_str(input_xml)
@@ -230,11 +240,13 @@ class TestCDATAEdgeCases:
 
     def test_nested_elements_with_cdata(self):
         """Test handling of nested elements containing CDATA."""
-        input_xml = """<root>
-    <container>
-        <script><![CDATA[function test() { return x < 5; }]]></script>
-    </container>
-</root>"""
+        input_xml = cleandoc("""
+            <root>
+                <container>
+                    <script><![CDATA[function test() { return x < 5; }]]></script>
+                </container>
+            </root>
+        """)
 
         formatter = XmlFormatter()
         result = formatter.format_str(input_xml)

@@ -5,6 +5,8 @@ correctly through the complete pipeline: parsing, processing, and output
 generation.
 """
 
+from inspect import cleandoc
+
 import pytest
 
 from markuplift.formatter import Formatter
@@ -18,14 +20,16 @@ class TestCDATAIntegration:
 
     def test_xml_formatter_preserves_cdata_content_by_default(self):
         """Test that XmlFormatter preserves CDATA content by default."""
-        xml_with_cdata = '''<?xml version="1.0"?>
-<root>
-    <script><![CDATA[
-        function test() {
-            return "hello world";
-        }
-    ]]></script>
-</root>'''
+        xml_with_cdata = cleandoc('''
+            <?xml version="1.0"?>
+            <root>
+                <script><![CDATA[
+                    function test() {
+                        return "hello world";
+                    }
+                ]]></script>
+            </root>
+        ''')
 
         formatter = XmlFormatter(
             block_when=tag_in("root", "script"),
@@ -59,15 +63,17 @@ class TestCDATAIntegration:
 
     def test_html5_formatter_preserves_cdata_by_default(self):
         """Test that Html5Formatter preserves CDATA sections by default."""
-        html_with_cdata = '''<!DOCTYPE html>
-<html>
-<head>
-    <script><![CDATA[
-        var data = "some content";
-        console.log(data);
-    ]]></script>
-</head>
-</html>'''
+        html_with_cdata = cleandoc('''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <script><![CDATA[
+                    var data = "some content";
+                    console.log(data);
+                ]]></script>
+            </head>
+            </html>
+        ''')
 
         formatter = Html5Formatter()
         result = formatter.format_str(html_with_cdata)
@@ -78,9 +84,11 @@ class TestCDATAIntegration:
 
     def test_formatter_with_cdata_text_formatters(self):
         """Test that CDATA content can be processed by text formatters."""
-        xml_content = '''<root>
-    <code><![CDATA[  messy   whitespace  content  ]]></code>
-</root>'''
+        xml_content = cleandoc('''
+            <root>
+                <code><![CDATA[  messy   whitespace  content  ]]></code>
+            </root>
+        ''')
 
         def normalize_whitespace(content, formatter, level):
             """Normalize whitespace in content."""
@@ -129,14 +137,16 @@ class TestCDATAIntegration:
 
     def test_nested_cdata_handling(self):
         """Test handling of nested elements with CDATA content."""
-        xml_content = '''<root>
-    <style><![CDATA[
-        .class { content: "style"; }
-    ]]></style>
-    <script><![CDATA[
-        var x = "test data";
-    ]]></script>
-</root>'''
+        xml_content = cleandoc('''
+            <root>
+                <style><![CDATA[
+                    .class { content: "style"; }
+                ]]></style>
+                <script><![CDATA[
+                    var x = "test data";
+                ]]></script>
+            </root>
+        ''')
 
         formatter = XmlFormatter(
             block_when=tag_in("root", "style", "script"),
@@ -167,13 +177,15 @@ class TestCDATAIntegration:
 
     def test_cdata_with_whitespace_handling(self):
         """Test CDATA interaction with whitespace handling predicates."""
-        xml_content = '''<root>
-    <pre><![CDATA[
-    formatted
-        code
-            block
-    ]]></pre>
-</root>'''
+        xml_content = cleandoc('''
+            <root>
+                <pre><![CDATA[
+                formatted
+                    code
+                        block
+                ]]></pre>
+            </root>
+        ''')
 
         formatter = XmlFormatter(
             block_when=tag_in("root", "pre"),
@@ -208,14 +220,16 @@ class TestCDATAIntegration:
 
     def test_round_trip_cdata_preservation(self):
         """Test that CDATA content survives round-trip parsing and formatting."""
-        original_xml = '''<?xml version="1.0"?>
-<root>
-    <script><![CDATA[
-        // JavaScript with safe content
-        var test = "data and more content";
-        var regex = /test/g;
-    ]]></script>
-</root>'''
+        original_xml = cleandoc('''
+            <?xml version="1.0"?>
+            <root>
+                <script><![CDATA[
+                    // JavaScript with safe content
+                    var test = "data and more content";
+                    var regex = /test/g;
+                ]]></script>
+            </root>
+        ''')
 
         formatter = XmlFormatter(
             block_when=tag_in("root", "script"),
@@ -264,15 +278,15 @@ class TestCDATAIntegration:
 
     def test_mixed_cdata_and_text_content(self):
         """Test elements with both CDATA and regular text content."""
-        from lxml.etree import Element, CDATA
+        from lxml import etree
 
         # Create element with mixed content
-        root = Element("script")
+        root: etree._Element = etree.Element("script")
         root.text = "// Regular comment\n"
 
         # Add CDATA section
-        script_element = Element("script")
-        script_element.text = CDATA("var test = 'safe data';")
+        script_element = etree.Element("script")
+        script_element.text = etree.CDATA("var test = 'safe data';")
         root.append(script_element)
 
         formatter = XmlFormatter(
