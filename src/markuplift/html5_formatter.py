@@ -14,6 +14,7 @@ from markuplift.predicates import (
     html_block_elements,
     html_inline_elements,
     html_whitespace_significant_elements,
+    html_normalize_whitespace,
     not_matching,
     all_of,
 )
@@ -38,7 +39,7 @@ class Html5Formatter:
     - Uses Html5DoctypeStrategy for automatic HTML5 DOCTYPE handling
     - Defaults to html_block_elements() and html_inline_elements() for sensible HTML5 formatting
     - Defaults to html_whitespace_significant_elements() for preserve_whitespace_when
-    - Defaults to not_matching(html_whitespace_significant_elements()) for normalize_whitespace_when
+    - Defaults to html_normalize_whitespace() for normalize_whitespace_when (excludes whitespace-significant elements and their descendants)
     - Defaults to html_block_elements() excluding whitespace-significant elements for strip_whitespace_when
     - Defaults to html_attribute_order() for reorder_attributes_when, providing semantic HTML attribute ordering
 
@@ -83,7 +84,8 @@ class Html5Formatter:
             inline_when: Predicate factory function (root -> element predicate) for inline elements.
                         Defaults to html_inline_elements() if not provided.
             normalize_whitespace_when: Predicate factory for whitespace normalization predicates.
-                                     Defaults to not_matching(html_whitespace_significant_elements()) if not provided.
+                                     Defaults to html_normalize_whitespace() if not provided, which excludes
+                                     whitespace-significant elements and their descendants.
             strip_whitespace_when: Predicate factory for whitespace stripping predicates.
                                  Defaults to html_block_elements() excluding whitespace-significant elements if not provided.
             preserve_whitespace_when: Predicate factory for whitespace preservation predicates.
@@ -109,7 +111,7 @@ class Html5Formatter:
 
         # Default to HTML5 whitespace handling if not provided
         if normalize_whitespace_when is None:
-            normalize_whitespace_when = not_matching(html_whitespace_significant_elements())
+            normalize_whitespace_when = html_normalize_whitespace()
         if preserve_whitespace_when is None:
             preserve_whitespace_when = html_whitespace_significant_elements()
         if strip_whitespace_when is None:

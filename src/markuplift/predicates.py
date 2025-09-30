@@ -56,6 +56,41 @@ from markuplift.types import (
 )
 
 
+# HTML5 element sets for predicate factories
+# These constants define canonical sets of HTML elements by category
+
+_HTML_INLINE_ELEMENTS = frozenset({
+    "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data", "dfn",
+    "em", "i", "kbd", "mark", "q", "ruby", "s", "samp", "small", "span",
+    "strong", "sub", "sup", "time", "u", "var", "wbr",
+})
+
+_HTML_VOID_ELEMENTS = frozenset({
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr",
+})
+
+_HTML_WHITESPACE_SIGNIFICANT_ELEMENTS = frozenset({
+    "pre", "style", "script", "textarea", "code"
+})
+
+_HTML_METADATA_ELEMENTS = frozenset({
+    "head", "title", "base", "link", "meta", "style", "script", "noscript"
+})
+
+_CSS_BLOCK_ELEMENTS = frozenset({
+    "address", "article", "aside", "blockquote", "canvas", "dd", "div",
+    "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
+    "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
+    "nav", "noscript", "ol", "p", "section", "table", "tfoot", "ul", "video",
+})
+
+_HTML_BLOCK_STRUCTURE_ELEMENTS = frozenset({
+    "html", "head", "body", "title", "meta", "link", "script",
+    "tbody", "thead", "tr", "details", "dialog", "hgroup", "pre",
+})
+
+
 class PredicateError(Exception):
     """Exception raised for errors in predicate configuration or evaluation.
 
@@ -792,29 +827,7 @@ def html_block_elements() -> ElementPredicateFactory:
     """
     return any_of(
         css_block_elements(),
-        tag_in(
-            # Document structure elements
-            "html",
-            "head",
-            "body",
-            "title",
-            # Metadata elements
-            "meta",
-            "link",
-            # Scripting elements
-            "script",
-            # Table structure elements (missing from CSS block)
-            "tbody",
-            "thead",
-            "tr",
-            # Interactive elements
-            "details",
-            "dialog",
-            # Grouping elements
-            "hgroup",
-            # Preserved content elements
-            "pre",
-        ),
+        tag_in(*_HTML_BLOCK_STRUCTURE_ELEMENTS),
     )
 
 
@@ -825,39 +838,9 @@ def html_inline_elements() -> ElementPredicateFactory:
     Returns:
         An element predicate factory that matches common HTML inline elements
     """
-    INLINE_ELEMENTS = {
-        "a",
-        "abbr",
-        "b",
-        "bdi",
-        "bdo",
-        "br",
-        "cite",
-        "code",
-        "data",
-        "dfn",
-        "em",
-        "i",
-        "kbd",
-        "mark",
-        "q",
-        "ruby",
-        "s",
-        "samp",
-        "small",
-        "span",
-        "strong",
-        "sub",
-        "sup",
-        "time",
-        "u",
-        "var",
-        "wbr",
-    }
-
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            return element.tag in INLINE_ELEMENTS
+            return element.tag in _HTML_INLINE_ELEMENTS
 
         return element_predicate
 
@@ -879,26 +862,9 @@ def html_void_elements() -> ElementPredicateFactory:
             html_void_elements().with_attribute("src")
             html_void_elements().with_attribute("alt", re.compile(r".*logo.*"))
     """
-    VOID_ELEMENTS = {
-        "area",
-        "base",
-        "br",
-        "col",
-        "embed",
-        "hr",
-        "img",
-        "input",
-        "link",
-        "meta",
-        "param",
-        "source",
-        "track",
-        "wbr",
-    }
-
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            return element.tag in VOID_ELEMENTS
+            return element.tag in _HTML_VOID_ELEMENTS
 
         return element_predicate
 
@@ -920,11 +886,55 @@ def html_whitespace_significant_elements() -> ElementPredicateFactory:
             html_whitespace_significant_elements().with_attribute("class")
             html_whitespace_significant_elements().with_attribute("id", "main-code")
     """
-    WHITESPACE_SIGNIFICANT = {"pre", "style", "script", "textarea", "code"}
-
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            return element.tag in WHITESPACE_SIGNIFICANT
+            return element.tag in _HTML_WHITESPACE_SIGNIFICANT_ELEMENTS
+
+        return element_predicate
+
+    return create_document_predicate
+
+
+def html_normalize_whitespace() -> ElementPredicateFactory:
+    """Match elements where whitespace should be normalized, excluding whitespace-significant elements and their descendants.
+
+    This predicate is specifically designed for HTML formatting where whitespace normalization
+    should NOT apply to elements like <pre>, <style>, <script>, <textarea>, <code> or any
+    of their descendants. This ensures that syntax-highlighted code in <pre> blocks, inline
+    code snippets, and other whitespace-sensitive content preserve their exact formatting.
+
+    Returns:
+        A predicate factory that matches elements where whitespace should be normalized
+
+    Examples:
+        Basic usage:
+            # Use as default for Html5Formatter
+            formatter = Html5Formatter(normalize_whitespace_when=html_normalize_whitespace())
+
+        Custom combination:
+            # Normalize whitespace except in pre and custom elements
+            from markuplift.predicates import all_of, not_matching, tag_in
+            normalize_when = all_of(
+                html_normalize_whitespace(),
+                not_matching(tag_in("custom-preserve"))
+            )
+
+    Note:
+        This is the default for Html5Formatter, ensuring that whitespace in <pre> blocks
+        and their descendants (like syntax-highlighted <span> elements) is preserved exactly.
+    """
+    def create_document_predicate(root: etree._Element) -> ElementPredicate:
+        def element_predicate(element: etree._Element) -> bool:
+            # Check if element itself is whitespace-significant
+            if element.tag in _HTML_WHITESPACE_SIGNIFICANT_ELEMENTS:
+                return False
+
+            # Check if any ancestor is whitespace-significant
+            for ancestor in element.iterancestors():
+                if ancestor.tag in _HTML_WHITESPACE_SIGNIFICANT_ELEMENTS:
+                    return False
+
+            return True
 
         return element_predicate
 
@@ -946,11 +956,9 @@ def html_metadata_elements() -> ElementPredicateFactory:
             html_metadata_elements().with_attribute("charset")
             html_metadata_elements().with_attribute("name", "viewport")
     """
-    METADATA_ELEMENTS = {"head", "title", "base", "link", "meta", "style", "script", "noscript"}
-
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
-            return element.tag in METADATA_ELEMENTS
+            return element.tag in _HTML_METADATA_ELEMENTS
 
         return element_predicate
 
@@ -976,41 +984,7 @@ def css_block_elements() -> ElementPredicateFactory:
             css_block_elements().with_attribute("class", "container")
             css_block_elements().with_attribute("id", re.compile(r"main|content"))
     """
-    return tag_in(
-        "address",
-        "article",
-        "aside",
-        "blockquote",
-        "canvas",
-        "dd",
-        "div",
-        "dl",
-        "dt",
-        "fieldset",
-        "figcaption",
-        "figure",
-        "footer",
-        "form",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "header",
-        "hr",
-        "li",
-        "main",
-        "nav",
-        "noscript",
-        "ol",
-        "p",
-        "section",
-        "table",
-        "tfoot",
-        "ul",
-        "video",
-    )
+    return tag_in(*_CSS_BLOCK_ELEMENTS)
 
 
 # Combinator predicates
