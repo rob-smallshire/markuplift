@@ -175,15 +175,16 @@ def test_multiple_chaining_levels():
 
 def test_non_decorated_functions_still_work():
     """Test that non-decorated functions still return ElementPredicateFactory and work normally."""
-    from markuplift.predicates import attribute_equals, is_element
+    from markuplift.predicates import is_element, attribute_count_min
     from lxml import etree
 
-    # Test non-decorated functions still return ElementPredicateFactory
-    attr_eq = attribute_equals("class", "test")
+    # Test non-decorated functions still return ElementPredicateFactory (not PredicateFactory)
+    # Note: attribute_equals is now decorated, so we use different functions for this test
+    count_pred = attribute_count_min(1)
     element_pred = is_element()
 
     # Should be regular functions, not PredicateFactory instances
-    assert not isinstance(attr_eq, PredicateFactory)
+    assert not isinstance(count_pred, PredicateFactory)
     assert not isinstance(element_pred, PredicateFactory)
 
     # Should still work as ElementPredicateFactory
@@ -192,10 +193,10 @@ def test_non_decorated_functions_still_work():
     root = tree
     div = root.find(".//div")
 
-    attr_predicate = attr_eq(root)
+    count_predicate = count_pred(root)
     element_predicate = element_pred(root)
 
-    assert attr_predicate(div) is True
+    assert count_predicate(div) is True  # div has 1 attribute
     assert element_predicate(div) is True
 
 
@@ -246,11 +247,26 @@ def test_all_chaining_functions_use_decorator_consistently():
         html_block_elements,
         html_inline_elements,
         has_significant_content,
+        css_block_elements,
+        # Tier 1: HTML domain predicates
+        html_void_elements,
+        html_whitespace_significant_elements,
+        html_metadata_elements,
+        # Tier 2: Combinators
+        any_of,
+        all_of,
+        not_matching,
+        # Tier 3: Content predicates
+        attribute_equals,
+        has_no_significant_content,
+        has_mixed_content,
+        has_child_elements,
         PredicateFactory,
     )
 
     # All functions that support chaining should return PredicateFactory
     chaining_functions = [
+        # Original functions
         matches_xpath("//div"),
         tag_equals("div"),
         tag_name("div"),
@@ -261,6 +277,20 @@ def test_all_chaining_functions_use_decorator_consistently():
         html_block_elements(),
         html_inline_elements(),
         has_significant_content(),
+        css_block_elements(),
+        # Tier 1: HTML domain predicates
+        html_void_elements(),
+        html_whitespace_significant_elements(),
+        html_metadata_elements(),
+        # Tier 2: Combinators
+        any_of(tag_equals("div"), tag_equals("span")),
+        all_of(tag_equals("div"), has_attribute("class")),
+        not_matching(tag_equals("div")),
+        # Tier 3: Content predicates
+        attribute_equals("class", "test"),
+        has_no_significant_content(),
+        has_mixed_content(),
+        has_child_elements(),
     ]
 
     for func_result in chaining_functions:
@@ -271,3 +301,125 @@ def test_all_chaining_functions_use_decorator_consistently():
         assert callable(chained), f"Chaining should work for {func_result}"
 
     print(f"All {len(chaining_functions)} chaining functions consistently use decorator pattern!")
+
+
+def test_tier1_html_domain_predicates_with_chaining():
+    """Test that Tier 1 HTML domain predicates work correctly with chaining."""
+    xml = cleandoc("""
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width" />
+                <link rel="stylesheet" href="style.css" />
+            </head>
+            <body>
+                <img src="logo.png" alt="Company Logo" class="logo" />
+                <br class="spacer" />
+                <pre class="code-block">formatted code</pre>
+            </body>
+        </html>
+    """)
+
+    from markuplift import Formatter
+    from markuplift.predicates import (
+        html_void_elements,
+        html_whitespace_significant_elements,
+        html_metadata_elements,
+    )
+
+    def uppercase_formatter(value, formatter, level):
+        return value.upper()
+
+    formatter = Formatter(
+        reformat_attribute_when={
+            # Match void elements with class attributes
+            html_void_elements().with_attribute("class"): uppercase_formatter,
+            # Match whitespace-significant elements with class attributes
+            html_whitespace_significant_elements().with_attribute("class"): uppercase_formatter,
+            # Match metadata elements with name attributes
+            html_metadata_elements().with_attribute("name"): uppercase_formatter,
+        }
+    )
+
+    result = formatter.format_str(xml)
+
+    # Verify transformations
+    assert 'class="SPACER"' in result  # void element with class
+    assert 'class="CODE-BLOCK"' in result  # whitespace-significant with class
+    assert 'name="VIEWPORT"' in result  # metadata element with name
+    assert 'alt="Company Logo"' in result  # void element without matching predicate
+
+
+def test_tier2_combinator_chaining():
+    """Test that Tier 2 combinator predicates work correctly with chaining."""
+    xml = cleandoc("""
+        <root>
+            <div class="widget" data-type="primary">Div with data</div>
+            <span class="widget" data-type="secondary">Span with data</span>
+            <p class="widget">Paragraph without data</p>
+            <div class="other" data-type="tertiary">Other div</div>
+        </root>
+    """)
+
+    from markuplift import Formatter
+    from markuplift.predicates import any_of, all_of, not_matching, tag_equals, has_attribute
+
+    def type_formatter(value, formatter, level):
+        return value.replace("primary", "FIRST").replace("secondary", "SECOND")
+
+    formatter = Formatter(
+        reformat_attribute_when={
+            # Match div OR span elements that have data-type attribute
+            any_of(tag_equals("div"), tag_equals("span")).with_attribute("data-type"): type_formatter,
+        }
+    )
+
+    result = formatter.format_str(xml)
+
+    # Verify transformations
+    assert 'data-type="FIRST"' in result  # div with data-type
+    assert 'data-type="SECOND"' in result  # span with data-type
+    # p doesn't have data-type, so not matched
+    # Other div should be matched too
+    assert 'data-type="tertiary"' in result  # other div (no transformation)
+
+
+def test_tier3_content_predicate_chaining():
+    """Test that Tier 3 content predicates work correctly with chaining."""
+    xml = cleandoc("""
+        <root>
+            <div class="empty-container"></div>
+            <div class="full-container">
+                <p>Some text</p>
+            </div>
+            <span class="mixed" data-content="text">Text and <em>inline</em> elements</span>
+        </root>
+    """)
+
+    from markuplift import Formatter
+    from markuplift.predicates import (
+        has_no_significant_content,
+        has_child_elements,
+        has_mixed_content,
+        attribute_equals,
+    )
+
+    def class_formatter(value, formatter, level):
+        return value.upper()
+
+    formatter = Formatter(
+        reformat_attribute_when={
+            # Match empty elements with class attribute
+            has_no_significant_content().with_attribute("class"): class_formatter,
+            # Match elements with children that have class attribute
+            has_child_elements().with_attribute("class"): class_formatter,
+            # Match elements with class="button" that have data attributes
+            attribute_equals("class", "button").with_attribute("data-action"): class_formatter,
+        }
+    )
+
+    result = formatter.format_str(xml)
+
+    # Verify transformations
+    assert 'class="EMPTY-CONTAINER"' in result  # empty with class
+    assert 'class="FULL-CONTAINER"' in result  # has children with class

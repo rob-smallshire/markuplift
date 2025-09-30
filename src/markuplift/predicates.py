@@ -18,8 +18,8 @@ Factory Categories:
     Combinators: any_of, all_of, not_matching
 
 Attribute Chaining Support:
-    Functions decorated with @supports_attributes return PredicateFactory instances
-    that support .with_attribute() chaining syntax with flexible matchers:
+    Predicate factories decorated with @supports_attributes allow chaining of attribute
+    queries on the selected elements using .with_attribute() syntax with flexible matchers:
 
         # String matching
         has_attribute("class").with_attribute("style", "color: red")
@@ -28,16 +28,16 @@ Attribute Chaining Support:
         # Regex matching
         tag_in("div", "p").with_attribute("role", re.compile(r"button|link"))
 
-        # Function matching (new!)
+        # Function matching
         html_block_elements().with_attribute("style", lambda v: v.count(';') >= 3)
         tag_in("input", "textarea").with_attribute("class", lambda v: "form" in v)
+
+    These decorated factories return PredicateFactory instances that wrap ElementPredicateFactory
+    callables, maintaining full backward compatibility while adding chaining capabilities.
 
 Standard Predicates:
     never_match: A standard ElementPredicate that always returns False
     never_matches: A standard ElementPredicateFactory that creates never-matching predicates
-
-Most factories return ElementPredicateFactory instances, but decorated functions
-return PredicateFactory instances with enhanced chaining capabilities.
 """
 
 from lxml import etree
@@ -488,6 +488,7 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
     """Match elements with a specific attribute value.
 
@@ -496,10 +497,22 @@ def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
         value: Expected attribute value
 
     Returns:
-        An element predicate factory that matches elements with the specified attribute value
+        A chainable predicate factory that matches elements with the specified attribute value
 
     Raises:
         PredicateError: If the attribute name is invalid
+
+    Examples:
+        Basic usage:
+            attribute_equals("class", "button")
+            attribute_equals("data-type", "primary")
+
+        With chaining (enabled by @supports_attributes):
+            # Match elements with class="button" that also have a style attribute
+            attribute_equals("class", "button").with_attribute("style")
+
+            # Match elements with specific role that have data attributes
+            attribute_equals("role", "button").with_attribute("data-action")
     """
     _validate_attribute_name(attr)
 
@@ -671,11 +684,23 @@ def has_significant_content() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def has_no_significant_content() -> ElementPredicateFactory:
     """Match empty or whitespace-only elements.
 
     Returns:
-        An element predicate factory that matches elements with no significant content
+        A chainable predicate factory that matches elements with no significant content
+
+    Examples:
+        Basic usage:
+            has_no_significant_content()
+
+        With chaining (enabled by @supports_attributes):
+            # Match empty elements that have placeholder attributes
+            has_no_significant_content().with_attribute("placeholder")
+
+            # Match empty elements with specific classes
+            has_no_significant_content().with_attribute("class", "empty")
     """
     from markuplift.utilities import has_direct_significant_text
 
@@ -688,11 +713,23 @@ def has_no_significant_content() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def has_mixed_content() -> ElementPredicateFactory:
     """Match elements containing both text and child elements.
 
     Returns:
-        An element predicate factory that matches elements in mixed content
+        A chainable predicate factory that matches elements in mixed content
+
+    Examples:
+        Basic usage:
+            has_mixed_content()
+
+        With chaining (enabled by @supports_attributes):
+            # Match mixed content elements with specific classes
+            has_mixed_content().with_attribute("class", "rich-text")
+
+            # Match mixed content elements with data attributes
+            has_mixed_content().with_attribute("data-content-type", "mixed")
     """
     from markuplift.utilities import is_in_mixed_content
 
@@ -705,11 +742,23 @@ def has_mixed_content() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def has_child_elements() -> ElementPredicateFactory:
     """Match elements that contain child elements.
 
     Returns:
-        An element predicate factory that matches elements with child elements
+        A chainable predicate factory that matches elements with child elements
+
+    Examples:
+        Basic usage:
+            has_child_elements()
+
+        With chaining (enabled by @supports_attributes):
+            # Match container elements that have child elements and specific classes
+            has_child_elements().with_attribute("class", "container")
+
+            # Match elements with children that have role attributes
+            has_child_elements().with_attribute("role", "group")
     """
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -815,11 +864,20 @@ def html_inline_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def html_void_elements() -> ElementPredicateFactory:
     """Match HTML void elements (self-closing).
 
     Returns:
-        An element predicate factory that matches HTML void elements
+        A chainable predicate factory that matches HTML void elements
+
+    Examples:
+        Basic usage:
+            html_void_elements()
+
+        With chaining (enabled by @supports_attributes):
+            html_void_elements().with_attribute("src")
+            html_void_elements().with_attribute("alt", re.compile(r".*logo.*"))
     """
     VOID_ELEMENTS = {
         "area",
@@ -847,11 +905,20 @@ def html_void_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def html_whitespace_significant_elements() -> ElementPredicateFactory:
     """Match elements where whitespace is significant.
 
     Returns:
-        An element predicate factory that matches elements like pre, style, script where whitespace is significant
+        A chainable predicate factory that matches elements like pre, style, script where whitespace is significant
+
+    Examples:
+        Basic usage:
+            html_whitespace_significant_elements()
+
+        With chaining (enabled by @supports_attributes):
+            html_whitespace_significant_elements().with_attribute("class")
+            html_whitespace_significant_elements().with_attribute("id", "main-code")
     """
     WHITESPACE_SIGNIFICANT = {"pre", "style", "script", "textarea", "code"}
 
@@ -864,11 +931,20 @@ def html_whitespace_significant_elements() -> ElementPredicateFactory:
     return create_document_predicate
 
 
+@supports_attributes
 def html_metadata_elements() -> ElementPredicateFactory:
     """Match HTML metadata elements (head section).
 
     Returns:
-        An element predicate factory that matches HTML head elements
+        A chainable predicate factory that matches HTML head elements
+
+    Examples:
+        Basic usage:
+            html_metadata_elements()
+
+        With chaining (enabled by @supports_attributes):
+            html_metadata_elements().with_attribute("charset")
+            html_metadata_elements().with_attribute("name", "viewport")
     """
     METADATA_ELEMENTS = {"head", "title", "base", "link", "meta", "style", "script", "noscript"}
 
@@ -938,6 +1014,7 @@ def css_block_elements() -> ElementPredicateFactory:
 
 
 # Combinator predicates
+@supports_attributes
 def any_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFactory:
     """Match elements that satisfy any of the given predicates (OR logic).
 
@@ -945,14 +1022,22 @@ def any_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
         *predicate_factories: Predicate factories to combine
 
     Returns:
-        An element predicate factory that matches elements matching any of the input predicates
+        A chainable predicate factory that matches elements matching any of the input predicates
 
-    Example:
-        # Match elements that are either div OR span tags
-        factory = any_of(tag_equals("div"), tag_equals("span"))
+    Examples:
+        Basic usage:
+            # Match elements that are either div OR span tags
+            any_of(tag_equals("div"), tag_equals("span"))
 
-        # Match elements with class OR id attributes
-        factory = any_of(has_attribute("class"), has_attribute("id"))
+            # Match elements with class OR id attributes
+            any_of(has_attribute("class"), has_attribute("id"))
+
+        With chaining (enabled by @supports_attributes):
+            # Match div or span elements that have a data attribute
+            any_of(tag_equals("div"), tag_equals("span")).with_attribute("data-id")
+
+            # Match block or inline elements with specific role
+            any_of(html_block_elements(), html_inline_elements()).with_attribute("role", "button")
     """
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -966,6 +1051,7 @@ def any_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
     return create_document_predicate
 
 
+@supports_attributes
 def all_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFactory:
     """Match elements that satisfy all of the given predicates (AND logic).
 
@@ -973,17 +1059,25 @@ def all_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
         *predicate_factories: Predicate factories to combine
 
     Returns:
-        An element predicate factory that matches elements matching all of the input predicates
+        A chainable predicate factory that matches elements matching all of the input predicates
 
-    Example:
-        # Match div elements that also have a class attribute
-        factory = all_of(tag_equals("div"), has_attribute("class"))
+    Examples:
+        Basic usage:
+            # Match div elements that also have a class attribute
+            all_of(tag_equals("div"), has_attribute("class"))
 
-        # Match elements with specific class AND data-type values
-        factory = all_of(
-            attribute_equals("class", "button"),
-            attribute_equals("data-type", "primary")
-        )
+            # Match elements with specific class AND data-type values
+            all_of(
+                attribute_equals("class", "button"),
+                attribute_equals("data-type", "primary")
+            )
+
+        With chaining (enabled by @supports_attributes):
+            # Match div elements with class that also have a style attribute
+            all_of(tag_equals("div"), has_attribute("class")).with_attribute("style")
+
+            # Match block elements with significant content that have data attributes
+            all_of(html_block_elements(), has_significant_content()).with_attribute("data-id")
     """
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -997,6 +1091,7 @@ def all_of(*predicate_factories: ElementPredicateFactory) -> ElementPredicateFac
     return create_document_predicate
 
 
+@supports_attributes
 def not_matching(predicate_factory: ElementPredicateFactory) -> ElementPredicateFactory:
     """Match elements that do NOT satisfy the given predicate (NOT logic).
 
@@ -1004,17 +1099,25 @@ def not_matching(predicate_factory: ElementPredicateFactory) -> ElementPredicate
         predicate_factory: Predicate factory to negate
 
     Returns:
-        An element predicate factory that matches elements NOT matching the input predicate
+        A chainable predicate factory that matches elements NOT matching the input predicate
 
-    Example:
-        # Match elements that are NOT div tags
-        factory = not_matching(tag_equals("div"))
+    Examples:
+        Basic usage:
+            # Match elements that are NOT div tags
+            not_matching(tag_equals("div"))
 
-        # Match elements that do NOT have a class attribute
-        factory = not_matching(has_attribute("class"))
+            # Match elements that do NOT have a class attribute
+            not_matching(has_attribute("class"))
 
-        # Complex: Match elements that are NOT (div AND have class)
-        factory = not_matching(all_of(tag_equals("div"), has_attribute("class")))
+            # Complex: Match elements that are NOT (div AND have class)
+            not_matching(all_of(tag_equals("div"), has_attribute("class")))
+
+        With chaining (enabled by @supports_attributes):
+            # Match non-div elements that have a data attribute
+            not_matching(tag_equals("div")).with_attribute("data-id")
+
+            # Match elements that aren't block elements but have style attributes
+            not_matching(html_block_elements()).with_attribute("style")
     """
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
