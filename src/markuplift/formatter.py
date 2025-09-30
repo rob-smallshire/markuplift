@@ -19,7 +19,13 @@ from markuplift.annotation import (
 )
 
 # Import type aliases
-from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
+from markuplift.types import (
+    ElementPredicateFactory,
+    TextContentFormatter,
+    AttributePredicateFactory,
+    AttributeValueFormatter,
+    ElementType,
+)
 
 # Import standard predicates
 from markuplift.predicates import never_matches
@@ -73,7 +79,7 @@ class Formatter:
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
-        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
@@ -284,7 +290,7 @@ class Formatter:
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
-        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,

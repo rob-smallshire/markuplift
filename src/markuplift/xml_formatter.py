@@ -11,7 +11,13 @@ from markuplift.escaping import XmlEscapingStrategy
 from markuplift.parsing import XmlParsingStrategy
 from markuplift.doctype import XmlDoctypeStrategy
 from markuplift.attribute_formatting import XmlAttributeStrategy
-from markuplift.types import ElementPredicateFactory, TextContentFormatter, AttributePredicateFactory, ElementType
+from markuplift.types import (
+    ElementPredicateFactory,
+    TextContentFormatter,
+    AttributePredicateFactory,
+    AttributeValueFormatter,
+    ElementType,
+)
 
 
 class XmlFormatter:
@@ -48,7 +54,7 @@ class XmlFormatter:
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
-        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool = True,
@@ -156,7 +162,7 @@ class XmlFormatter:
         preserve_whitespace_when: ElementPredicateFactory | None = None,
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
-        reformat_attribute_when: dict[AttributePredicateFactory, TextContentFormatter] | None = None,
+        reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool | None = None,

@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from lxml import etree
 
-from markuplift.types import AttributePredicate, TextContentFormatter
+from markuplift.types import AttributePredicate, AttributeValueFormatter
 
 
 class AttributeFormattingStrategy(ABC):
@@ -29,7 +29,7 @@ class AttributeFormattingStrategy(ABC):
         element: etree._Element,
         attr_name: str,
         attr_value: str,
-        user_formatters: Dict[AttributePredicate, TextContentFormatter],
+        user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
     ) -> tuple[str, bool]:
@@ -63,7 +63,7 @@ class NullAttributeStrategy(AttributeFormattingStrategy):
         element: etree._Element,
         attr_name: str,
         attr_value: str,
-        user_formatters: Dict[AttributePredicate, TextContentFormatter],
+        user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
     ) -> tuple[str, bool]:
@@ -92,7 +92,7 @@ class XmlAttributeStrategy(AttributeFormattingStrategy):
         element: etree._Element,
         attr_name: str,
         attr_value: str,
-        user_formatters: Dict[AttributePredicate, TextContentFormatter],
+        user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
     ) -> tuple[str, bool]:
@@ -149,7 +149,7 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
         element: etree._Element,
         attr_name: str,
         attr_value: str,
-        user_formatters: Dict[AttributePredicate, TextContentFormatter],
+        user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
     ) -> tuple[str, bool]:
@@ -194,7 +194,7 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
 # Reusable attribute value formatters
 
 
-def wrap_css_properties(when_more_than: int = 0) -> TextContentFormatter:
+def wrap_css_properties(when_more_than: int = 0) -> AttributeValueFormatter:
     """Create a formatter that wraps CSS style attributes with multiple properties on separate lines.
 
     This formatter is useful for HTML style attributes that contain many CSS properties.
@@ -207,7 +207,7 @@ def wrap_css_properties(when_more_than: int = 0) -> TextContentFormatter:
                        Default is 0 (wraps all multi-property styles with 1+ properties).
 
     Returns:
-        A TextContentFormatter function that can be used with reformat_attribute_when
+        An AttributeValueFormatter function that can be used with reformat_attribute_when
 
     Example:
         >>> from markuplift import Html5Formatter, wrap_css_properties

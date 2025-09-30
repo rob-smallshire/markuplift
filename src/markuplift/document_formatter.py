@@ -15,7 +15,14 @@ from functools import singledispatchmethod
 from lxml.etree import CDATA
 
 # Import type aliases
-from markuplift.types import ElementPredicate, TextContentFormatter, AttributePredicate, ElementType, TextContent
+from markuplift.types import (
+    ElementPredicate,
+    TextContentFormatter,
+    AttributePredicate,
+    AttributeValueFormatter,
+    ElementType,
+    TextContent,
+)
 
 # Import standard predicates
 from markuplift.predicates import never_match
@@ -89,7 +96,7 @@ class DocumentFormatter:
         preserve_whitespace_predicate: ElementPredicate | None = None,
         wrap_attributes_predicate: ElementPredicate | None = None,
         text_content_formatters: dict[ElementPredicate, TextContentFormatter] | None = None,
-        attribute_content_formatters: dict[AttributePredicate, TextContentFormatter] | None = None,
+        attribute_content_formatters: dict[AttributePredicate, AttributeValueFormatter] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,

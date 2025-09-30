@@ -64,6 +64,12 @@ TextContent = Union[str, CDATA]
 # and the current indentation level (int), and returns the formatted text (TextContent).
 TextContentFormatter = Callable[[TextContent, "DocumentFormatter", int], TextContent]
 
+# Type alias for attribute value formatter functions
+# The function takes a string attribute value, the DocumentFormatter instance,
+# and the current indentation level (int), and returns the formatted string.
+# Note: Attribute values are always strings and never CDATA, unlike element text content.
+AttributeValueFormatter = Callable[[str, "DocumentFormatter", int], str]
+
 # Type aliases for attribute matching
 # NameMatcher can be exact string match, regex pattern, or custom function for attribute names
 NameMatcher = Union[str, Pattern[str], Callable[[str], bool]]

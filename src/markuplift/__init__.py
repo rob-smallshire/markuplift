@@ -35,6 +35,7 @@ from .attribute_formatting import (
 from .types import (
     AttributePredicate,
     AttributePredicateFactory,
+    AttributeValueFormatter,
     ElementPredicate,
     ElementPredicateFactory,
     ElementType,
@@ -92,6 +93,7 @@ __all__ = [
     "AttributeFormattingStrategy",
     "AttributePredicate",
     "AttributePredicateFactory",
+    "AttributeValueFormatter",
     "DocumentFormatter",
     "DoctypeStrategy",
     "ElementPredicate",
