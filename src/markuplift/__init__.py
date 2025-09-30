@@ -40,6 +40,8 @@ from .types import (
     ElementPredicateFactory,
     ElementType,
     NameMatcher,
+    TextContent,
+    TextContentFormatter,
     ValueMatcher,
 )
 
@@ -132,6 +134,8 @@ __all__ = [
     "tag_equals",
     "tag_in",
     "tag_name",
+    "TextContent",
+    "TextContentFormatter",
     "ValueMatcher",
     "wrap_css_properties",
     "XmlAttributeStrategy",
