@@ -3,7 +3,7 @@
 import re
 from inspect import cleandoc
 
-from markuplift import Formatter, Html5Formatter
+from markuplift import Formatter, Html5Formatter, wrap_css_properties
 from markuplift.predicates import tag_name, has_class, attribute_matches, any_element, pattern
 
 
@@ -530,3 +530,104 @@ def test_type_safety_edge_cases():
     # Test any_element chaining with invalid types
     with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got float"):
         any_element().with_attribute(3.14)  # Float not allowed
+
+
+
+def test_wrap_css_properties_public_api():
+    """Test the public API wrap_css_properties function."""
+    html = '<div><button class="primary" style="color: red; background: blue; border: 1px solid black; padding: 10px;">Click me</button></div>'
+
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): wrap_css_properties()},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Default when_more_than=0, so all multi-property styles wrap (1+ properties)
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div>
+          <button
+            class="primary"
+            style="
+              color: red;
+              background: blue;
+              border: 1px solid black;
+              padding: 10px;
+            "
+          >Click me</button>
+        </div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_wrap_css_properties_with_custom_threshold():
+    """Test wrap_css_properties with custom when_more_than threshold."""
+    html = '<div><button style="color: red; background: blue;">Click</button></div>'
+
+    # With when_more_than=1, this should wrap (2 properties > 1)
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): wrap_css_properties(when_more_than=1)},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div>
+          <button
+            style="
+              color: red;
+              background: blue;
+            "
+          >Click</button>
+        </div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_wrap_css_properties_wraps_single_property():
+    """Test that wrap_css_properties wraps even single properties by default."""
+    html = '<div><button style="color: red;">Click</button></div>'
+
+    # With default when_more_than=0, even single properties wrap (1 > 0)
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): wrap_css_properties()},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div>
+          <button
+            style="
+              color: red;
+            "
+          >Click</button>
+        </div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_wrap_css_properties_stays_inline_with_threshold():
+    """Test that wrap_css_properties can keep short styles inline with custom threshold."""
+    html = '<div><button style="color: red;">Click</button></div>'
+
+    # With when_more_than=1, single property stays inline (1 <= 1)
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): wrap_css_properties(when_more_than=1)},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div>
+          <button
+            style="color: red;"
+          >Click</button>
+        </div>
+    """) + "\n"
+    assert result == expected
+

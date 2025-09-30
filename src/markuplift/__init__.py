@@ -30,6 +30,7 @@ from .attribute_formatting import (
     Html5AttributeStrategy,
     XmlAttributeStrategy,
     NullAttributeStrategy,
+    wrap_css_properties,
 )
 from .types import (
     AttributePredicate,
@@ -130,6 +131,7 @@ __all__ = [
     "tag_in",
     "tag_name",
     "ValueMatcher",
+    "wrap_css_properties",
     "XmlAttributeStrategy",
     "XmlDoctypeStrategy",
     "XmlFormatter",

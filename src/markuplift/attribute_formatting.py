@@ -1,9 +1,8 @@
-"""Attribute formatting strategies for different document types.
+"""Attribute formatting strategies and formatters for different document types.
 
-This module provides strategy pattern implementations for attribute formatting,
-allowing different document types (HTML5, XML) to handle attributes according
-to their specific formatting requirements while enabling user customizations
-to layer on top of built-in behavior.
+This module provides:
+1. Strategy pattern implementations for attribute formatting (HTML5, XML)
+2. Reusable text content formatters for common attribute value formatting needs
 
 The strategy pattern enables composition where built-in formatting logic
 (like HTML5 boolean attribute minimization) is applied first, followed by
@@ -190,3 +189,66 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
         # In HTML5, presence of boolean attribute = true, absence = false
         # We minimize to empty string, which lxml will render as <input checked>
         return ""
+
+
+# Reusable attribute value formatters
+
+
+def wrap_css_properties(when_more_than: int = 0) -> TextContentFormatter:
+    """Create a formatter that wraps CSS style attributes with multiple properties on separate lines.
+
+    This formatter is useful for HTML style attributes that contain many CSS properties.
+    Properties are indented one level deeper than the attribute itself, making long
+    style attributes more readable.
+
+    Args:
+        when_more_than: Wrap CSS properties when count exceeds this value (exclusive).
+                       For example, when_more_than=2 wraps styles with 3+ properties.
+                       Default is 0 (wraps all multi-property styles with 1+ properties).
+
+    Returns:
+        A TextContentFormatter function that can be used with reformat_attribute_when
+
+    Example:
+        >>> from markuplift import Html5Formatter, wrap_css_properties
+        >>> from markuplift.predicates import attribute_matches, tag_name
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     wrap_attributes_when=tag_name("button"),
+        ...     reformat_attribute_when={
+        ...         attribute_matches("style"): wrap_css_properties()  # wraps all styles
+        ...     }
+        ... )
+
+    Note:
+        When used with wrap_attributes_when, the formatter automatically receives
+        the correct indentation level accounting for the wrapped attributes.
+    """
+
+    def format_css_value(value: str, formatter: Any, level: int) -> str:
+        """Format CSS value with properties on separate lines if threshold is exceeded.
+
+        Args:
+            value: The CSS style attribute value (e.g., "color: red; background: blue;")
+            formatter: The formatter instance providing indentation context
+            level: The indentation level of the attribute (accounting for wrapped attributes)
+
+        Returns:
+            Formatted CSS value, either inline or multi-line depending on property count
+        """
+        # Parse CSS properties, removing empty entries
+        properties = [prop.strip() for prop in value.split(";") if prop.strip()]
+
+        # Keep short styles inline (when property count <= when_more_than)
+        if len(properties) <= when_more_than:
+            return value
+
+        # Multi-line format: properties indented one level deeper than attribute
+        property_indent = formatter.one_indent * (level + 1)
+        # Closing quote aligns with the attribute itself
+        closing_indent = formatter.one_indent * level
+
+        formatted_props = [f"\n{property_indent}{prop};" for prop in properties]
+        return "".join(formatted_props) + f"\n{closing_indent}"
+
+    return format_css_value
