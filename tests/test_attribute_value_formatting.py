@@ -3,7 +3,7 @@
 import re
 from inspect import cleandoc
 
-from markuplift import Formatter
+from markuplift import Formatter, Html5Formatter
 from markuplift.predicates import tag_name, has_class, attribute_matches, any_element, pattern
 
 
@@ -318,6 +318,98 @@ def test_indentation_context_in_formatter():
     result = formatter_obj.format_str(xml.strip())
     # The deep element should be at indentation level 2, so style should have 4 spaces prefix
     assert 'style="    margin: 0;"' in result
+
+
+def test_wrapped_attributes_indentation_context():
+    """Test that attribute formatters receive correct indentation level when attributes are wrapped.
+
+    When wrap_attributes_predicate is enabled, attributes are placed on separate lines with
+    an additional level of indentation. Attribute formatters should receive this extra level
+    so they can format multi-line content correctly.
+    """
+    html = '<div><button class="primary" style="color: red; background: blue; border: 1px solid black; padding: 10px;">Click me</button></div>'
+
+    def multiline_css_formatter(value, formatter, level):
+        """Format CSS properties on separate lines with proper indentation.
+
+        The level parameter represents the indentation level of the attribute itself.
+        CSS properties should be indented one level deeper than the attribute.
+        """
+        properties = [prop.strip() for prop in value.split(";") if prop.strip()]
+        if len(properties) <= 2:
+            # Keep short styles inline
+            return value
+
+        # CSS properties should be one level deeper than the attribute
+        property_indent = formatter.one_indent * (level + 1)
+        # Closing quote aligns with the attribute
+        closing_indent = formatter.one_indent * level
+
+        formatted_props = [f"\n{property_indent}{prop};" for prop in properties]
+        return "".join(formatted_props) + f"\n{closing_indent}"
+
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): multiline_css_formatter},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # With wrapped attributes:
+    # - button is at physical_level=1
+    # - attributes get level=2 (physical_level + 1 for wrapping)
+    # - CSS properties get level=3 (attribute level + 1), giving 6 spaces indentation
+    expected = '<!DOCTYPE html>\n<div>\n  <button\n    class="primary"\n    style="\n      color: red;\n      background: blue;\n      border: 1px solid black;\n      padding: 10px;\n    "\n  >Click me</button>\n</div>\n'
+    assert result == expected
+
+
+def test_wrapped_attributes_with_single_line_css():
+    """Test that short CSS styles remain inline even with wrapped attributes."""
+    html = '<div><button class="btn" style="color: red;">Click</button></div>'
+
+    def smart_css_formatter(value, formatter, level):
+        """Only expand long CSS, keep short styles inline."""
+        properties = [prop.strip() for prop in value.split(";") if prop.strip()]
+        if len(properties) <= 2:
+            return value
+
+        property_indent = formatter.one_indent * (level + 1)
+        closing_indent = formatter.one_indent * level
+        formatted_props = [f"\n{property_indent}{prop};" for prop in properties]
+        return "".join(formatted_props) + f"\n{closing_indent}"
+
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): smart_css_formatter},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = '<!DOCTYPE html>\n<div>\n  <button\n    class="btn"\n    style="color: red;"\n  >Click</button>\n</div>\n'
+    assert result == expected
+
+
+def test_deeply_nested_wrapped_attributes_indentation():
+    """Test indentation context is correct for wrapped attributes at various nesting levels."""
+    html = '<div><section><article><button style="a: 1; b: 2; c: 3; d: 4;">Deep button</button></article></section></div>'
+
+    def multiline_css_formatter(value, formatter, level):
+        properties = [prop.strip() for prop in value.split(";") if prop.strip()]
+        if len(properties) <= 2:
+            return value
+
+        property_indent = formatter.one_indent * (level + 1)
+        closing_indent = formatter.one_indent * level
+        formatted_props = [f"\n{property_indent}{prop};" for prop in properties]
+        return "".join(formatted_props) + f"\n{closing_indent}"
+
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={attribute_matches("style"): multiline_css_formatter},
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # button is at physical_level=3, with wrapped attrs level=4, CSS properties at level=5 (10 spaces)
+    expected = '<!DOCTYPE html>\n<div>\n  <section>\n    <article>\n      <button\n        style="\n          a: 1;\n          b: 2;\n          c: 3;\n          d: 4;\n        "\n      >Deep button</button>\n    </article>\n  </section>\n</div>\n'
+    assert result == expected
 
 
 def test_invalid_name_type_error():

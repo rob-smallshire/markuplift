@@ -392,7 +392,7 @@ class DocumentFormatter:
                     # Apply attribute formatters using strategy pattern
                     physical_level = annotations.annotation(node, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
                     formatted_value, should_minimize = self._attribute_strategy.format_attribute(
-                        node, k, v, self._attribute_content_formatters, self, physical_level
+                        node, k, v, self._attribute_content_formatters, self, physical_level + int(must_wrap_attributes)
                     )
 
                     if should_minimize:
