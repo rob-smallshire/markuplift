@@ -542,3 +542,41 @@ def test_formatter_factory_predicate_consistency():
 
     # Verify predicate was called for elements during formatting
     assert "div" in evaluation_log
+
+
+def test_formatter_derive_with_reorder_attributes_when():
+    """Test that derive() preserves and overrides reorder_attributes_when correctly."""
+    from markuplift import sort_attributes, prioritize_attributes
+    from markuplift.predicates import tag_name
+
+    # Create base formatter with attribute ordering
+    base = Formatter(
+        block_when=tag_name("div"),
+        reorder_attributes_when={tag_name("div"): sort_attributes()},
+    )
+
+    # Derive with different ordering
+    derived = base.derive(
+        reorder_attributes_when={tag_name("div"): prioritize_attributes("id")}
+    )
+
+    # Test base formatter
+    xml = '<div class="test" id="main">content</div>'
+    base_result = base.format_str(xml)
+    assert base_result == '<div class="test" id="main">content</div>'  # sorted
+
+    # Test derived formatter
+    derived_result = derived.format_str(xml)
+    assert derived_result == '<div id="main" class="test">content</div>'  # id first
+
+
+def test_formatter_reorder_attributes_when_property():
+    """Test reorder_attributes_when property accessor."""
+    from markuplift import sort_attributes
+    from markuplift.predicates import tag_name
+
+    orderers = {tag_name("div"): sort_attributes()}
+    formatter = Formatter(reorder_attributes_when=orderers)
+
+    # Property should return the same dictionary
+    assert formatter.reorder_attributes_when is orderers

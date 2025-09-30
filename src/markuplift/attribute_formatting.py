@@ -3,6 +3,7 @@
 This module provides:
 1. Strategy pattern implementations for attribute formatting (HTML5, XML)
 2. Reusable text content formatters for common attribute value formatting needs
+3. Reusable attribute reorderer factories for common attribute reordering needs
 
 The strategy pattern enables composition where built-in formatting logic
 (like HTML5 boolean attribute minimization) is applied first, followed by
@@ -10,10 +11,10 @@ user-defined custom formatters, without conflicts or coordination issues.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Sequence
 from lxml import etree
 
-from markuplift.types import AttributePredicate, AttributeValueFormatter
+from markuplift.types import AttributePredicate, AttributeValueFormatter, AttributeReorderer
 
 
 class AttributeFormattingStrategy(ABC):
@@ -252,3 +253,190 @@ def wrap_css_properties(when_more_than: int = 0) -> AttributeValueFormatter:
         return "".join(formatted_props) + f"\n{closing_indent}"
 
     return format_css_value
+
+
+# Reusable attribute reorderer factories
+
+
+def sort_attributes() -> AttributeReorderer:
+    """Sort attributes alphanumerically by name.
+
+    Returns:
+        An AttributeReorderer that sorts attribute names in alphanumeric order.
+
+    Example:
+        >>> from markuplift import Html5Formatter, sort_attributes
+        >>> from markuplift.predicates import any_element
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     reorder_attributes_when={
+        ...         any_element(): sort_attributes()
+        ...     }
+        ... )
+        >>> html = '<div role="main" id="content" class="wrapper">'
+        >>> formatter.format_str(html)
+        # Output: <div class="wrapper" id="content" role="main">
+    """
+
+    def orderer(names: Sequence[str]) -> Sequence[str]:
+        return sorted(names)
+
+    return orderer
+
+
+def prioritize_attributes(*priority_names: str) -> AttributeReorderer:
+    """Prioritize specific attributes to appear first, others follow in original order.
+
+    Args:
+        *priority_names: Attribute names to place first, in the order specified.
+                        Attributes not in this list maintain their original relative order.
+
+    Returns:
+        An AttributeReorderer that places priority attributes first.
+
+    Example:
+        >>> from markuplift import Html5Formatter, prioritize_attributes
+        >>> from markuplift.predicates import tag_name
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     reorder_attributes_when={
+        ...         tag_name("input"): prioritize_attributes("name", "id", "type")
+        ...     }
+        ... )
+        >>> html = '<input value="test" class="form-control" type="text" name="username" id="user">'
+        >>> formatter.format_str(html)
+        # Output: <input name="username" id="user" type="text" value="test" class="form-control">
+    """
+
+    def orderer(names: Sequence[str]) -> Sequence[str]:
+        priority = [n for n in priority_names if n in names]
+        rest = [n for n in names if n not in priority_names]
+        return priority + rest
+
+    return orderer
+
+
+def defer_attributes(*trailing_names: str) -> AttributeReorderer:
+    """Defer specific attributes to appear last, others maintain original order.
+
+    Args:
+        *trailing_names: Attribute names to place last. Other attributes
+                        maintain their original relative order.
+
+    Returns:
+        An AttributeReorderer that defers specified attributes to the end.
+
+    Example:
+        >>> from markuplift import Html5Formatter, defer_attributes
+        >>> from markuplift.predicates import tag_name
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     reorder_attributes_when={
+        ...         tag_name("button"): defer_attributes("data-track", "aria-label")
+        ...     }
+        ... )
+        >>> html = '<button data-track="click" class="btn" id="submit" aria-label="Submit form">Submit</button>'
+        >>> formatter.format_str(html)
+        # Output: <button class="btn" id="submit" data-track="click" aria-label="Submit form">Submit</button>
+    """
+
+    def orderer(names: Sequence[str]) -> Sequence[str]:
+        rest = [n for n in names if n not in trailing_names]
+        trailing = [n for n in names if n in trailing_names]
+        return rest + trailing
+
+    return orderer
+
+
+def order_attributes(*ordered_names: str) -> AttributeReorderer:
+    """Order attributes according to specified sequence, then sort remaining alphanumerically.
+
+    Args:
+        *ordered_names: Attribute names in desired order. Attributes not specified
+                       will be sorted alphanumerically and placed after.
+
+    Returns:
+        An AttributeReorderer that orders attributes per specification, then sorts remainder.
+
+    Example:
+        >>> from markuplift import Html5Formatter, order_attributes
+        >>> from markuplift.predicates import tag_name
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     reorder_attributes_when={
+        ...         tag_name("a"): order_attributes("href", "title", "target")
+        ...     }
+        ... )
+        >>> html = '<a target="_blank" rel="noopener" href="/page" title="Link" class="link">Click</a>'
+        >>> formatter.format_str(html)
+        # Output: <a href="/page" title="Link" target="_blank" class="link" rel="noopener">
+        #         (href, title, target first as specified, then class and rel sorted)
+    """
+
+    def orderer(names: Sequence[str]) -> Sequence[str]:
+        ordered = [n for n in ordered_names if n in names]
+        unspecified = sorted(n for n in names if n not in ordered_names)
+        return ordered + unspecified
+
+    return orderer
+
+
+def html_attribute_order() -> AttributeReorderer:
+    """Order HTML attributes according to a semantic priority hierarchy.
+
+    Orders attributes into these priority categories, preserving original order within each:
+    0. id - unique identifier (highest priority)
+    1. name - form element name
+    2. class - CSS class names
+    3. References/URLs - href, src, action (resource location)
+    4. Behavior/events - on* event handlers
+    5. Semantic/accessibility - alt, title, aria-*, role
+    6. Custom/data - data-* and other unknown attributes
+    7. style - inline styles (lowest priority)
+
+    This ordering follows common HTML conventions where identity and classification
+    come first, followed by resource references, then behavior, accessibility, custom
+    attributes, and finally presentation.
+
+    Returns:
+        An AttributeReorderer that orders attributes by semantic category.
+
+    Example:
+        >>> from markuplift import Html5Formatter, html_attribute_order
+        >>> from markuplift.predicates import any_element
+        >>>
+        >>> formatter = Html5Formatter(
+        ...     reorder_attributes_when={
+        ...         any_element(): html_attribute_order()
+        ...     }
+        ... )
+        >>> html = '<img style="border:0" alt="Logo" class="logo" src="/logo.png" id="main-logo">'
+        >>> formatter.format_str(html)
+        # Output: <img id="main-logo" class="logo" src="/logo.png" alt="Logo" style="border:0">
+    """
+
+    def category(attr: str) -> int:
+        """Determine the priority category for an attribute."""
+        attr_lower = attr.lower()
+        if attr_lower == "id":
+            return 0
+        elif attr_lower == "name":
+            return 1
+        elif attr_lower == "class":
+            return 2
+        elif attr_lower in ("href", "src", "action"):
+            return 3
+        elif attr_lower.startswith("on"):
+            return 4
+        elif attr_lower in ("alt", "title", "role") or attr_lower.startswith("aria-"):
+            return 5
+        elif attr_lower == "style":
+            return 7
+        else:
+            return 6  # data-* or other unknown attributes
+
+    def orderer(names: Sequence[str]) -> Sequence[str]:
+        # Stable sort by category - preserves original order within categories
+        return sorted(names, key=category)
+
+    return orderer

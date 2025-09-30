@@ -10,11 +10,12 @@ Type Aliases:
     TextContentFormatter: A function that formats element text content
     AttributePredicate: A function that tests an element's attribute and returns bool
     AttributePredicateFactory: A function that creates AttributePredicate instances
+    AttributeReorderer: A function that reorders attribute names
     NameMatcher: String, regex pattern, or custom function for matching attribute names
     ValueMatcher: String, regex pattern, or custom function for matching attribute values
 """
 
-from typing import Callable, Union, TYPE_CHECKING, Protocol
+from typing import Callable, Union, TYPE_CHECKING, Protocol, Sequence
 from re import Pattern
 from enum import Enum
 from lxml import etree
@@ -92,3 +93,10 @@ class AttributePredicateFactory(Protocol):
     """
 
     def __call__(self, root: etree._Element) -> AttributePredicate: ...
+
+
+# Type alias for attribute reordering functions
+# The function takes a sequence of attribute names (in their current order)
+# and returns a sequence of the same attribute names in the desired output order.
+# The returned sequence must contain exactly the same names (no additions, omissions, or duplicates).
+AttributeReorderer = Callable[[Sequence[str]], Sequence[str]]

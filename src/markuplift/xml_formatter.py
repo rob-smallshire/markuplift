@@ -133,7 +133,7 @@ class XmlFormatter:
         return self._formatter.reformat_text_when
 
     @property
-    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, TextContentFormatter]:
+    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, AttributeValueFormatter]:
         """The dictionary mapping attribute predicate factories to formatters."""
         return self._formatter.reformat_attribute_when
 

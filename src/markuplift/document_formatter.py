@@ -10,7 +10,7 @@ processing, indentation, and text content formatting using TextContentFormatter 
 """
 
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Sequence
 from functools import singledispatchmethod
 from lxml.etree import CDATA
 
@@ -20,6 +20,7 @@ from markuplift.types import (
     TextContentFormatter,
     AttributePredicate,
     AttributeValueFormatter,
+    AttributeReorderer,
     ElementType,
     TextContent,
 )
@@ -82,6 +83,7 @@ class DocumentFormatter:
         preserve_whitespace_predicate: ElementPredicate for whitespace preservation
         wrap_attributes_predicate: ElementPredicate for attribute wrapping
         text_content_formatters: Dict mapping ElementPredicate to TextContentFormatter
+        attribute_reorderers: Dict mapping ElementPredicate to AttributeReorderer
         indent_size: Number of spaces per indentation level
         default_type: Default element type for unclassified elements
     """
@@ -97,6 +99,7 @@ class DocumentFormatter:
         wrap_attributes_predicate: ElementPredicate | None = None,
         text_content_formatters: dict[ElementPredicate, TextContentFormatter] | None = None,
         attribute_content_formatters: dict[AttributePredicate, AttributeValueFormatter] | None = None,
+        attribute_reorderers: dict[ElementPredicate, AttributeReorderer] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,
@@ -114,6 +117,7 @@ class DocumentFormatter:
             wrap_attributes_predicate: Function (element -> bool) for attribute wrapping.
             text_content_formatters: Dictionary mapping predicates to formatter functions.
             attribute_content_formatters: Dictionary mapping attribute predicates to formatter functions.
+            attribute_reorderers: Dictionary mapping element predicates to attribute reorderer functions.
             escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
@@ -144,6 +148,9 @@ class DocumentFormatter:
         if attribute_content_formatters is None:
             attribute_content_formatters = {}
 
+        if attribute_reorderers is None:
+            attribute_reorderers = {}
+
         if escaping_strategy is None:
             escaping_strategy = XmlEscapingStrategy()
 
@@ -172,6 +179,7 @@ class DocumentFormatter:
         self._must_wrap_attributes = wrap_attributes_predicate
         self._text_content_formatters = text_content_formatters
         self._attribute_content_formatters = attribute_content_formatters
+        self._attribute_reorderers = attribute_reorderers
         self._escaping_strategy = escaping_strategy
         self._doctype_strategy = doctype_strategy
         self._attribute_strategy = attribute_strategy
@@ -385,7 +393,18 @@ class DocumentFormatter:
                     spacer = " "
 
                 real_attributes = {k: v for k, v in node.attrib.items() if not k.startswith("_")}
-                for k, v in real_attributes.items():
+
+                # Apply attribute reordering if reorderer matches
+                attribute_names = list(real_attributes.keys())
+                for predicate, reorderer_func in self._attribute_reorderers.items():
+                    if predicate(node):
+                        reordered_names = reorderer_func(attribute_names)
+                        self._validate_attribute_reordering(reordered_names, attribute_names, node.tag)
+                        attribute_names = list(reordered_names)
+                        break
+
+                for k in attribute_names:
+                    v = real_attributes[k]
                     k_qname = etree.QName(k)
                     if k_qname.namespace:
                         if k_qname.namespace == "http://www.w3.org/XML/1998/namespace":
@@ -467,6 +486,49 @@ class DocumentFormatter:
     def _is_self_closing(self, annotations, element: etree._Element) -> bool:
         text = self._text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
+
+    def _validate_attribute_reordering(
+        self, reordered: Sequence[str], original: Sequence[str], element_tag: str
+    ) -> None:
+        """Validate that reordered is a valid permutation of original.
+
+        Args:
+            reordered: The reordered list of attribute names returned by reorderer
+            original: The original list of attribute names
+            element_tag: The tag name of the element (for error messages)
+
+        Raises:
+            ValueError: If reordered is not a valid permutation of original
+        """
+        if len(original) != len(reordered):
+            raise ValueError(
+                f"Attribute reorderer for <{element_tag}> returned {len(reordered)} "
+                f"attributes but received {len(original)}"
+            )
+
+        original_set = set(original)
+        reordered_set = set(reordered)
+
+        if original_set != reordered_set:
+            missing = original_set - reordered_set
+            extra = reordered_set - original_set
+            msg_parts = [f"Attribute reorderer for <{element_tag}> returned invalid reordering:"]
+            if missing:
+                msg_parts.append(f"  Missing: {sorted(missing)}")
+            if extra:
+                msg_parts.append(f"  Extra: {sorted(extra)}")
+            raise ValueError("\n".join(msg_parts))
+
+        if len(reordered) != len(reordered_set):
+            # Find duplicates
+            from collections import Counter
+
+            counts = Counter(reordered)
+            duplicates = [name for name, count in counts.items() if count > 1]
+            raise ValueError(
+                f"Attribute reorderer for <{element_tag}> returned duplicate "
+                f"attributes: {sorted(duplicates)}"
+            )
 
     def _text_content(self, annotations, element) -> TextContent:
         # Get the original text content, which may be a CDATA object

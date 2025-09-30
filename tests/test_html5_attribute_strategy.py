@@ -47,7 +47,7 @@ def test_non_boolean_attributes_are_preserved():
         </div>
     """)
 
-    formatter = Html5Formatter()
+    formatter = Html5Formatter(reorder_attributes_when={})  # Disable default ordering for this test
     actual = formatter.format_str(example)
 
     expected = (

@@ -115,7 +115,8 @@ def test_html5_strategy_applies_boolean_rules_then_user_formatters():
         reformat_attribute_when={
             attribute_matches("checked", "any-value"): should_not_be_called,  # Won't be called - different value
             attribute_matches("class", "form-input"): uppercase_formatter,  # Will be called - regular attr
-        }
+        },
+        reorder_attributes_when={},  # Disable default ordering for this test
     )
     actual = formatter.format_str(example)
 
@@ -182,7 +183,10 @@ def test_strategy_with_attribute_wrapping():
         </root>
     """)
 
-    formatter = Html5Formatter(wrap_attributes_when=lambda root: lambda element: element.tag == "input")
+    formatter = Html5Formatter(
+        wrap_attributes_when=lambda root: lambda element: element.tag == "input",
+        reorder_attributes_when={},  # Disable default ordering for this test
+    )
     actual = formatter.format_str(example)
 
     expected = (

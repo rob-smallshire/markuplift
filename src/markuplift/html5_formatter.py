@@ -23,6 +23,7 @@ from markuplift.types import (
     TextContentFormatter,
     AttributePredicateFactory,
     AttributeValueFormatter,
+    AttributeReorderer,
     ElementType,
 )
 
@@ -39,6 +40,7 @@ class Html5Formatter:
     - Defaults to html_whitespace_significant_elements() for preserve_whitespace_when
     - Defaults to not_matching(html_whitespace_significant_elements()) for normalize_whitespace_when
     - Defaults to html_block_elements() excluding whitespace-significant elements for strip_whitespace_when
+    - Defaults to html_attribute_order() for reorder_attributes_when, providing semantic HTML attribute ordering
 
     Element classification can be overridden by providing custom predicate factories,
     but defaults to standard HTML5 element classifications for immediate usability.
@@ -68,6 +70,7 @@ class Html5Formatter:
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
+        reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool = True,
@@ -88,6 +91,8 @@ class Html5Formatter:
             wrap_attributes_when: Predicate factory for attribute wrapping predicates.
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
+            reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderer functions.
+                                   Defaults to html_attribute_order() for all elements if not provided.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
             preserve_cdata: Whether to preserve CDATA sections from input. Defaults to True.
@@ -110,6 +115,12 @@ class Html5Formatter:
         if strip_whitespace_when is None:
             strip_whitespace_when = all_of(html_block_elements(), not_matching(html_whitespace_significant_elements()))
 
+        # Default to HTML5 semantic attribute ordering if not provided
+        if reorder_attributes_when is None:
+            from markuplift.attribute_formatting import html_attribute_order
+            from markuplift.predicates import any_element
+            reorder_attributes_when = {any_element(): html_attribute_order()}
+
         # Pre-configure HTML5-friendly strategies
         self._formatter = Formatter(
             block_when=block_when,
@@ -120,6 +131,7 @@ class Html5Formatter:
             wrap_attributes_when=wrap_attributes_when,
             reformat_text_when=reformat_text_when,
             reformat_attribute_when=reformat_attribute_when,
+            reorder_attributes_when=reorder_attributes_when,
             escaping_strategy=HtmlEscapingStrategy(),
             parsing_strategy=HtmlParsingStrategy(preserve_cdata=preserve_cdata),
             doctype_strategy=Html5DoctypeStrategy(),
@@ -165,9 +177,14 @@ class Html5Formatter:
         return self._formatter.reformat_text_when
 
     @property
-    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, TextContentFormatter]:
+    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, AttributeValueFormatter]:
         """The dictionary mapping attribute predicate factories to formatters."""
         return self._formatter.reformat_attribute_when
+
+    @property
+    def reorder_attributes_when(self) -> dict[ElementPredicateFactory, AttributeReorderer]:
+        """The dictionary mapping predicate factories to attribute reorderers."""
+        return self._formatter.reorder_attributes_when
 
     @property
     def indent_size(self) -> int:
@@ -195,6 +212,7 @@ class Html5Formatter:
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
+        reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool | None = None,
@@ -215,6 +233,7 @@ class Html5Formatter:
             wrap_attributes_when: Predicate factory for attribute wrapping (uses current if None).
             reformat_text_when: Dictionary mapping predicate factories to formatters (uses current if None).
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
+            reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderers (uses current if None).
             indent_size: Number of spaces per indentation level (uses current if None).
             default_type: Default type for unclassified elements (uses current if None).
             preserve_cdata: Whether to preserve CDATA sections from input (uses current if None).
@@ -260,6 +279,9 @@ class Html5Formatter:
             reformat_attribute_when=reformat_attribute_when
             if reformat_attribute_when is not None
             else self._formatter.reformat_attribute_when,
+            reorder_attributes_when=reorder_attributes_when
+            if reorder_attributes_when is not None
+            else self._formatter.reorder_attributes_when,
             indent_size=indent_size if indent_size is not None else self._formatter.indent_size,
             default_type=default_type if default_type is not None else self._formatter.default_type,
             preserve_cdata=preserve_cdata if preserve_cdata is not None else self.preserve_cdata,

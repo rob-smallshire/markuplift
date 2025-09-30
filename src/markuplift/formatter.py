@@ -24,6 +24,7 @@ from markuplift.types import (
     TextContentFormatter,
     AttributePredicateFactory,
     AttributeValueFormatter,
+    AttributeReorderer,
     ElementType,
 )
 
@@ -65,6 +66,8 @@ class Formatter:
         preserve_whitespace_when: Factory for whitespace preservation
         wrap_attributes_when: Factory for attribute wrapping
         reformat_text_when: Dict mapping factories to TextContentFormatter functions
+        reformat_attribute_when: Dict mapping attribute factories to AttributeValueFormatter functions
+        reorder_attributes_when: Dict mapping factories to AttributeReorderer functions
         indent_size: Number of spaces per indentation level
         default_type: Default element type ('block' or 'inline') for unclassified elements
     """
@@ -80,6 +83,7 @@ class Formatter:
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
+        reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
@@ -99,6 +103,7 @@ class Formatter:
             wrap_attributes_when: Predicate factory for attribute wrapping predicates.
             reformat_text_when: Dictionary mapping predicate factories to formatter functions.
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
+            reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderer functions.
             escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
             parsing_strategy: Strategy for parsing document content. Defaults to XmlParsingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
@@ -115,6 +120,7 @@ class Formatter:
         self._wrap_attributes_factory = wrap_attributes_when or never_matches
         self._text_content_formatter_factories = reformat_text_when or {}
         self._attribute_content_formatter_factories = reformat_attribute_when or {}
+        self._attribute_reorderer_factories = reorder_attributes_when or {}
         self._escaping_strategy = escaping_strategy or XmlEscapingStrategy()
         self._parsing_strategy = parsing_strategy or XmlParsingStrategy(preserve_cdata=preserve_cdata)
         self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
@@ -180,9 +186,14 @@ class Formatter:
         return self._text_content_formatter_factories
 
     @property
-    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, TextContentFormatter]:
+    def reformat_attribute_when(self) -> dict[AttributePredicateFactory, AttributeValueFormatter]:
         """The dictionary mapping attribute predicate factories to formatters."""
         return self._attribute_content_formatter_factories
+
+    @property
+    def reorder_attributes_when(self) -> dict[ElementPredicateFactory, AttributeReorderer]:
+        """The dictionary mapping predicate factories to attribute reorderers."""
+        return self._attribute_reorderer_factories
 
     @property
     def escaping_strategy(self) -> EscapingStrategy:
@@ -291,6 +302,7 @@ class Formatter:
         wrap_attributes_when: ElementPredicateFactory | None = None,
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
+        reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
         escaping_strategy: EscapingStrategy | None = None,
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
@@ -314,6 +326,7 @@ class Formatter:
             wrap_attributes_when: Predicate factory for attribute wrapping (uses current if None).
             reformat_text_when: Dictionary mapping predicate factories to formatters (uses current if None).
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
+            reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderers (uses current if None).
             escaping_strategy: Strategy for escaping text and attribute values (uses current if None).
             parsing_strategy: Strategy for parsing document content (uses current if None).
             doctype_strategy: Strategy for handling DOCTYPE declarations (uses current if None).
@@ -358,6 +371,9 @@ class Formatter:
             reformat_attribute_when=reformat_attribute_when
             if reformat_attribute_when is not None
             else self._attribute_content_formatter_factories,
+            reorder_attributes_when=reorder_attributes_when
+            if reorder_attributes_when is not None
+            else self._attribute_reorderer_factories,
             escaping_strategy=escaping_strategy if escaping_strategy is not None else self._escaping_strategy,
             parsing_strategy=parsing_strategy if parsing_strategy is not None else self._parsing_strategy,
             doctype_strategy=doctype_strategy if doctype_strategy is not None else self._doctype_strategy,
@@ -396,6 +412,12 @@ class Formatter:
             attr_predicate = attr_factory(root)
             attribute_formatters[attr_predicate] = formatter_func
 
+        # Create concrete attribute reorderers
+        attribute_reorderers = {}
+        for reorderer_factory, reorderer_func in self._attribute_reorderer_factories.items():
+            reorderer_predicate = reorderer_factory(root)
+            attribute_reorderers[reorderer_predicate] = reorderer_func
+
         # Create DocumentFormatter with concrete predicates
         return DocumentFormatter(
             block_predicate=block_predicate,
@@ -406,6 +428,7 @@ class Formatter:
             wrap_attributes_predicate=wrap_attributes_predicate,
             text_content_formatters=text_formatters,
             attribute_content_formatters=attribute_formatters,
+            attribute_reorderers=attribute_reorderers,
             escaping_strategy=self._escaping_strategy,
             doctype_strategy=self._doctype_strategy,
             attribute_strategy=self._attribute_strategy,
