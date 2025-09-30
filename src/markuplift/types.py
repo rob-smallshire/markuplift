@@ -11,6 +11,8 @@ Type Aliases:
     AttributePredicate: A function that tests an element's attribute and returns bool
     AttributePredicateFactory: A function that creates AttributePredicate instances
     AttributeReorderer: A function that reorders attribute names
+    CssPropertyTransformer: A function that transforms CSS properties (can add/remove/modify)
+    CssPropertyReorderer: A function that reorders CSS property strings
     NameMatcher: String, regex pattern, or custom function for matching attribute names
     ValueMatcher: String, regex pattern, or custom function for matching attribute values
 """
@@ -100,3 +102,15 @@ class AttributePredicateFactory(Protocol):
 # and returns a sequence of the same attribute names in the desired output order.
 # The returned sequence must contain exactly the same names (no additions, omissions, or duplicates).
 AttributeReorderer = Callable[[Sequence[str]], Sequence[str]]
+
+# Type alias for CSS property transformation functions
+# The function takes a property name and value, and returns a sequence of (name, value) tuples.
+# Can add properties by returning multiple tuples, remove by returning empty sequence,
+# or modify by returning a single tuple with transformed name/value.
+CssPropertyTransformer = Callable[[str, str], Sequence[tuple[str, str]]]
+
+# Type alias for CSS property reordering functions
+# The function takes a sequence of CSS property strings in "name: value" format
+# and returns a sequence of the same properties in the desired output order.
+# Similar to AttributeReorderer but works on complete "name: value" strings.
+CssPropertyReorderer = Callable[[Sequence[str]], Sequence[str]]

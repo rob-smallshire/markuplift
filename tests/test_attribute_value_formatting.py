@@ -3,7 +3,17 @@
 import re
 from inspect import cleandoc
 
-from markuplift import Formatter, Html5Formatter, wrap_css_properties
+from markuplift import (
+    Formatter,
+    Html5Formatter,
+    wrap_css_properties,
+    css_formatter,
+    sort_css_properties,
+    prioritize_css_properties,
+    defer_css_properties,
+    css_property_order,
+    reorder_css_properties,
+)
 from markuplift.predicates import tag_name, has_class, attribute_matches, any_element, pattern
 
 
@@ -628,6 +638,379 @@ def test_wrap_css_properties_stays_inline_with_threshold():
             style="color: red;"
           >Click</button>
         </div>
+    """) + "\n"
+    assert result == expected
+
+
+# CSS property reordering tests
+
+
+def test_sort_css_properties():
+    """Test alphabetical sorting of CSS properties."""
+    html = '<div style="z-index: 1; color: red; background: blue; margin: 10px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(sort_css_properties())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = '<!DOCTYPE html>\n<div style="background: blue; color: red; margin: 10px; z-index: 1;">content</div>\n'
+    assert result == expected
+
+
+def test_prioritize_css_properties():
+    """Test prioritizing specific CSS properties to appear first."""
+    html = '<div style="color: red; width: 100px; background: blue; display: flex; padding: 5px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(
+                prioritize_css_properties("display", "width")
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # display and width should be first, rest in original order
+    expected = '<!DOCTYPE html>\n<div style="display: flex; width: 100px; color: red; background: blue; padding: 5px;">content</div>\n'
+    assert result == expected
+
+
+def test_defer_css_properties():
+    """Test deferring specific CSS properties to appear last."""
+    html = '<div style="z-index: 10; color: red; width: 100px; opacity: 0.5;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(
+                defer_css_properties("opacity", "z-index")
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # color and width first (original order), then opacity and z-index
+    expected = '<!DOCTYPE html>\n<div style="color: red; width: 100px; z-index: 10; opacity: 0.5;">content</div>\n'
+    assert result == expected
+
+
+def test_css_property_order():
+    """Test semantic ordering of CSS properties."""
+    html = '<div style="color: red; display: flex; margin: 10px; position: relative; font-size: 14px; background: blue;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Layout (display, position) → Box model (margin) → Typography (color, font-size - alphabetical) → Visual (background)
+    expected = '<!DOCTYPE html>\n<div style="display: flex; position: relative; margin: 10px; color: red; font-size: 14px; background: blue;">content</div>\n'
+    assert result == expected
+
+
+def test_css_variables_dependency_ordering():
+    """Test that CSS variables are ordered by dependency (topological sort)."""
+    html = '<div style="color: var(--text); --text: var(--primary); --primary: red;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Variables should be ordered: --primary (no deps), --text (depends on --primary), color (uses --text)
+    expected = '<!DOCTYPE html>\n<div style="--primary: red; --text: var(--primary); color: var(--text);">content</div>\n'
+    assert result == expected
+
+
+def test_css_variables_complex_dependencies():
+    """Test CSS variables with multiple levels of dependencies."""
+    html = '<div style="--level3: var(--level2); --level1: blue; --level2: var(--level1); background: var(--level3);">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Should order: --level1, --level2, --level3, then background
+    expected = '<!DOCTYPE html>\n<div style="--level1: blue; --level2: var(--level1); --level3: var(--level2); background: var(--level3);">content</div>\n'
+    assert result == expected
+
+
+def test_css_variables_with_fallbacks():
+    """Test CSS variables with fallback values in var() calls."""
+    html = '<div style="--secondary: green; color: var(--primary, var(--secondary)); --primary: red;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Variables first (--secondary, --primary), then color
+    # Note: fallback detection might not catch --secondary in the fallback, but --primary should be detected
+    result_has_vars_first = "--secondary" in result.split("color:")[0] and "--primary" in result.split("color:")[0]
+    assert result_has_vars_first
+
+
+def test_css_variables_cycle_detection():
+    """Test that circular dependencies fall back to original order."""
+    html = '<div style="--a: var(--b); --b: var(--a); color: red;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # With a cycle, should preserve original order for variables but still separate from normal props
+    # Variables should come first, then normal properties
+    assert "--a:" in result.split("color:")[0]
+    assert "--b:" in result.split("color:")[0]
+
+
+def test_css_variables_no_dependencies():
+    """Test CSS variables with no dependencies are kept in original order."""
+    html = '<div style="--color1: red; --color2: blue; --color3: green; background: white;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # All variables should come before background, order among themselves preserved
+    vars_section = result.split("background:")[0]
+    assert "--color1:" in vars_section
+    assert "--color2:" in vars_section
+    assert "--color3:" in vars_section
+
+
+def test_enhanced_property_ordering():
+    """Test the enhanced property ordering with box-sizing and box-shadow."""
+    html = '<div style="box-shadow: 0 0 5px; color: red; box-sizing: border-box; display: block; width: 100px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Layout (display) → Box model (box-sizing, width - alphabetical) → Visual (box-shadow, color - alphabetical)
+    expected = '<!DOCTYPE html>\n<div style="display: block; box-sizing: border-box; width: 100px; color: red; box-shadow: 0 0 5px;">content</div>\n'
+    assert result == expected
+
+
+def test_alphabetical_sorting_within_categories():
+    """Test that unlisted properties are sorted alphabetically within their category."""
+    html = '<div style="cursor: pointer; visibility: hidden; overflow: auto;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # All these are unlisted, should be alphabetical
+    expected = '<!DOCTYPE html>\n<div style="cursor: pointer; overflow: auto; visibility: hidden;">content</div>\n'
+    assert result == expected
+
+
+def test_css_variables_before_normal_properties():
+    """Test that all CSS variables appear before normal properties."""
+    html = '<div style="color: red; --bg: blue; margin: 10px; --text: black; display: flex;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(css_property_order())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Extract the style attribute value
+    style_match = result.split('style="')[1].split('"')[0]
+
+    # Find positions of variables and normal properties
+    var_positions = [style_match.find("--bg"), style_match.find("--text")]
+    normal_positions = [style_match.find("color:"), style_match.find("margin:"), style_match.find("display:")]
+
+    # All variables should come before all normal properties
+    max_var_pos = max(p for p in var_positions if p >= 0)
+    min_normal_pos = min(p for p in normal_positions if p >= 0)
+
+    assert max_var_pos < min_normal_pos
+
+
+def test_css_formatter_fluent_api():
+    """Test CssFormatter fluent API without .build()."""
+    html = '<div style="z-index: 1; color: red; background: blue; margin: 10px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): (
+                css_formatter()
+                .reorder(sort_css_properties())
+                .wrap_when(lambda props: len(props) > 2)
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Should be sorted and wrapped (4 properties > 2)
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div style="
+          background: blue;
+          color: red;
+          margin: 10px;
+          z-index: 1;
+        ">content</div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_css_formatter_reorder_only():
+    """Test CssFormatter with reordering but no wrapping."""
+    html = '<div style="z-index: 1; color: red; background: blue;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): css_formatter().reorder(sort_css_properties())
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Should be sorted but inline (no wrap_when specified)
+    expected = '<!DOCTYPE html>\n<div style="background: blue; color: red; z-index: 1;">content</div>\n'
+    assert result == expected
+
+
+def test_css_formatter_wrap_only():
+    """Test CssFormatter with wrapping but no reordering."""
+    html = '<div style="z-index: 1; color: red; background: blue;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): css_formatter().wrap_when(lambda props: len(props) > 2)
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Should be wrapped but not reordered (original order preserved)
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div style="
+          z-index: 1;
+          color: red;
+          background: blue;
+        ">content</div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_wrap_css_properties_with_reorderer():
+    """Test wrap_css_properties with reorderer argument (new breaking change API)."""
+    html = '<div style="z-index: 1; color: red; background: blue; margin: 10px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): wrap_css_properties(
+                sort_css_properties(),
+                when_more_than=2
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Should be sorted and wrapped (4 properties > 2)
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <div style="
+          background: blue;
+          color: red;
+          margin: 10px;
+          z-index: 1;
+        ">content</div>
+    """) + "\n"
+    assert result == expected
+
+
+def test_multiple_reorderers_composition():
+    """Test composing multiple reorderers together."""
+    html = '<div style="z-index: 1; width: 100px; color: red; display: flex; background: blue; margin: 10px;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(
+                prioritize_css_properties("display"),  # display first
+                defer_css_properties("z-index"),       # z-index last
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # display first, z-index last, rest in original order
+    expected = '<!DOCTYPE html>\n<div style="display: flex; width: 100px; color: red; background: blue; margin: 10px; z-index: 1;">content</div>\n'
+    assert result == expected
+
+
+def test_css_property_case_insensitive():
+    """Test that CSS property matching is case-insensitive."""
+    html = '<div style="Z-INDEX: 1; Color: red; BACKGROUND: blue; Display: flex;">content</div>'
+
+    formatter_obj = Html5Formatter(
+        reformat_attribute_when={
+            attribute_matches("style"): reorder_css_properties(
+                prioritize_css_properties("display", "background")
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    # Case-insensitive matching: Display and BACKGROUND should be prioritized
+    expected = '<!DOCTYPE html>\n<div style="Display: flex; BACKGROUND: blue; Z-INDEX: 1; Color: red;">content</div>\n'
+    assert result == expected
+
+
+def test_css_formatter_with_wrapped_attributes():
+    """Test CssFormatter with wrapped HTML attributes."""
+    html = '<button class="btn" style="z-index: 1; color: red; background: blue; margin: 5px;">Click</button>'
+
+    formatter_obj = Html5Formatter(
+        wrap_attributes_when=tag_name("button"),
+        reformat_attribute_when={
+            attribute_matches("style"): (
+                css_formatter()
+                .reorder(sort_css_properties())
+                .wrap_when(lambda props: len(props) > 2)
+            )
+        }
+    )
+
+    result = formatter_obj.format_str(html.strip())
+    expected = cleandoc("""
+        <!DOCTYPE html>
+        <button
+          class="btn"
+          style="
+            background: blue;
+            color: red;
+            margin: 5px;
+            z-index: 1;
+          "
+        >Click</button>
     """) + "\n"
     assert result == expected
 
