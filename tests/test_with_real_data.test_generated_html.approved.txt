@@ -1,48 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <link href="clock.css" rel="stylesheet" />
-    <link href="colors.css" rel="stylesheet" />
-    <link href="effects.css" rel="stylesheet" />
-    <link href="font-families.css" rel="stylesheet" />
-    <link href="font-variables.css" rel="stylesheet" />
-    <link href="pygments.css" rel="stylesheet" />
-    <link href="slides.css" rel="stylesheet" />
-    <link href="terminal.css" rel="stylesheet" />
-    <script src="animation.mjs" type="module" />
-    <script src="annotations.mjs" type="module" />
-    <script src="balancetext.mjs" type="module" />
-    <script src="case.mjs" type="module" />
-    <script src="clapperboards.mjs" type="module" />
-    <script src="clock.mjs" type="module" />
-    <script src="effects.mjs" type="module" />
-    <script src="extract-css.mjs" type="module" />
-    <script src="key-value-store.mjs" type="module" />
-    <script src="keypress.mjs" type="module" />
-    <script src="logging.mjs" type="module" />
-    <script src="onload.mjs" type="module" />
-    <script src="optional-background.mjs" type="module" />
-    <script src="scrolling.mjs" type="module" />
-    <script src="sizing.mjs" type="module" />
-    <script src="three-state-animation.mjs" type="module" />
-    <script src="visning.mjs" type="module" />
-    <script src="wait.mjs" type="module" />
+    <meta charset="UTF-8">
+    <link href="clock.css" rel="stylesheet">
+    <link href="colors.css" rel="stylesheet">
+    <link href="effects.css" rel="stylesheet">
+    <link href="font-families.css" rel="stylesheet">
+    <link href="font-variables.css" rel="stylesheet">
+    <link href="pygments.css" rel="stylesheet">
+    <link href="slides.css" rel="stylesheet">
+    <link href="terminal.css" rel="stylesheet">
+    <script src="animation.mjs" type="module"></script>
+    <script src="annotations.mjs" type="module"></script>
+    <script src="balancetext.mjs" type="module"></script>
+    <script src="case.mjs" type="module"></script>
+    <script src="clapperboards.mjs" type="module"></script>
+    <script src="clock.mjs" type="module"></script>
+    <script src="effects.mjs" type="module"></script>
+    <script src="extract-css.mjs" type="module"></script>
+    <script src="key-value-store.mjs" type="module"></script>
+    <script src="keypress.mjs" type="module"></script>
+    <script src="logging.mjs" type="module"></script>
+    <script src="onload.mjs" type="module"></script>
+    <script src="optional-background.mjs" type="module"></script>
+    <script src="scrolling.mjs" type="module"></script>
+    <script src="sizing.mjs" type="module"></script>
+    <script src="three-state-animation.mjs" type="module"></script>
+    <script src="visning.mjs" type="module"></script>
+    <script src="wait.mjs" type="module"></script>
     <link
       href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Ctext%20x='0'%20y='14'%3E🦄%3C/text%3E%3C/svg%3E"
       rel="icon"
       type="image/svg+xml"
-    />
+    >
     <title>Title goes here</title>
   </head>
   <body class="visning-optional-background">
-    <div id="clapperboard" />
+    <div id="clapperboard"></div>
     <article class="icon-on-left-container" style="--flair-color: #238bbf;">
       <header class="title">
         <h1>Title goes here</h1>
       </header>
       <div class="icon-on-left-icon-section">
-        <img src="x-ray-primary-regular-alpha-512x512.png" alt="pizza" />
+        <img src="x-ray-primary-regular-alpha-512x512.png" alt="pizza">
       </div>
       <div id="wait-for-this-element" class="icon-on-left-content-section">
         <section style="">
@@ -55,7 +55,7 @@
         </section>
       </div>
     </article>
-    <div id="clock" />
+    <div id="clock"></div>
     <script id="page-data-script">
       window.pageData = {
         "fragmentGroupIdBuildOrder": [],

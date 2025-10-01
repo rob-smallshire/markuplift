@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <article>
   <section>
-    <pre id="code" class="code contain"><span /><span id="line-1"><span class="k">def</span><span class="w"> </span><span class="nf">nth_root</span><span class="p">(</span><span class="n">radicand</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <pre id="code" class="code contain"><span></span><span id="line-1"><span class="k">def</span><span class="w"> </span><span class="nf">nth_root</span><span class="p">(</span><span class="n">radicand</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
 </span>    <span id="line-2" class="fragment initial-highlighted-initial" data-fragment-group-id="single-return"><span class="k">return</span> <span class="n">radicand</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">n</span><span class="p">)</span>
 </span><span id="line-3">
 </span><span id="line-4">

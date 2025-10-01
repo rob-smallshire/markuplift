@@ -11,6 +11,7 @@ from markuplift.escaping import XmlEscapingStrategy
 from markuplift.parsing import XmlParsingStrategy
 from markuplift.doctype import XmlDoctypeStrategy
 from markuplift.attribute_formatting import XmlAttributeStrategy
+from markuplift.empty_element import XmlEmptyElementStrategy
 from markuplift.types import (
     ElementPredicateFactory,
     TextContentFormatter,
@@ -92,6 +93,7 @@ class XmlFormatter:
             parsing_strategy=XmlParsingStrategy(preserve_cdata=preserve_cdata),
             doctype_strategy=XmlDoctypeStrategy(),
             attribute_strategy=XmlAttributeStrategy(),
+            empty_element_strategy=XmlEmptyElementStrategy(),
             indent_size=indent_size,
             default_type=default_type,
             preserve_cdata=preserve_cdata,

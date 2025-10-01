@@ -285,9 +285,8 @@ def test_html_attribute_order_empty_attributes():
     )
 
     result = formatter.format_str(html)
-    # Html5Formatter adds DOCTYPE and uses void format
-    assert '<div' in result
-    assert '</div>' not in result  # HTML5 uses void format for empty divs
+    # Html5Formatter adds DOCTYPE and uses explicit tags for non-void elements
+    assert '<div></div>' in result  # div is not a void element, needs both tags
 
 
 def test_html_attribute_order_single_attribute():

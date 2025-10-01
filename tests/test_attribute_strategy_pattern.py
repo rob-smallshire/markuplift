@@ -124,7 +124,7 @@ def test_html5_strategy_applies_boolean_rules_then_user_formatters():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input checked class="FORM-INPUT" disabled />
+          <input checked class="FORM-INPUT" disabled>
         </div>
     """)
         + "\n"
@@ -198,7 +198,7 @@ def test_strategy_with_attribute_wrapping():
             class="form-control"
             disabled
             id="test-input"
-          />
+          >
         </root>
     """)
         + "\n"

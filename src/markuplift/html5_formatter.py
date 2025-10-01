@@ -10,6 +10,7 @@ from markuplift.formatter import Formatter
 from markuplift.escaping import HtmlEscapingStrategy
 from markuplift.parsing import HtmlParsingStrategy
 from markuplift.doctype import Html5DoctypeStrategy
+from markuplift.empty_element import Html5EmptyElementStrategy
 from markuplift.predicates import (
     html_block_elements,
     html_inline_elements,
@@ -138,6 +139,7 @@ class Html5Formatter:
             parsing_strategy=HtmlParsingStrategy(preserve_cdata=preserve_cdata),
             doctype_strategy=Html5DoctypeStrategy(),
             attribute_strategy=Html5AttributeStrategy(),
+            empty_element_strategy=Html5EmptyElementStrategy(),
             indent_size=indent_size,
             default_type=default_type,
             preserve_cdata=preserve_cdata,

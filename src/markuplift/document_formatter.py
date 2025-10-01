@@ -38,6 +38,9 @@ from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
 # Import attribute formatting strategies
 from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
+# Import empty element strategies
+from markuplift.empty_element import EmptyElementStrategy, XmlEmptyElementStrategy, EmptyElementTagStyle
+
 from lxml import etree
 from markuplift.annotation import (
     BLOCK_TYPES,
@@ -103,6 +106,7 @@ class DocumentFormatter:
         escaping_strategy: EscapingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,
+        empty_element_strategy: EmptyElementStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
     ):
@@ -121,6 +125,7 @@ class DocumentFormatter:
             escaping_strategy: Strategy for escaping text and attribute values. Defaults to XmlEscapingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
+            empty_element_strategy: Strategy for rendering empty elements. Defaults to XmlEmptyElementStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
         """
@@ -160,6 +165,9 @@ class DocumentFormatter:
         if attribute_strategy is None:
             attribute_strategy = NullAttributeStrategy()
 
+        if empty_element_strategy is None:
+            empty_element_strategy = XmlEmptyElementStrategy()
+
         if indent_size is None:
             indent_size = 2
 
@@ -183,6 +191,7 @@ class DocumentFormatter:
         self._escaping_strategy = escaping_strategy
         self._doctype_strategy = doctype_strategy
         self._attribute_strategy = attribute_strategy
+        self._empty_element_strategy = empty_element_strategy
         self._indent_char = " "
         self._indent_size = indent_size
         self._one_indent = self._indent_char * self._indent_size
@@ -430,24 +439,36 @@ class DocumentFormatter:
                 if real_attributes and must_wrap_attributes:
                     parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
 
-                is_self_closing = self._is_self_closing(annotations, node)
+                # Determine how to render this element based on whether it's empty
+                is_empty = self._is_empty_element(annotations, node)
+                tag_style = self._empty_element_strategy.tag_style(node) if is_empty else None
 
-                if is_self_closing:
-                    if not must_wrap_attributes:
-                        parts.append(" ")
-                    parts.append("/")
+                # Handle tag closing based on style
+                if is_empty and tag_style in (EmptyElementTagStyle.SELF_CLOSING_TAG, EmptyElementTagStyle.VOID_TAG):
+                    # Single-tag rendering
+                    if tag_style == EmptyElementTagStyle.SELF_CLOSING_TAG:
+                        # XML-style: add space and slash
+                        if not must_wrap_attributes:
+                            parts.append(" ")
+                        parts.append("/")
+                    # VOID_TAG: just close with > (no slash)
 
                 parts.append(">")
 
-                # Content
-                if not is_self_closing:
+                # Content - only for non-empty or explicit-tags style
+                if not (is_empty and tag_style in (EmptyElementTagStyle.SELF_CLOSING_TAG, EmptyElementTagStyle.VOID_TAG)):
                     if text := self._text_content(annotations, node):
                         escaped_text = self._escape_text_content(text)
                         parts.append(escaped_text)
 
             elif event == "end" and isinstance(node, etree._Element):
-                if not self._is_self_closing(annotations, node):
-                    # Closing tag
+                # Determine if we need closing tag
+                is_empty = self._is_empty_element(annotations, node)
+                tag_style = self._empty_element_strategy.tag_style(node) if is_empty else None
+
+                # Only add closing tag if not using single-tag style
+                if not (is_empty and tag_style in (EmptyElementTagStyle.SELF_CLOSING_TAG, EmptyElementTagStyle.VOID_TAG)):
+                    # Closing tag needed
                     parts.append(f"</{node.tag}>")
 
                 # Tail
@@ -483,7 +504,20 @@ class DocumentFormatter:
             else:
                 raise RuntimeError(f"Unexpected event {event} for node {node}")
 
-    def _is_self_closing(self, annotations, element: etree._Element) -> bool:
+    def _is_empty_element(self, annotations, element: etree._Element) -> bool:
+        """Check if an element is empty (no text content and no children).
+
+        An element is considered empty if it has no text content after
+        transformations and no child elements. This is used to determine
+        if the empty element strategy should be consulted.
+
+        Args:
+            annotations: Annotation data for the document
+            element: The element to check
+
+        Returns:
+            True if element is empty, False otherwise
+        """
         text = self._text_content(annotations, element)
         return (not bool(text)) and len(element) == 0
 

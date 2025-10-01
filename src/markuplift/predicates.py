@@ -67,7 +67,7 @@ _HTML_INLINE_ELEMENTS = frozenset({
 
 _HTML_VOID_ELEMENTS = frozenset({
     "area", "base", "br", "col", "embed", "hr", "img", "input",
-    "link", "meta", "param", "source", "track", "wbr",
+    "link", "meta", "source", "track", "wbr",
 })
 
 _HTML_WHITESPACE_SIGNIFICANT_ELEMENTS = frozenset({
@@ -87,7 +87,7 @@ _CSS_BLOCK_ELEMENTS = frozenset({
 
 _HTML_BLOCK_STRUCTURE_ELEMENTS = frozenset({
     "html", "head", "body", "title", "meta", "link", "script",
-    "tbody", "thead", "tr", "details", "dialog", "hgroup", "pre",
+    "tbody", "thead", "tr", "details", "dialog", "hgroup", "pre", "iframe",
 })
 
 

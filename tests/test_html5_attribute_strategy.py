@@ -27,8 +27,8 @@ def test_html5_boolean_attributes_are_minimized():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input checked disabled readonly required />
-          <video autoplay controls loop muted />
+          <input checked disabled readonly required>
+          <video autoplay controls loop muted></video>
           <details open><summary>Details</summary> Content</details>
         </div>
     """)
@@ -54,7 +54,7 @@ def test_non_boolean_attributes_are_preserved():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input type="text" value="test" id="input1" class="form-control" />
+          <input type="text" value="test" id="input1" class="form-control">
          <a href="https://example.com" title="Example Link">Link</a></div>
     """)
         + "\n"
@@ -79,7 +79,7 @@ def test_mixed_boolean_and_regular_attributes():
         cleandoc("""
         <!DOCTYPE html>
         <form>
-          <input type="email" required placeholder="Enter email" disabled />
+          <input type="email" required placeholder="Enter email" disabled>
           <button type="submit" formnovalidate>Submit</button>
         </form>
     """)
@@ -115,14 +115,14 @@ def test_all_html5_boolean_attributes():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input async autofocus checked default defer disabled formnovalidate hidden multiple readonly required reversed selected />
-          <video autoplay controls loop muted />
-          <script nomodule />
+          <input async autofocus checked default defer disabled formnovalidate hidden multiple readonly required reversed selected>
+          <video autoplay controls loop muted></video>
+          <script nomodule></script>
           <map name="map1">
-            <area ismap />
+            <area ismap>
           </map>
-          <option novalidate />
-          <details open itemscope />
+          <option novalidate></option>
+          <details open itemscope></details>
         </div>
     """)
         + "\n"
@@ -152,7 +152,7 @@ def test_attribute_strategy_composition_with_user_formatters():
         cleandoc("""
         <!DOCTYPE html>
         <div style="COLOR: RED; FONT-SIZE: 14PX;">
-          <input checked style="BORDER: 1PX SOLID BLACK;" />
+          <input checked style="BORDER: 1PX SOLID BLACK;">
         </div>
     """)
         + "\n"
@@ -224,7 +224,7 @@ def test_case_sensitivity_of_boolean_attributes():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input checked data-custom="custom" required />
+          <input checked data-custom="custom" required>
         </div>
     """)
         + "\n"
@@ -248,7 +248,7 @@ def test_empty_boolean_attributes_remain_empty():
         cleandoc("""
         <!DOCTYPE html>
         <div>
-          <input checked disabled hidden />
+          <input checked disabled hidden>
         </div>
     """)
         + "\n"

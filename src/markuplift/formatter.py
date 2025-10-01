@@ -43,6 +43,9 @@ from markuplift.doctype import DoctypeStrategy, NullDoctypeStrategy
 # Import attribute formatting strategies
 from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAttributeStrategy
 
+# Import empty element strategies
+from markuplift.empty_element import EmptyElementStrategy, XmlEmptyElementStrategy
+
 
 class Formatter:
     """A configurable formatter for XML documents using ElementPredicateFactory functions.
@@ -88,6 +91,7 @@ class Formatter:
         parsing_strategy: ParsingStrategy | None = None,
         doctype_strategy: DoctypeStrategy | None = None,
         attribute_strategy: AttributeFormattingStrategy | None = None,
+        empty_element_strategy: EmptyElementStrategy | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool = True,
@@ -108,6 +112,7 @@ class Formatter:
             parsing_strategy: Strategy for parsing document content. Defaults to XmlParsingStrategy.
             doctype_strategy: Strategy for handling DOCTYPE declarations. Defaults to NullDoctypeStrategy.
             attribute_strategy: Strategy for formatting attributes. Defaults to NullAttributeStrategy.
+            empty_element_strategy: Strategy for rendering empty elements. Defaults to XmlEmptyElementStrategy.
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
             preserve_cdata: Whether to preserve CDATA sections from input. Defaults to True.
@@ -125,6 +130,7 @@ class Formatter:
         self._parsing_strategy = parsing_strategy or XmlParsingStrategy(preserve_cdata=preserve_cdata)
         self._doctype_strategy = doctype_strategy or NullDoctypeStrategy()
         self._attribute_strategy = attribute_strategy or NullAttributeStrategy()
+        self._empty_element_strategy = empty_element_strategy or XmlEmptyElementStrategy()
         self._indent_size = indent_size or 2
         if default_type is None:
             self._default_type = ElementType.BLOCK
@@ -430,6 +436,7 @@ class Formatter:
             attribute_content_formatters=attribute_formatters,
             attribute_reorderers=attribute_reorderers,
             escaping_strategy=self._escaping_strategy,
+            empty_element_strategy=self._empty_element_strategy,
             doctype_strategy=self._doctype_strategy,
             attribute_strategy=self._attribute_strategy,
             indent_size=self._indent_size,

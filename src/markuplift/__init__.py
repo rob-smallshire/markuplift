@@ -25,6 +25,12 @@ from .document_formatter import DocumentFormatter
 from .html5_formatter import Html5Formatter
 from .xml_formatter import XmlFormatter
 from .doctype import DoctypeStrategy, Html5DoctypeStrategy, XmlDoctypeStrategy, NullDoctypeStrategy
+from .empty_element import (
+    EmptyElementStrategy,
+    EmptyElementTagStyle,
+    Html5EmptyElementStrategy,
+    XmlEmptyElementStrategy,
+)
 from .attribute_formatting import (
     AttributeFormattingStrategy,
     Html5AttributeStrategy,
@@ -125,6 +131,8 @@ __all__ = [
     "ElementPredicate",
     "ElementPredicateFactory",
     "ElementType",
+    "EmptyElementStrategy",
+    "EmptyElementTagStyle",
     "Formatter",
     "has_attribute",
     "has_child_elements",
@@ -142,6 +150,7 @@ __all__ = [
     "html_whitespace_significant_elements",
     "Html5AttributeStrategy",
     "Html5DoctypeStrategy",
+    "Html5EmptyElementStrategy",
     "Html5Formatter",
     "is_comment",
     "is_element",
@@ -172,6 +181,7 @@ __all__ = [
     "wrap_css_properties",
     "XmlAttributeStrategy",
     "XmlDoctypeStrategy",
+    "XmlEmptyElementStrategy",
     "XmlFormatter",
 ]
 
