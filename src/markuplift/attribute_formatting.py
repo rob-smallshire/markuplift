@@ -900,15 +900,20 @@ def html_attribute_order() -> AttributeReorderer:
     0. id - unique identifier (highest priority)
     1. name - form element name
     2. class - CSS class names
-    3. References/URLs - href, src, action (resource location)
-    4. Behavior/events - on* event handlers
-    5. Semantic/accessibility - alt, title, aria-*, role
-    6. Custom/data - data-* and other unknown attributes
-    7. style - inline styles (lowest priority)
+    3. rel - resource relationship (e.g., stylesheet, icon)
+    4. type - resource type (e.g., text/css, module)
+    5. href, src, action - resource location (URLs)
+    6. on* - event handlers (behavior)
+    7. alt, title, aria-*, role - semantic/accessibility
+    8. data-* and other unknown attributes - custom attributes
+    9. style - inline styles (lowest priority)
 
     This ordering follows common HTML conventions where identity and classification
-    come first, followed by resource references, then behavior, accessibility, custom
-    attributes, and finally presentation.
+    come first, followed by resource relationship and type, then resource location,
+    behavior, accessibility, custom attributes, and finally presentation.
+
+    The ordering of rel before type and both before href/src is particularly useful
+    for vertical alignment in <link> and <script> tags.
 
     Returns:
         An AttributeReorderer that orders attributes by semantic category.
@@ -936,16 +941,20 @@ def html_attribute_order() -> AttributeReorderer:
             return 1
         elif attr_lower == "class":
             return 2
-        elif attr_lower in ("href", "src", "action"):
+        elif attr_lower == "rel":
             return 3
-        elif attr_lower.startswith("on"):
+        elif attr_lower == "type":
             return 4
-        elif attr_lower in ("alt", "title", "role") or attr_lower.startswith("aria-"):
+        elif attr_lower in ("href", "src", "action"):
             return 5
-        elif attr_lower == "style":
+        elif attr_lower.startswith("on"):
+            return 6
+        elif attr_lower in ("alt", "title", "role") or attr_lower.startswith("aria-"):
             return 7
+        elif attr_lower == "style":
+            return 9
         else:
-            return 6  # data-* or other unknown attributes
+            return 8  # data-* or other unknown attributes
 
     def orderer(names: Sequence[str]) -> Sequence[str]:
         # Stable sort by category - preserves original order within categories
