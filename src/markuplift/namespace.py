@@ -209,8 +209,21 @@ def format_attribute_name(elem: etree._Element, attr_name: str) -> str:
     Notes:
         - Most attributes have no namespace (namespace=None in QName)
         - xml namespace always uses "xml:" prefix and never needs declaration
+        - xmlns declarations are returned as-is (not regular attributes)
+        - HTML parsing preserves literal prefix:localname format (e.g., "xlink:href")
         - Falls back to localname if namespace not found in nsmap
     """
+    # Special case: xmlns declarations are not regular attributes
+    # They should be returned as-is and not processed through QName
+    if attr_name == "xmlns" or attr_name.startswith("xmlns:"):
+        return attr_name
+
+    # Special case: HTML parsing preserves literal "prefix:localname" format
+    # These are not in Clark notation and cannot be converted to QName
+    # Return them as-is (they're already in the correct output format)
+    if ":" in attr_name and not attr_name.startswith("{"):
+        return attr_name
+
     qname = etree.QName(attr_name)
 
     # No namespace - return localname as-is (most common case)
