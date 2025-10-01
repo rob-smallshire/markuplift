@@ -421,3 +421,99 @@ class TestHtml5Formatter:
 
         # Should preserve whitespace in pre (whitespace-significant element)
         assert "  preserved  " in result
+
+    def test_html5_formatter_script_tag_no_double_encoding(self):
+        """Test that script tag content with > character doesn't get double-encoded."""
+        formatter = Html5Formatter()
+
+        # Test with > character that shouldn't be double-encoded
+        # Simulate JavaScript code that contains >>> (Python REPL prompt)
+        html = """<html>
+<head>
+<script>
+const data = {
+    "start_at": 0.025923,
+    "text": ")\\r\\n>>> for i, name in enumerate(names):\\r\\n...     bright"
+};
+</script>
+</head>
+<body>
+<p>Test</p>
+</body>
+</html>"""
+        result = formatter.format_str(html)
+
+        # Should NOT double-encode: should be >>> not &amp;gt;&amp;gt;&amp;gt;
+        assert "&amp;gt;" not in result, "Script content should not be double-encoded"
+
+        # The > characters should either be:
+        # 1. Left as literal >>> (preferred for script content)
+        # 2. Encoded once as &gt;&gt;&gt; (acceptable)
+        # But NOT double-encoded as &amp;gt;
+
+        # Check that we have the >>> sequence somewhere in the output
+        # (either as literal or single-encoded)
+        assert ">>>" in result or "&gt;&gt;&gt;" in result, "Script should contain the >>> sequence"
+
+    def test_html5_formatter_script_tag_already_encoded_input(self):
+        """Test that already-encoded input in script tags is preserved correctly.
+
+        In HTML5, script and style elements use special parsing states (RAWTEXT/RCDATA)
+        where character references are NOT decoded by the parser. This means &gt; stays
+        as the literal string "&gt;" and should be preserved as-is in the output without
+        double-encoding.
+
+        This is correct HTML5 behavior per the spec.
+        """
+        formatter = Html5Formatter()
+
+        # Test with ALREADY encoded &gt; in the INPUT
+        # Per HTML5 spec, these should be preserved as-is (not double-encoded)
+        html = """<html>
+<head>
+<script>
+const data = {
+    "start_at": 0.025923,
+    "text": ")\\r\\n&gt;&gt;&gt; for i, name in enumerate(names):\\r\\n...     bright"
+};
+</script>
+</head>
+<body>
+<p>Test</p>
+</body>
+</html>"""
+        result = formatter.format_str(html)
+
+        # HTML5 spec: script content is RAWTEXT, entities are NOT decoded
+        # So &gt; in input should stay as &gt; in output (NOT become &amp;gt;)
+        assert "&gt;&gt;&gt;" in result, "Script should preserve &gt; entities as-is"
+        assert "&amp;gt;" not in result, "Script content should NOT be double-encoded"
+
+    def test_html5_formatter_style_tag_no_double_encoding(self):
+        """Test that style tag content with entities is not double-encoded.
+
+        Style tags, like script tags, use RAWTEXT parsing in HTML5 where
+        character references are not decoded. This test ensures we handle
+        style content correctly.
+        """
+        formatter = Html5Formatter()
+
+        html = """<html>
+<head>
+<style>
+/* CSS with entity */
+body::before { content: "&gt;&gt;&gt;"; }
+body::after { content: "&lt;&lt;&lt;"; }
+</style>
+</head>
+<body>
+<p>Test</p>
+</body>
+</html>"""
+        result = formatter.format_str(html)
+
+        # Style content should preserve entities as-is (not double-encode)
+        assert "&gt;&gt;&gt;" in result, "Style should preserve &gt; entities"
+        assert "&lt;&lt;&lt;" in result, "Style should preserve &lt; entities"
+        assert "&amp;gt;" not in result, "Style content should NOT be double-encoded"
+        assert "&amp;lt;" not in result, "Style content should NOT be double-encoded"

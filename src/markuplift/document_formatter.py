@@ -454,7 +454,7 @@ class DocumentFormatter:
                 # Content - only for non-empty or explicit-tags style
                 if not (is_empty and tag_style in (EmptyElementTagStyle.SELF_CLOSING_TAG, EmptyElementTagStyle.VOID_TAG)):
                     if text := self._text_content(annotations, node):
-                        escaped_text = self._escape_text_content(text)
+                        escaped_text = self._escape_text_content(text, node)
                         parts.append(escaped_text)
 
             elif event == "end" and isinstance(node, etree._Element):
@@ -585,11 +585,12 @@ class DocumentFormatter:
         return tail
 
     @singledispatchmethod
-    def _escape_text_content(self, content) -> str:
+    def _escape_text_content(self, content, element=None) -> str:
         """Escape text content appropriately based on type.
 
         Args:
             content: Text content to escape
+            element: Optional element containing the text (for context-aware escaping)
 
         Returns:
             Escaped string content appropriate for XML output
@@ -600,12 +601,12 @@ class DocumentFormatter:
         raise NotImplementedError(f"No text content handler for type {type(content)}")
 
     @_escape_text_content.register
-    def _(self, content: str) -> str:
+    def _(self, content: str, element=None) -> str:
         """Handle regular string content with normal escaping."""
-        return self._escaping_strategy.escape_text(content)
+        return self._escaping_strategy.escape_text(content, element)
 
     @_escape_text_content.register
-    def _(self, content: CDATA) -> str:
+    def _(self, content: CDATA, element=None) -> str:
         """Handle CDATA content with safe CDATA serialization."""
         # Extract content via temporary element
         from lxml.etree import Element
