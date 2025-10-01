@@ -506,10 +506,10 @@ products">Products</a></li>
       <h1>Product Catalog</h1>
       <table>
         <colgroup>
-          <col class="name" />
-          <col class="price" />
-          <col class="currency" />
-          <col class="stock" />
+          <col class="name">
+          <col class="price">
+          <col class="currency">
+          <col class="stock">
         </colgroup>
         <thead>
           <tr>
