@@ -190,8 +190,8 @@ class XmlAttributeStrategy(AttributeFormattingStrategy):
 class Html5AttributeStrategy(AttributeFormattingStrategy):
     """HTML5-specific attribute formatting strategy.
 
-    Applies HTML5 attribute formatting rules (like boolean attribute minimization)
-    followed by user customizations.
+    Applies HTML5 attribute formatting rules (like boolean attribute minimization
+    and empty attribute removal) followed by user customizations.
     """
 
     # HTML5 boolean attributes that should be minimized
@@ -218,6 +218,14 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
         "required",
         "reversed",
         "selected",
+    }
+
+    # Attributes that should be omitted when empty
+    REMOVABLE_WHEN_EMPTY = {
+        "class",
+        "style",
+        "id",
+        "title",
     }
 
     def format_attribute(
@@ -248,6 +256,10 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
             if predicate(element, attr_name, value):
                 value = formatter_func(value, formatter, level)
                 break
+
+        # Check if this attribute should be omitted when empty
+        if attr_name in self.REMOVABLE_WHEN_EMPTY and not value.strip():
+            return AttributeOmitted(attr_name, value)
 
         return AttributeValue(attr_name, value)
 

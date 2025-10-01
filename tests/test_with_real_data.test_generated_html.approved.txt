@@ -45,7 +45,7 @@
         <img src="x-ray-primary-regular-alpha-512x512.png" alt="pizza">
       </div>
       <div id="wait-for-this-element" class="icon-on-left-content-section">
-        <section style="">
+        <section>
           <p>This XHTML document must have a section root element without attributes.</p>
           <p>The contents of the root section can be arbitrary XHTML elements, with a strong preference for:</p>
           <ul>
