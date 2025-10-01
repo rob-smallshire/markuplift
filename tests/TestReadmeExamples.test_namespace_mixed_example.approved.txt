@@ -1,0 +1,10 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body>
+    <p>This is HTML content.</p>
+    <svg xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" />
+      <circle r="50" />
+    </svg>
+    <p>More HTML content.</p>
+  </body>
+</html>

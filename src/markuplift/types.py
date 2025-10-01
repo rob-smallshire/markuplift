@@ -74,8 +74,8 @@ TextContentFormatter = Callable[[TextContent, "DocumentFormatter", int], TextCon
 AttributeValueFormatter = Callable[[str, "DocumentFormatter", int], str]
 
 # Type aliases for attribute matching
-# NameMatcher can be exact string match, regex pattern, or custom function for attribute names
-NameMatcher = Union[str, Pattern[str], Callable[[str], bool]]
+# NameMatcher can be exact string match, QName, regex pattern, or custom function for attribute names
+NameMatcher = Union[str, etree.QName, Pattern[str], Callable[[str], bool]]
 
 # ValueMatcher can be exact string match, regex pattern, or custom function for attribute values
 ValueMatcher = Union[str, Pattern[str], Callable[[str], bool]]

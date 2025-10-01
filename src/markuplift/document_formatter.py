@@ -41,6 +41,14 @@ from markuplift.attribute_formatting import AttributeFormattingStrategy, NullAtt
 # Import empty element strategies
 from markuplift.empty_element import EmptyElementStrategy, XmlEmptyElementStrategy, EmptyElementTagStyle
 
+# Import namespace utilities
+from markuplift.namespace import (
+    format_tag_name,
+    format_attribute_name,
+    get_new_namespace_declarations,
+    format_xmlns_declarations,
+)
+
 from lxml import etree
 from markuplift.annotation import (
     BLOCK_TYPES,
@@ -255,7 +263,10 @@ class DocumentFormatter:
         return self.format_tree(tree, doctype, xml_declaration)
 
     def format_tree(
-        self, tree: etree._ElementTree, doctype: str | None = None, xml_declaration: Optional[bool] = None
+        self,
+        tree: etree._ElementTree,
+        doctype: str | None = None,
+        xml_declaration: Optional[bool] = None
     ) -> str:
         """Format an XML document from an lxml ElementTree.
 
@@ -391,8 +402,15 @@ class DocumentFormatter:
         # Non-recursive, event-driven approach to formatting
         for event, node in etree.iterwalk(element, events=("start", "end", "comment", "pi")):
             if event == "start" and isinstance(node, etree._Element):
-                # Opening tag
-                parts.append(f"<{node.tag}")
+                # Opening tag with namespace-aware tag name
+                tag_name = format_tag_name(node)
+                parts.append(f"<{tag_name}")
+
+                # Add namespace declarations (xmlns attributes) before regular attributes
+                ns_decls = get_new_namespace_declarations(node)
+                if ns_decls:
+                    for xmlns_attr in format_xmlns_declarations(ns_decls):
+                        parts.append(f" {xmlns_attr}")
 
                 # Attribute handling
                 must_wrap_attributes = self._must_wrap_attributes(node)
@@ -414,20 +432,13 @@ class DocumentFormatter:
 
                 for k in attribute_names:
                     v = real_attributes[k]
-                    k_qname = etree.QName(k)
-                    if k_qname.namespace:
-                        if k_qname.namespace == "http://www.w3.org/XML/1998/namespace":
-                            prefix = "xml"
-                        else:
-                            prefix = node.nsmap.get(k_qname.namespace)
-                        if prefix:
-                            k = f"{prefix}:{k_qname.localname}"
-                        else:
-                            k = k_qname.localname
+                    # Convert attribute name from Clark notation to prefix:localname
+                    k_formatted = format_attribute_name(node, k)
+
                     # Apply attribute formatters using strategy pattern
                     physical_level = annotations.annotation(node, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
                     attribute_formatter = self._attribute_strategy.format_attribute(
-                        node, k, v, self._attribute_content_formatters, self, physical_level + int(must_wrap_attributes)
+                        node, k_formatted, v, self._attribute_content_formatters, self, physical_level + int(must_wrap_attributes)
                     )
 
                     # Use polymorphic format() to render the attribute
@@ -464,8 +475,9 @@ class DocumentFormatter:
 
                 # Only add closing tag if not using single-tag style
                 if not (is_empty and tag_style in (EmptyElementTagStyle.SELF_CLOSING_TAG, EmptyElementTagStyle.VOID_TAG)):
-                    # Closing tag needed
-                    parts.append(f"</{node.tag}>")
+                    # Closing tag needed (namespace-aware)
+                    tag_name = format_tag_name(node)
+                    parts.append(f"</{tag_name}>")
 
                 # Tail
                 if tail := self._tail_content(annotations, node):

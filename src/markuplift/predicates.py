@@ -55,6 +55,9 @@ from markuplift.types import (
     ValueMatcher,
 )
 
+# Import namespace utilities
+from markuplift.namespace import qname_to_str
+
 
 # HTML5 element sets for predicate factories
 # These constants define canonical sets of HTML elements by category
@@ -102,7 +105,7 @@ class PredicateError(Exception):
 
 
 def _create_matcher(
-    value: Union[str, Pattern[str], Callable[[str], bool], None], matcher_name: str, allow_none: bool = False
+    value: Union[NameMatcher, ValueMatcher, None], matcher_name: str, allow_none: bool = False
 ) -> Callable[[str], bool]:
     """Create optimized matcher function for string/pattern/function matching.
 
@@ -110,7 +113,12 @@ def _create_matcher(
     creation time, avoiding repeated type checking during predicate evaluation.
 
     Args:
-        value: String for exact match, Pattern for regex, callable for custom logic, or None
+        value: NameMatcher or ValueMatcher for matching, or None
+            - str: Exact match (or Clark notation for namespaced attributes)
+            - etree.QName: Qualified name (converted to Clark notation for matching)
+            - Pattern: Regex pattern match
+            - Callable: Custom function for matching
+            - None: Match anything (if allow_none=True)
         matcher_name: Description for error messages ("attribute_name" or "attribute_value")
         allow_none: Whether None values are permitted
 
@@ -123,6 +131,7 @@ def _create_matcher(
 
     Examples:
         name_matcher = _create_matcher("style", "attribute_name", allow_none=False)
+        qname_matcher = _create_matcher(etree.QName("http://www.w3.org/1999/xlink", "href"), "attribute_name")
         value_matcher = _create_matcher(re.compile(r"color:.*"), "attribute_value", allow_none=False)
         function_matcher = _create_matcher(lambda v: v.count(';') >= 3, "attribute_value", allow_none=False)
         optional_matcher = _create_matcher(None, "attribute_value", allow_none=True)
@@ -132,6 +141,10 @@ def _create_matcher(
             return lambda s: True  # Match anything
         else:
             raise TypeError(f"{matcher_name} cannot be None")
+    elif isinstance(value, etree.QName):
+        # Convert QName to Clark notation string for matching
+        clark_notation = value.text
+        return lambda s: s == clark_notation
     elif isinstance(value, str):
         return lambda s: s == value
     elif isinstance(value, Pattern):
@@ -149,7 +162,11 @@ def _create_matcher(
 
         return safe_matcher
     else:
-        allowed = "str, re.Pattern, or callable" + (", or None" if allow_none else "")  # type: ignore[unreachable]
+        # Generate allowed types list dynamically for maintainability
+        allowed_types = [str.__name__, etree.QName.__name__, Pattern.__name__, "callable"]
+        if allow_none:
+            allowed_types.append("None")
+        allowed = ", ".join(allowed_types[:-1]) + ", or " + allowed_types[-1]
         raise TypeError(f"{matcher_name} must be {allowed}, got {type(value).__name__}")
 
 
@@ -381,18 +398,40 @@ def matches_xpath(xpath_expr: str) -> ElementPredicateFactory:
 
 
 @supports_attributes
-def tag_equals(tag: str) -> ElementPredicateFactory:
+def tag_equals(tag: str | etree.QName) -> ElementPredicateFactory:
     """Match elements with a specific tag name.
 
+    Supports both string tag names (including Clark notation for namespaced elements)
+    and QName objects for more readable namespace handling.
+
     Args:
-        tag: Tag name to match
+        tag: Tag name to match. Can be:
+             - Plain name: "div"
+             - Clark notation: "{http://www.w3.org/2000/svg}rect"
+             - QName object: QName("http://www.w3.org/2000/svg", "rect")
 
     Returns:
         A chainable predicate factory that matches elements with the specified tag
 
     Raises:
         PredicateError: If the tag name is invalid
+
+    Examples:
+        Basic usage:
+            tag_equals("div")
+
+        With namespaces (Clark notation):
+            tag_equals("{http://www.w3.org/2000/svg}svg")
+
+        With QName (more readable):
+            from lxml import etree
+            SVG_NS = "http://www.w3.org/2000/svg"
+            tag_equals(etree.QName(SVG_NS, "svg"))
+
+        With chaining:
+            tag_equals("{http://www.w3.org/2000/svg}rect").with_attribute("width")
     """
+    tag = qname_to_str(tag)  # Convert QName to string if needed
     _validate_tag_name(tag)
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -405,20 +444,25 @@ def tag_equals(tag: str) -> ElementPredicateFactory:
 
 
 @supports_attributes
-def tag_name(tag: str) -> ElementPredicateFactory:
+def tag_name(tag: str | etree.QName) -> ElementPredicateFactory:
     """Match elements with a specific tag name (alias for tag_equals).
 
     This is a more readable alias for tag_equals that works well in chaining:
     tag_name("div").with_attribute("class")
 
     Args:
-        tag: Tag name to match
+        tag: Tag name to match (string or QName)
 
     Returns:
         A chainable predicate factory that matches elements with the specified tag
 
     Raises:
         PredicateError: If the tag name is invalid
+
+    Examples:
+        tag_name("div")
+        tag_name(etree.QName("http://www.w3.org/2000/svg", "svg"))
+        tag_name("{http://www.w3.org/2000/svg}rect").with_attribute("width")
     """
     return tag_equals(tag)
 
@@ -452,11 +496,14 @@ def has_class(class_name: str) -> ElementPredicateFactory:
 
 
 @supports_attributes
-def tag_in(*tags: str) -> ElementPredicateFactory:
+def tag_in(*tags: str | etree.QName) -> ElementPredicateFactory:
     """Match elements with any of the specified tag names.
 
+    Supports both string tag names (including Clark notation) and QName objects,
+    and can mix both in the same call.
+
     Args:
-        *tags: Tag names to match
+        *tags: Tag names to match (strings or QName objects)
 
     Returns:
         An element predicate factory that matches elements with any of the specified tags
@@ -469,17 +516,38 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
             tag_in("div", "p", "span")
             tag_in("h1", "h2", "h3")
 
-        With chaining (enabled by @supports_attributes):
+        With namespaces (Clark notation):
+            tag_in(
+                "{http://www.w3.org/2000/svg}rect",
+                "{http://www.w3.org/2000/svg}circle"
+            )
+
+        With QName objects:
+            SVG_NS = "http://www.w3.org/2000/svg"
+            tag_in(
+                etree.QName(SVG_NS, "rect"),
+                etree.QName(SVG_NS, "circle")
+            )
+
+        Mixed (string and QName):
+            tag_in(
+                "div",
+                etree.QName("http://www.w3.org/2000/svg", "svg")
+            )
+
+        With chaining:
             tag_in("div", "section").with_attribute("class", "container")
-            tag_in("img", "video").with_attribute("src")
     """
     if not tags:
         raise PredicateError("At least one tag name must be provided")
 
-    for tag in tags:
+    # Convert all QNames to strings
+    str_tags = [qname_to_str(tag) for tag in tags]
+
+    for tag in str_tags:
         _validate_tag_name(tag)
 
-    tag_set = set(tags)
+    tag_set = set(str_tags)
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
         def element_predicate(element: etree._Element) -> bool:
@@ -491,11 +559,14 @@ def tag_in(*tags: str) -> ElementPredicateFactory:
 
 
 @supports_attributes
-def has_attribute(attr: str) -> ElementPredicateFactory:
+def has_attribute(attr: str | etree.QName) -> ElementPredicateFactory:
     """Match elements that have a specific attribute.
 
     Args:
-        attr: Attribute name to check for
+        attr: Attribute name to check for. Can be:
+            - Plain attribute name: "class", "id"
+            - Clark notation for namespaced attributes: "{http://www.w3.org/1999/xlink}href"
+            - QName object: etree.QName("http://www.w3.org/1999/xlink", "href")
 
     Returns:
         An element predicate factory that matches elements having the specified attribute
@@ -508,10 +579,15 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
             has_attribute("class")
             has_attribute("data-config")
 
+        Namespaced attributes:
+            has_attribute("{http://www.w3.org/1999/xlink}href")
+            has_attribute(etree.QName("http://www.w3.org/1999/xlink", "href"))
+
         With chaining (enabled by @supports_attributes):
             has_attribute("class").with_attribute("role", "button")
             has_attribute("data-*").with_attribute("style", re.compile(r"color:.*"))
     """
+    attr = qname_to_str(attr)
     _validate_attribute_name(attr)
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:
@@ -524,11 +600,14 @@ def has_attribute(attr: str) -> ElementPredicateFactory:
 
 
 @supports_attributes
-def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
+def attribute_equals(attr: str | etree.QName, value: str) -> ElementPredicateFactory:
     """Match elements with a specific attribute value.
 
     Args:
-        attr: Attribute name to check
+        attr: Attribute name to check. Can be:
+            - Plain attribute name: "class", "id"
+            - Clark notation for namespaced attributes: "{http://www.w3.org/1999/xlink}href"
+            - QName object: etree.QName("http://www.w3.org/1999/xlink", "href")
         value: Expected attribute value
 
     Returns:
@@ -542,6 +621,10 @@ def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
             attribute_equals("class", "button")
             attribute_equals("data-type", "primary")
 
+        Namespaced attributes:
+            attribute_equals("{http://www.w3.org/1999/xlink}href", "#shape")
+            attribute_equals(etree.QName("http://www.w3.org/1999/xlink", "href"), "#shape")
+
         With chaining (enabled by @supports_attributes):
             # Match elements with class="button" that also have a style attribute
             attribute_equals("class", "button").with_attribute("style")
@@ -549,6 +632,7 @@ def attribute_equals(attr: str, value: str) -> ElementPredicateFactory:
             # Match elements with specific role that have data attributes
             attribute_equals("role", "button").with_attribute("data-action")
     """
+    attr = qname_to_str(attr)
     _validate_attribute_name(attr)
 
     def create_document_predicate(root: etree._Element) -> ElementPredicate:

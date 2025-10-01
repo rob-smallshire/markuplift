@@ -2,6 +2,7 @@
 
 import re
 from inspect import cleandoc
+from lxml import etree
 
 from markuplift import (
     Formatter,
@@ -15,6 +16,18 @@ from markuplift import (
     reorder_css_properties,
 )
 from markuplift.predicates import tag_name, has_class, attribute_matches, any_element, pattern
+
+
+def _allowed_types_message(allow_none: bool = False) -> str:
+    """Generate the expected error message for allowed types in _create_matcher.
+
+    This matches the dynamic error message generation in predicates._create_matcher
+    to avoid fragile hard-coded strings in tests.
+    """
+    allowed_types = [str.__name__, etree.QName.__name__, re.Pattern.__name__, "callable"]
+    if allow_none:
+        allowed_types.append("None")
+    return ", ".join(allowed_types[:-1]) + ", or " + allowed_types[-1]
 
 
 def test_basic_attribute_formatting():
@@ -427,13 +440,14 @@ def test_invalid_name_type_error():
     import pytest
     from markuplift.predicates import attribute_matches
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got int"):
+    allowed = _allowed_types_message(allow_none=False)
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got int"):
         attribute_matches(123)  # Invalid type
 
     with pytest.raises(TypeError, match="attribute_name cannot be None"):
         attribute_matches(None)  # None not allowed for name
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got list"):
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got list"):
         attribute_matches([])  # List not allowed
 
 
@@ -442,11 +456,12 @@ def test_invalid_value_type_error():
     import pytest
     from markuplift.predicates import attribute_matches
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got int"):
-        attribute_matches("class", 123)  # Invalid type
+    allowed_with_none = _allowed_types_message(allow_none=True)
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got int"):
+        attribute_matches("class", 123)  # type: ignore[arg-type]  # Invalid type
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got list"):
-        attribute_matches("class", [])  # List not allowed
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got list"):
+        attribute_matches("class", [])  # type: ignore[arg-type]  # List not allowed
 
 
 def test_empty_string_name_and_value():
@@ -475,11 +490,14 @@ def test_predicate_factory_with_attribute_error_cases():
     import pytest
     from markuplift.predicates import tag_name
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got int"):
-        tag_name("div").with_attribute(123)
+    allowed = _allowed_types_message(allow_none=False)
+    allowed_with_none = _allowed_types_message(allow_none=True)
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got int"):
-        tag_name("div").with_attribute("class", 123)
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got int"):
+        tag_name("div").with_attribute(123)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got int"):
+        tag_name("div").with_attribute("class", 123)  # type: ignore[arg-type]
 
 
 def test_regex_compilation_safety():
@@ -509,12 +527,13 @@ def test_chaining_with_invalid_types():
     from markuplift.predicates import has_class
 
     predicate_factory = has_class("test")
+    allowed_with_none = _allowed_types_message(allow_none=True)
 
     with pytest.raises(TypeError, match="attribute_name cannot be None"):
-        predicate_factory.with_attribute(None)
+        predicate_factory.with_attribute(None)  # type: ignore[arg-type]
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got list"):
-        predicate_factory.with_attribute("class", [])
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got list"):
+        predicate_factory.with_attribute("class", [])  # type: ignore[arg-type]
 
 
 def test_type_safety_edge_cases():
@@ -524,22 +543,25 @@ def test_type_safety_edge_cases():
     # Test that boolean values are rejected
     import pytest
 
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got bool"):
-        attribute_matches(True)
+    allowed = _allowed_types_message(allow_none=False)
+    allowed_with_none = _allowed_types_message(allow_none=True)
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got bool"):
-        attribute_matches("class", False)
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got bool"):
+        attribute_matches(True)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got bool"):
+        attribute_matches("class", False)  # type: ignore[arg-type]
 
     # Test that dict/tuple values are rejected
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got dict"):
-        attribute_matches({})
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got dict"):
+        attribute_matches({})  # type: ignore[arg-type]
 
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None, got tuple"):
-        attribute_matches("class", ())
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}, got tuple"):
+        attribute_matches("class", ())  # type: ignore[arg-type]
 
     # Test any_element chaining with invalid types
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable, got float"):
-        any_element().with_attribute(3.14)  # Float not allowed
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}, got float"):
+        any_element().with_attribute(3.14)  # type: ignore[arg-type]  # Float not allowed
 
 
 

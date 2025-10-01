@@ -29,18 +29,42 @@ def siblings(node: etree._Element) -> list[etree._Element]:
 
 
 def tagname(node: etree._Element) -> str:
-    """
-    Return a string tag name for any lxml.etree node:
-    - Elements: their normal tag
-    - Comments: '#comment'
-    - Processing instructions: '?<target>'
+    """Return a display name for any lxml node.
+
+    Returns namespace-aware tag names for elements, converting from Clark notation
+    to the more readable prefix:localname format. For comments and processing
+    instructions, returns special markers.
+
+    Args:
+        node: lxml Element, Comment, or ProcessingInstruction
+
+    Returns:
+        str: Display name for the node
+            - Elements: formatted with namespace prefix (e.g., "svg", "bx:grid")
+            - Comments: "#comment"
+            - Processing instructions: "?<target>"
+
+    Examples:
+        >>> tagname(svg_element)  # {http://www.w3.org/2000/svg}svg
+        "svg"
+
+        >>> tagname(grid_element)  # {https://boxy-svg.com}grid
+        "bx:grid"
+
+        >>> tagname(comment_node)
+        "#comment"
+
+        >>> tagname(pi_node)
+        "?xml-stylesheet"
     """
     if isinstance(node, etree._Comment) and node.tag is etree.Comment:
         return "#comment"
     elif isinstance(node, etree._ProcessingInstruction) and node.tag is etree.PI:
         return f"?{node.target}"
     else:
-        return str(node.tag)
+        # Use namespace-aware formatting for regular elements
+        from markuplift.namespace import format_tag_name
+        return format_tag_name(node)
 
 
 def is_xml_whitespace(text: str) -> bool:

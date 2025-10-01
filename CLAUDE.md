@@ -72,6 +72,7 @@ uv run bump-my-version bump major
 ### Core Components
 
 - **`src/markuplift/formatter.py`**: Main Formatter class that handles XML/HTML formatting logic
+- **`src/markuplift/namespace.py`**: XML namespace utilities for handling Clark notation, QNames, and namespace declarations
 - **`src/markuplift/cli.py`**: Command-line interface implementation (currently minimal)
 - **`src/markuplift/__main__.py`**: Entry point for the package
 - **`src/markuplift/utilities.py`**: Utility functions
@@ -106,6 +107,8 @@ Tests are organized by functionality:
 - `test_processing_instructions.py`: XML processing instruction tests
 - `test_self_closing_elements.py`: Self-closing tag tests
 - `test_text_formatting.py`: Text content formatting tests
+- `test_namespaces.py`: XML namespace handling tests (26 tests)
+- `test_namespace_predicates.py`: Namespace-aware predicate tests (14 tests)
 - `test_with_real_data.py`: **Approval tests** with real-world XML/HTML data (uses ApprovalTests)
 - `test_readme_examples.py`: Tests ensuring README examples work correctly
 - `helpers/predicates.py`: Test helper functions
@@ -130,6 +133,10 @@ The project uses `pyproject.toml` for configuration:
 - Uses approval testing (approvaltests) for some test validation
 - Hypothesis for property-based testing
 - The formatter preserves XML declarations, DOCTYPE declarations, processing instructions, and comments
+- **XML Namespace Support**: Formatter handles namespaced documents (e.g., SVG, XHTML), preserving namespace prefixes from input
+  - Predicates accept both Clark notation (`"{http://www.w3.org/2000/svg}rect"`) and `etree.QName` objects
+  - Namespace utilities in `src/markuplift/namespace.py` for conversion and formatting
+  - See `tests/test_namespaces.py` and `tests/test_namespace_predicates.py` for comprehensive examples
 - Elements are classified as block/inline based on predicates, with fallback logic for unclassified elements
 - Whitespace handling is configurable per element type
 - The codebase follows Python 3.12+ type annotations

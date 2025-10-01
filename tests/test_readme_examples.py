@@ -14,6 +14,7 @@ from examples.real_world_article import format_article_example
 from examples.complex_predicates import elements_with_attribute_values, table_cells_in_columns
 from examples.complex_predicates_usage import format_complex_predicates_example
 from examples.xml_document_formatting import format_xml_document_example
+from examples.namespace_example import format_svg_with_namespaces, format_svg_with_qnames, format_mixed_namespaces
 
 
 class TestReadmeExamples:
@@ -144,4 +145,19 @@ class TestReadmeExamples:
         # Execute the actual example function from the examples module
         input_file = test_data_path("readme_examples/attribute_formatting_example.html")
         formatted = format_attribute_formatting_example(input_file)
+        verify(formatted)
+
+    def test_namespace_svg_example(self):
+        """Test the namespace SVG example with Clark notation."""
+        formatted = format_svg_with_namespaces()
+        verify(formatted)
+
+    def test_namespace_svg_qname_example(self):
+        """Test the namespace SVG example with QName objects."""
+        formatted = format_svg_with_qnames()
+        verify(formatted)
+
+    def test_namespace_mixed_example(self):
+        """Test the mixed namespaces (XHTML + SVG) example."""
+        formatted = format_mixed_namespaces()
         verify(formatted)

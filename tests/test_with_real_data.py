@@ -57,6 +57,30 @@ def test_xml_doc(test_data_path):
     verify(actual)
 
 
+def test_svg_document(test_data_path):
+    svg_file = test_data_path("svg_example.svg")
+
+    # Define SVG-specific block elements
+    svg_block_elements = tag_in(
+        "{http://www.w3.org/2000/svg}svg",
+        "{http://www.w3.org/2000/svg}defs",
+        "{http://www.w3.org/2000/svg}linearGradient",
+        "{http://www.w3.org/2000/svg}rect",
+        "{http://www.w3.org/2000/svg}circle",
+        "{http://www.w3.org/2000/svg}use",
+        "{http://www.w3.org/2000/svg}text",
+        "{https://boxy-svg.com}grid",
+    )
+
+    formatter = XmlFormatter(
+        block_when=svg_block_elements,
+        preserve_whitespace_when=tag_in("{http://www.w3.org/2000/svg}text"),
+        default_type=ElementType.INLINE,
+    )
+    actual = formatter.format_file(svg_file)
+    verify(actual)
+
+
 def beautify_js(text: str, formatter, physical_indent_level: int) -> str:
     text = text or ""
     if text.strip() == "":

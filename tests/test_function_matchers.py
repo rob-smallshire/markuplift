@@ -3,9 +3,22 @@
 import re
 import pytest
 from inspect import cleandoc
+from lxml import etree
 
 from markuplift import Formatter
 from markuplift.predicates import attribute_matches, html_block_elements, tag_in, any_element
+
+
+def _allowed_types_message(allow_none: bool = False) -> str:
+    """Generate the expected error message for allowed types in _create_matcher.
+
+    This matches the dynamic error message generation in predicates._create_matcher
+    to avoid fragile hard-coded strings in tests.
+    """
+    allowed_types = [str.__name__, etree.QName.__name__, re.Pattern.__name__, "callable"]
+    if allow_none:
+        allowed_types.append("None")
+    return ", ".join(allowed_types[:-1]) + ", or " + allowed_types[-1]
 
 
 def test_function_matcher_with_attribute_matches():
@@ -257,13 +270,16 @@ def test_function_matcher_edge_cases():
 def test_function_matcher_type_validation():
     """Test that function matcher validates argument types properly."""
 
+    allowed = _allowed_types_message(allow_none=False)
+    allowed_with_none = _allowed_types_message(allow_none=True)
+
     # Test invalid type for name parameter
-    with pytest.raises(TypeError, match="attribute_name must be str, re.Pattern, or callable"):
-        attribute_matches(123, "value")
+    with pytest.raises(TypeError, match=f"attribute_name must be {re.escape(allowed)}"):
+        attribute_matches(123, "value")  # type: ignore[arg-type]
 
     # Test invalid type for value parameter
-    with pytest.raises(TypeError, match="attribute_value must be str, re.Pattern, or callable, or None"):
-        attribute_matches("name", 123)
+    with pytest.raises(TypeError, match=f"attribute_value must be {re.escape(allowed_with_none)}"):
+        attribute_matches("name", 123)  # type: ignore[arg-type]
 
     # Test valid function types work
     try:
