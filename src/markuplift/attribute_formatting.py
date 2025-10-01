@@ -25,9 +25,75 @@ from markuplift.types import (
 )
 
 
+# Attribute formatter classes
+
+
+class AttributeFormatter(ABC):
+    """Base class for attribute formatting strategies.
+
+    AttributeFormatter instances represent the result of formatting an attribute
+    and encapsulate the logic for rendering it to output.
+    """
+
+    def __init__(self, name: str, value: str = ""):
+        """Initialize an attribute formatter.
+
+        Args:
+            name: The attribute name
+            value: The attribute value (may be empty string)
+        """
+        self._name = name
+        self._value = value
+
+    @property
+    def name(self) -> str:
+        """The attribute name."""
+        return self._name
+
+    @property
+    def value(self) -> str:
+        """The attribute value."""
+        return self._value
+
+    @abstractmethod
+    def format(self, spacer: str, escaping_strategy) -> str:
+        """Format the attribute for output.
+
+        Args:
+            spacer: Whitespace/newline to place before the attribute
+            escaping_strategy: Strategy for escaping attribute values
+
+        Returns:
+            Formatted attribute string, or empty string to omit
+        """
+        pass
+
+
+class AttributeValue(AttributeFormatter):
+    """Format attribute with quoted value: attr="value" """
+
+    def format(self, spacer: str, escaping_strategy) -> str:
+        escaped_value = escaping_strategy.quote_attribute(self.value)
+        return f"{spacer}{self.name}={escaped_value}"
+
+
+class AttributeFlag(AttributeFormatter):
+    """Format attribute as minimized boolean: attr (HTML5 only)"""
+
+    def format(self, spacer: str, escaping_strategy) -> str:
+        return f"{spacer}{self.name}"
+
+
+class AttributeOmitted(AttributeFormatter):
+    """Omit this attribute from output entirely."""
+
+    def format(self, spacer: str, escaping_strategy) -> str:
+        return ""
+
+
 class AttributeFormattingStrategy(ABC):
     """Abstract base class for attribute formatting strategies.
-x
+
     Strategies handle format-specific attribute formatting rules while
     supporting user customizations through layered composition.
     """
@@ -41,7 +107,7 @@ x
         user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
-    ) -> tuple[str, bool]:
+    ) -> AttributeFormatter:
         """Format an attribute value using strategy-specific rules and user customizations.
 
         Args:
@@ -53,9 +119,10 @@ x
             level: Current nesting level (for indentation)
 
         Returns:
-            Tuple of (formatted_value, should_minimize)
-            - formatted_value: The processed attribute value
-            - should_minimize: True if attribute should be rendered without value (e.g., <input checked>)
+            AttributeFormatter instance that encapsulates how to render the attribute:
+            - AttributeValue: render as attr="value"
+            - AttributeFlag: render as attr (minimized, e.g., HTML5 boolean)
+            - AttributeOmitted: don't render this attribute at all
         """
         pass
 
@@ -75,7 +142,7 @@ class NullAttributeStrategy(AttributeFormattingStrategy):
         user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
-    ) -> tuple[str, bool]:
+    ) -> AttributeFormatter:
         """Apply only user-defined formatters, no built-in formatting logic."""
         value = attr_value
 
@@ -85,8 +152,8 @@ class NullAttributeStrategy(AttributeFormattingStrategy):
                 value = formatter_func(value, formatter, level)
                 break
 
-        # Never minimize in null strategy
-        return value, False
+        # Always return AttributeValue (never minimize in null strategy)
+        return AttributeValue(attr_name, value)
 
 
 class XmlAttributeStrategy(AttributeFormattingStrategy):
@@ -104,7 +171,7 @@ class XmlAttributeStrategy(AttributeFormattingStrategy):
         user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
-    ) -> tuple[str, bool]:
+    ) -> AttributeFormatter:
         """Apply XML formatting rules followed by user customizations."""
         # For XML, we don't have special built-in rules yet
         # This is where XML-specific logic would go in the future
@@ -116,8 +183,8 @@ class XmlAttributeStrategy(AttributeFormattingStrategy):
                 value = formatter_func(value, formatter, level)
                 break
 
-        # XML never minimizes attributes
-        return value, False
+        # XML never minimizes attributes - always use AttributeValue
+        return AttributeValue(attr_name, value)
 
 
 class Html5AttributeStrategy(AttributeFormattingStrategy):
@@ -161,25 +228,28 @@ class Html5AttributeStrategy(AttributeFormattingStrategy):
         user_formatters: Dict[AttributePredicate, AttributeValueFormatter],
         formatter: Any,
         level: int,
-    ) -> tuple[str, bool]:
+    ) -> AttributeFormatter:
         """Apply HTML5 formatting rules followed by user customizations."""
         value = attr_value
-        should_minimize = False
 
         # Apply HTML5-specific formatting rules first
         if attr_name in self.BOOLEAN_ATTRIBUTES:
             value = self._format_boolean_attribute(attr_value)
-            should_minimize = True  # HTML5 boolean attributes should be minimized
+            # Apply user formatters on top (though they rarely modify boolean attributes)
+            for predicate, formatter_func in user_formatters.items():
+                if predicate(element, attr_name, value):
+                    value = formatter_func(value, formatter, level)
+                    break
+            # Return AttributeFlag for HTML5 boolean attributes (minimized rendering)
+            return AttributeFlag(attr_name, value)
 
-        # Apply user formatters on top
+        # Apply user formatters for non-boolean attributes
         for predicate, formatter_func in user_formatters.items():
             if predicate(element, attr_name, value):
                 value = formatter_func(value, formatter, level)
-                # Note: User formatters can change the value but minimization decision
-                # is based on the original HTML5 boolean attribute status
                 break
 
-        return value, should_minimize
+        return AttributeValue(attr_name, value)
 
     def _format_boolean_attribute(self, attr_value: str) -> str:
         """Format boolean attributes according to HTML5 rules.

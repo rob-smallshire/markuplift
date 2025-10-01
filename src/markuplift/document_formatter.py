@@ -426,16 +426,12 @@ class DocumentFormatter:
                             k = k_qname.localname
                     # Apply attribute formatters using strategy pattern
                     physical_level = annotations.annotation(node, PHYSICAL_LEVEL_ANNOTATION_KEY, 0)
-                    formatted_value, should_minimize = self._attribute_strategy.format_attribute(
+                    attribute_formatter = self._attribute_strategy.format_attribute(
                         node, k, v, self._attribute_content_formatters, self, physical_level + int(must_wrap_attributes)
                     )
 
-                    if should_minimize:
-                        # Strategy determined this attribute should be minimized (e.g., HTML5 boolean attributes)
-                        parts.append(f"{spacer}{k}")
-                    else:
-                        escaped_value = self._escaping_strategy.quote_attribute(formatted_value)
-                        parts.append(f"{spacer}{k}={escaped_value}")
+                    # Use polymorphic format() to render the attribute
+                    parts.append(attribute_formatter.format(spacer, self._escaping_strategy))
                 if real_attributes and must_wrap_attributes:
                     parts.append("\n" + self._one_indent * int(annotations.annotation(node, "physical_level", 0)))
 

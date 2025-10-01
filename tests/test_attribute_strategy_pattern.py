@@ -5,6 +5,7 @@ from inspect import cleandoc
 
 from markuplift import Formatter, Html5Formatter, XmlFormatter
 from markuplift.attribute_formatting import (
+    AttributeValue,
     AttributeFormattingStrategy,
     Html5AttributeStrategy,
     XmlAttributeStrategy,
@@ -18,7 +19,7 @@ class MockAttributeStrategy(AttributeFormattingStrategy):
 
     def format_attribute(self, element, attr_name, attr_value, user_formatters, formatter, level):
         # Add prefix to all attribute values
-        return f"mock-{attr_value}", False
+        return AttributeValue(attr_name, f"mock-{attr_value}")
 
 
 def test_formatter_uses_null_strategy_by_default():
@@ -150,7 +151,8 @@ def test_strategy_receives_correct_parameters():
                     "level": level,
                 }
             )
-            return attr_value, False
+            from markuplift.attribute_formatting import AttributeValue
+            return AttributeValue(attr_name, attr_value)
 
     strategy = TestStrategy()
     example = cleandoc("""
@@ -221,7 +223,7 @@ def test_custom_strategy_integration():
                     value = formatter_func(value, formatter, level)
                     break
 
-            return value, False
+            return AttributeValue(attr_name, value)
 
     def suffix_formatter(value, formatter, level):
         return f"{value}-suffix"
