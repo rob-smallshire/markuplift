@@ -20,6 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.2.1",
+    "html5lib>=1.1",
     "jsbeautifier>=1.15.4",
     "lxml>=6.0.1",
     "pytest>=8.4.1",
@@ -65,6 +66,7 @@ test = [
 dev = [
     "bump-my-version>=0.28.0",
     {include-group = "doc"},
+    {include-group = "lint"},
     {include-group = "test"},
 ]
 
@@ -140,5 +142,6 @@ module = [
     "jsbeautifier.*",
     "approvaltests.*",
     "hypothesis.*",
+    "html5lib.*",
 ]
 ignore_missing_imports = true

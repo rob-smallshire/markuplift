@@ -6,6 +6,9 @@ their position in the tree structure and returning byte offsets.
 
 import xml.parsers.expat
 
+from html5lib._tokenizer import HTMLTokenizer
+from html5lib.constants import voidElements
+
 
 class XmlTagScanner:
     """XML tokenizer for locating elements in source bytes using expat.
@@ -154,13 +157,6 @@ class Html5TagScanner:
             Tuple of (start_byte, end_byte) for the element, or None if not found.
             The byte range includes the opening and closing tags.
         """
-        try:
-            from html5lib._tokenizer import HTMLTokenizer  # type: ignore[import-untyped]
-            from html5lib.constants import voidElements  # type: ignore[import-untyped]
-        except ImportError:
-            # html5lib not available, can't scan HTML5
-            return None
-
         # Track path through the tree
         current_path: list[int] = []
         depth_child_counts = [0]

@@ -246,23 +246,19 @@ def format_documentation_example(input_file: Path):
 **Output:**
 ```html
 <!DOCTYPE html>
-<html>
-  <body>
-    <div>
-      <h3>Documentation</h3>
-      <p>Here are some spaced examples:</p>
-      <ul>
-        <li>Installation: <code>   pip install markuplift   </code></li>
-        <li>Basic <em>configuration</em> and setup</li>
-        <li>Code example:
-          <pre>    def format_xml():
+<div>
+  <h3>Documentation</h3>
+  <p>Here are some spaced examples:</p>
+  <ul>
+    <li>Installation: <code>   pip install markuplift   </code></li>
+    <li>Basic <em>configuration</em> and setup</li>
+    <li>Code example:
+      <pre>    def format_xml():
         return "beautiful"
     </pre>
-        </li>
-      </ul>
-    </div>
-  </body>
-</html>
+    </li>
+  </ul>
+</div>
 ```
 
 ### Real-World Example
@@ -308,19 +304,15 @@ def format_article_example(input_file: Path):
 **Output:**
 ```html
 <!DOCTYPE html>
-<html>
-  <body>
-    <article>
-      <h1>Using Markuplift</h1>
-      <section>
-        <h2>Code Formatting</h2>
-        <p>Here's how to use our API with proper spacing:</p>
-        <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
-        <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
-      </section>
-    </article>
-  </body>
-</html>
+<article>
+  <h1>Using Markuplift</h1>
+  <section>
+    <h2>Code Formatting</h2>
+    <p>Here's how to use our API with proper spacing:</p>
+    <pre><code>from markuplift import Formatter formatter = Formatter( preserve_whitespace=True )</code></pre>
+    <p>The <em>preserve_whitespace</em> feature keeps code formatting intact while <strong>normalizing</strong> text content!</p>
+  </section>
+</article>
 ```
 
 ### Parameterized Custom Predicates
@@ -493,71 +485,69 @@ Premium Widget</td><td>20%</td><td>2024-12-31</td></tr></tbody></table>
 **Output:**
 ```html
 <!DOCTYPE html>
-<html>
-  <body>
-    <nav role="navigation">
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/
+<div>
+  <nav role="navigation">
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/
 products">Products</a></li>
-      </ul>
-    </nav>
-    <main>
-      <h1>Product Catalog</h1>
-      <table>
-        <colgroup>
-          <col class="name">
-          <col class="price">
-          <col class="currency">
-          <col class="stock">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Price</th>
-            <th> Currency</th>
-            <th>Stock</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Widget A</td>
-            <td> 19.99</td>
-            <td>USD</td>
-            <td>150</td>
-          </tr>
-          <tr>
-            <td>Widget B</td>
-            <td>29.99</td>
-            <td>EUR</td>
-            <td>75</td>
-          </tr>
-        </tbody>
-      </table>
-    </main>
-    <aside role="
+    </ul>
+  </nav>
+  <main>
+    <h1>Product Catalog</h1>
+    <table>
+      <colgroup>
+        <col class="name">
+        <col class="price">
+        <col class="currency">
+        <col class="stock">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Price</th>
+          <th> Currency</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Widget A</td>
+          <td> 19.99</td>
+          <td>USD</td>
+          <td>150</td>
+        </tr>
+        <tr>
+          <td>Widget B</td>
+          <td>29.99</td>
+          <td>EUR</td>
+          <td>75</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+  <aside role="
 complementary">
-      <h2>Special Offers</h2>
-      <p>Check out our latest deals!</p>
-      <table>
-        <thead>
-          <tr>
-            <th class="product">Item</th>
-            <th class="discount"> Discount</th>
-            <th class="date">Valid Until</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td> Premium Widget</td>
-            <td>20%</td>
-            <td>2024-12-31</td>
-          </tr>
-        </tbody>
-      </table>
-    </aside>
-  </body>
-</html>
+    <h2>Special Offers</h2>
+    <p>Check out our latest deals!</p>
+    <table>
+      <thead>
+        <tr>
+          <th class="product">Item</th>
+          <th class="discount"> Discount</th>
+          <th class="date">Valid Until</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td> Premium Widget</td>
+          <td>20%</td>
+          <td>2024-12-31</td>
+        </tr>
+      </tbody>
+    </table>
+  </aside>
+</div>
 ```
 
 ### Attribute Value Formatting
@@ -647,20 +637,16 @@ def format_attribute_formatting_example(input_file):
 **Output:**
 ```html
 <!DOCTYPE html>
-<html>
-  <body>
-    <div>
-      <p style="color: red;">Simple (1 property)</p>
-      <p style="color: blue; background: white;">Medium (2 properties)</p>
-      <p style="
-        color: green;
-        background: black;
-        margin: 10px;
-        padding: 5px
-      ">Complex (4 properties)</p>
-    </div>
-  </body>
-</html>
+<div>
+  <p style="color: red;">Simple (1 property)</p>
+  <p style="color: blue; background: white;">Medium (2 properties)</p>
+  <p style="
+    color: green;
+    background: black;
+    margin: 10px;
+    padding: 5px
+  ">Complex (4 properties)</p>
+</div>
 ```
 
 ### XML Document Formatting
