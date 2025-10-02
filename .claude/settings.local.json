@@ -24,7 +24,8 @@
       "Bash(pytest:*)",
       "Bash(gh api:*)",
       "Bash(gh issue close:*)",
-      "WebFetch(domain:lxml.de)"
+      "WebFetch(domain:lxml.de)",
+      "WebFetch(domain:stackoverflow.com)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SVG Serialization Test</title>
+    <style>
+        .test-section {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        svg {
+            border: 1px solid #000;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>SVG in HTML5: Self-Closing Tag Tests</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Self-closing rect element (XML-style)</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+            <rect x="10" y="10" width="30" height="30" fill="blue"/>
+            <circle cx="70" cy="25" r="15" fill="red"/>
+        </svg>
+        <p>Expected: Blue square and red circle should render</p>
+        <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Explicit closing tags (HTML-style)</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+            <rect x="10" y="10" width="30" height="30" fill="green"></rect>
+            <circle cx="70" cy="25" r="15" fill="orange"></circle>
+        </svg>
+        <p>Expected: Green square and orange circle should render</p>
+        <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Case-sensitive element names</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+            <defs>
+                <path id="textPath" d="M 10,50 Q 50,10 100,50 T 190,50"/>
+            </defs>
+            <textPath href="#textPath">
+                <tspan>This text follows a path</tspan>
+            </textPath>
+        </svg>
+        <p>Expected: Text following curved path (tests textPath case sensitivity)</p>
+        <div id="test3-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Mixed self-closing and explicit closing</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+            <rect x="10" y="10" width="30" height="30" fill="purple"/>
+            <g>
+                <circle cx="70" cy="25" r="15" fill="yellow"></circle>
+            </g>
+        </svg>
+        <p>Expected: Purple square and yellow circle (mixed styles should work)</p>
+        <div id="test4-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Self-closing affects nesting</h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">
+            <g fill="blue">
+                <rect x="10" y="10" width="30" height="30"/>
+            </g>
+            <g fill="red"/>
+            <rect x="60" y="10" width="30" height="30"/>
+        </svg>
+        <p>Expected: Blue square at x=10, red square at x=60 (second rect NOT inside self-closed g)</p>
+        <div id="test5-result"></div>
+    </div>
+
+    <script>
+        // Simple visual validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const tests = [
+                { id: 'test1', selector: 'rect[fill="blue"]', desc: 'Blue rect renders' },
+                { id: 'test2', selector: 'rect[fill="green"]', desc: 'Green rect renders' },
+                { id: 'test3', selector: 'textPath', desc: 'textPath element exists (case-sensitive)' },
+                { id: 'test4', selector: 'rect[fill="purple"]', desc: 'Purple rect renders' },
+                { id: 'test5', selector: 'rect[x="60"]', desc: 'Second rect exists' }
+            ];
+
+            tests.forEach(test => {
+                const section = document.querySelector(`#${test.id}-result`);
+                const element = document.querySelector(test.selector);
+
+                if (element) {
+                    section.innerHTML = `<span class="pass">✓ PASS:</span> ${test.desc}`;
+                } else {
+                    section.innerHTML = `<span class="fail">✗ FAIL:</span> ${test.desc}`;
+                }
+            });
+
+            // Special test for case sensitivity
+            const textPathLower = document.querySelector('textpath');
+            const textPathProper = document.querySelector('textPath');
+            const test3Section = document.querySelector('#test3-result');
+
+            if (textPathProper && !textPathLower) {
+                test3Section.innerHTML += '<br><span class="pass">✓ Case preserved:</span> Found textPath but not textpath';
+            } else if (textPathLower && !textPathProper) {
+                test3Section.innerHTML += '<br><span class="fail">✗ Case lost:</span> Found textpath (lowercase) instead of textPath';
+            }
+        });
+    </script>
+
+    <div class="test-section">
+        <h2>Browser Information</h2>
+        <pre id="browser-info"></pre>
+    </div>
+
+    <script>
+        document.getElementById('browser-info').textContent =
+            `User Agent: ${navigator.userAgent}\n` +
+            `Document Mode: ${document.compatMode}`;
+    </script>
+</body>
+</html>

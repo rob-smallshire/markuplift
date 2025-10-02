@@ -97,10 +97,8 @@ class HtmlParsingStrategy(ParsingStrategy):
             >>> tree = strategy.parse_string('<div><img src="test.jpg"><br></div>')
             >>> # Properly handles void elements without requiring self-closing syntax
         """
-        # Parse as HTML fragment first
-        element = html.fromstring(content)
-        # Convert to ElementTree for consistency with other methods
-        return etree.ElementTree(element)
+        # Convert to bytes and use parse_bytes for consistent handling
+        return self.parse_bytes(content.encode('utf-8'))
 
     def parse_file(self, path: str) -> etree._ElementTree:
         """Parse HTML file using lxml's HTML parser.
@@ -111,7 +109,8 @@ class HtmlParsingStrategy(ParsingStrategy):
         Returns:
             ElementTree with HTML5-aware parsing applied
         """
-        return html.parse(path)
+        with open(path, 'rb') as f:
+            return self.parse_bytes(f.read())
 
     def parse_bytes(self, content: bytes) -> etree._ElementTree:
         """Parse HTML bytes using lxml's HTML parser.
@@ -162,8 +161,8 @@ class XmlParsingStrategy(ParsingStrategy):
             >>> tree = strategy.parse_string('<root><child>content</child></root>')
             >>> # Requires well-formed XML with proper closing tags
         """
-        element = etree.fromstring(content, parser=self._parser)
-        return etree.ElementTree(element)
+        # Convert to bytes and use parse_bytes for consistent handling
+        return self.parse_bytes(content.encode('utf-8'))
 
     def parse_file(self, path: str) -> etree._ElementTree:
         """Parse XML file using lxml's XML parser.
@@ -177,7 +176,8 @@ class XmlParsingStrategy(ParsingStrategy):
         Raises:
             XMLSyntaxError: If the file contains malformed XML
         """
-        return etree.parse(path, parser=self._parser)
+        with open(path, 'rb') as f:
+            return self.parse_bytes(f.read())
 
     def parse_bytes(self, content: bytes) -> etree._ElementTree:
         """Parse XML bytes using lxml's XML parser.

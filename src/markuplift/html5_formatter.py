@@ -6,6 +6,7 @@ users control element classification through predicate factories.
 """
 
 from typing import Optional
+from lxml import etree
 from markuplift.formatter import Formatter
 from markuplift.escaping import HtmlEscapingStrategy
 from markuplift.parsing import HtmlParsingStrategy
@@ -73,6 +74,7 @@ class Html5Formatter:
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
+        parse_as_xml_when: ElementPredicateFactory | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool = True,
@@ -96,6 +98,9 @@ class Html5Formatter:
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatter functions.
             reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderer functions.
                                    Defaults to html_attribute_order() for all elements if not provided.
+            parse_as_xml_when: Predicate factory for identifying subtrees to reparse as XML.
+                             Useful for preserving case-sensitive elements like SVG in HTML5 documents.
+                             Defaults to None (no XML reparsing).
             indent_size: Number of spaces per indentation level. Defaults to 2.
             default_type: Default type for unclassified elements (ElementType enum).
             preserve_cdata: Whether to preserve CDATA sections from input. Defaults to True.
@@ -123,6 +128,9 @@ class Html5Formatter:
             from markuplift.attribute_formatting import html_attribute_order
             from markuplift.predicates import any_element
             reorder_attributes_when = {any_element(): html_attribute_order()}
+
+        # Store parse_as_xml_when for use in format methods
+        self._parse_as_xml_when = parse_as_xml_when
 
         # Pre-configure HTML5-friendly strategies
         self._formatter = Formatter(
@@ -205,6 +213,11 @@ class Html5Formatter:
         """Whether CDATA sections are preserved from input."""
         return self._formatter.preserve_cdata
 
+    @property
+    def parse_as_xml_when(self) -> ElementPredicateFactory | None:
+        """The predicate factory for XML subtree reparsing."""
+        return self._parse_as_xml_when
+
     def derive(
         self,
         *,
@@ -217,6 +230,7 @@ class Html5Formatter:
         reformat_text_when: dict[ElementPredicateFactory, TextContentFormatter] | None = None,
         reformat_attribute_when: dict[AttributePredicateFactory, AttributeValueFormatter] | None = None,
         reorder_attributes_when: dict[ElementPredicateFactory, AttributeReorderer] | None = None,
+        parse_as_xml_when: ElementPredicateFactory | None = None,
         indent_size: Optional[int] = None,
         default_type: ElementType | None = None,
         preserve_cdata: bool | None = None,
@@ -238,6 +252,7 @@ class Html5Formatter:
             reformat_text_when: Dictionary mapping predicate factories to formatters (uses current if None).
             reformat_attribute_when: Dictionary mapping attribute predicate factories to formatters (uses current if None).
             reorder_attributes_when: Dictionary mapping predicate factories to attribute reorderers (uses current if None).
+            parse_as_xml_when: Predicate factory for XML subtree reparsing (uses current if None).
             indent_size: Number of spaces per indentation level (uses current if None).
             default_type: Default type for unclassified elements (uses current if None).
             preserve_cdata: Whether to preserve CDATA sections from input (uses current if None).
@@ -286,6 +301,7 @@ class Html5Formatter:
             reorder_attributes_when=reorder_attributes_when
             if reorder_attributes_when is not None
             else self._formatter.reorder_attributes_when,
+            parse_as_xml_when=parse_as_xml_when if parse_as_xml_when is not None else self._parse_as_xml_when,
             indent_size=indent_size if indent_size is not None else self._formatter.indent_size,
             default_type=default_type if default_type is not None else self._formatter.default_type,
             preserve_cdata=preserve_cdata if preserve_cdata is not None else self.preserve_cdata,
@@ -301,7 +317,9 @@ class Html5Formatter:
         Returns:
             A pretty-printed HTML string.
         """
-        return self._formatter.format_file(file_path, doctype=doctype, xml_declaration=False)
+        with open(file_path, 'rb') as f:
+            source_bytes = f.read()
+        return self._format_with_source(source_bytes, doctype)
 
     def format_str(self, doc: str, doctype: str | None = None) -> str:
         """Format an HTML document from a string.
@@ -313,7 +331,8 @@ class Html5Formatter:
         Returns:
             A pretty-printed HTML string.
         """
-        return self._formatter.format_str(doc, doctype=doctype, xml_declaration=False)
+        source_bytes = doc.encode('utf-8')
+        return self._format_with_source(source_bytes, doctype)
 
     def format_bytes(self, doc: bytes, doctype: str | None = None) -> str:
         """Format an HTML document from bytes.
@@ -325,7 +344,7 @@ class Html5Formatter:
         Returns:
             A pretty-printed HTML string.
         """
-        return self._formatter.format_bytes(doc, doctype=doctype, xml_declaration=False)
+        return self._format_with_source(doc, doctype)
 
     def format_tree(self, tree, doctype: str | None = None) -> str:
         """Format an HTML document from an lxml ElementTree.
@@ -336,5 +355,114 @@ class Html5Formatter:
 
         Returns:
             A pretty-printed HTML string.
+
+        Note:
+            When formatting from a tree, no source bytes are available, so XML
+            subtree reparsing (parse_as_xml_when) cannot be applied.
         """
         return self._formatter.format_tree(tree, doctype=doctype, xml_declaration=False)
+
+    def _format_with_source(self, source_bytes: bytes, doctype: str | None = None) -> str:
+        """Format HTML from bytes, with optional XML subtree reparsing.
+
+        Args:
+            source_bytes: HTML document as bytes.
+            doctype: Optional DOCTYPE declaration to prepend to the output.
+
+        Returns:
+            A pretty-printed HTML string.
+        """
+        # Parse as HTML using the parsing strategy
+        tree = self._formatter._parsing_strategy.parse_bytes(source_bytes)
+
+        # Reparse XML subtrees if requested (modifies tree in-place)
+        if self._parse_as_xml_when:
+            self._reparse_xml_subtrees(tree, source_bytes)
+
+        # Format the tree (source_bytes no longer needed)
+        return self._formatter.format_tree(tree, doctype=doctype, xml_declaration=False)
+
+    def _reparse_xml_subtrees(self, tree: etree._ElementTree, source_bytes: bytes) -> None:
+        """Reparse specified subtrees as XML to preserve case.
+
+        Modifies tree in-place, replacing HTML-parsed elements with XML-parsed versions.
+
+        Args:
+            tree: The HTML-parsed ElementTree to modify.
+            source_bytes: The original source bytes for extraction.
+        """
+        from markuplift.source_locator import SimpleTagScanner
+
+        root = tree.getroot()
+
+        # Create predicate for this document
+        predicate = self._parse_as_xml_when(root)
+
+        # Find elements matching predicate
+        elements_to_reparse = []
+        for elem in root.iter():
+            if predicate(elem):
+                elements_to_reparse.append(elem)
+
+        # Reparse each matching element
+        scanner = SimpleTagScanner(source_bytes)
+        xml_parser = etree.XMLParser()
+
+        for elem in elements_to_reparse:
+            # Get path from root
+            path = self._get_element_path(root, elem)
+
+            # Account for root element being at index [0] in scanner's view
+            scanner_path = [0] + path if path else [0]
+
+            # Find byte range in source
+            byte_range = scanner.find_element_range(scanner_path)
+            if not byte_range:
+                continue
+
+            start, end = byte_range
+
+            # Extract and reparse as XML
+            subtree_bytes = source_bytes[start:end]
+            try:
+                xml_elem = etree.fromstring(subtree_bytes, parser=xml_parser)
+            except etree.XMLSyntaxError:
+                # If XML parsing fails, skip this element
+                continue
+
+            # Replace in tree
+            parent = elem.getparent()
+            if parent is not None:
+                index = list(parent).index(elem)
+                parent.remove(elem)
+                parent.insert(index, xml_elem)
+
+    def _get_element_path(self, root: etree._Element, target: etree._Element) -> list[int]:
+        """Get path from root to target as list of child indices.
+
+        This counts only element children, not comments or other nodes,
+        to match the scanner's element-only counting.
+
+        Args:
+            root: The root element to start from.
+            target: The target element to find.
+
+        Returns:
+            List of child indices representing the path from root to target.
+            Returns empty list if target is root, None if target not found.
+        """
+        def walk(elem, path):
+            if elem is target:
+                return path
+            # Only count element children, filtering out comments and other nodes
+            element_index = 0
+            for child in elem:
+                # Check if child is an element (not a comment, PI, etc.)
+                if isinstance(child.tag, str):
+                    result = walk(child, path + [element_index])
+                    if result is not None:
+                        return result
+                    element_index += 1
+            return None
+
+        return walk(root, [])
