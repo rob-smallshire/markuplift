@@ -391,7 +391,7 @@ class Html5Formatter:
             tree: The HTML-parsed ElementTree to modify.
             source_bytes: The original source bytes for extraction.
         """
-        from markuplift.source_locator import SimpleTagScanner
+        from markuplift.source_locator import Html5TagScanner
 
         root = tree.getroot()
 
@@ -404,8 +404,8 @@ class Html5Formatter:
             if predicate(elem):
                 elements_to_reparse.append(elem)
 
-        # Reparse each matching element
-        scanner = SimpleTagScanner(source_bytes)
+        # Reparse each matching element using HTML5-aware scanner
+        scanner = Html5TagScanner(source_bytes)
         xml_parser = etree.XMLParser()
 
         for elem in elements_to_reparse:
@@ -417,6 +417,7 @@ class Html5Formatter:
 
             # Find byte range in source
             byte_range = scanner.find_element_range(scanner_path)
+
             if not byte_range:
                 continue
 
